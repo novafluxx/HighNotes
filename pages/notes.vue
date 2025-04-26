@@ -5,8 +5,22 @@
         <li><strong>High Notes</strong></li>
       </ul>
       <ul>
-        <li v-if="user">Logged in as {{ user.email }}</li>
-        <li><a href="#" @click.prevent="logout" :class="{ 'logout-link': true, 'disabled': loading }" :aria-disabled="loading">Logout</a></li>
+        <li>
+          <button @click="toggleTheme" class="theme-toggle" :aria-label="`Switch to ${isDarkMode ? 'light' : 'dark'} mode`">
+            {{ isDarkMode ? '☀️' : '🌙' }}
+          </button>
+        </li>
+        <li v-if="user" class="user-menu-container">
+          <a href="#" @click.prevent="toggleUserMenu" class="user-email-link" aria-haspopup="true" :aria-expanded="isUserMenuOpen">
+            {{ user.email }} &#9660; <!-- Down arrow indicator -->
+          </a>
+          <transition name="slide-fade">
+            <div v-if="isUserMenuOpen" class="user-menu-dropdown" ref="userMenuRef">
+              <a href="#" @click.prevent="handleLogout" class="dropdown-item">Logout</a>
+              <!-- Add other menu items here if needed -->
+            </div>
+          </transition>
+        </li>
       </ul>
     </nav>
 
@@ -55,7 +69,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, computed } from 'vue'
+import { ref, onMounted, watch, computed, nextTick, onUnmounted } from 'vue'
 import { createClient, AuthError, type User } from '@supabase/supabase-js'
 import { useRouter, useRuntimeConfig } from '#app'
 
@@ -97,6 +111,9 @@ const selectedNote = ref<Note | null>(null)
 const originalSelectedNote = ref<Note | null>(null) // For dirty checking
 const loading = ref(false)
 const statusMessage = ref('')
+const isUserMenuOpen = ref(false)
+const userMenuRef = ref<HTMLElement | null>(null); // Ref for the dropdown element
+const isDarkMode = ref(false); // Theme state
 
 // Computed property to check if the selected note has changed
 const isNoteDirty = computed(() => {
@@ -232,7 +249,6 @@ const deleteNote = async () => {
     }
 }
 
-
 // Logout function
 const logout = async () => {
   loading.value = true;
@@ -248,8 +264,84 @@ const logout = async () => {
   }
 }
 
+// --- User Menu Logic ---
+const toggleUserMenu = () => {
+  isUserMenuOpen.value = !isUserMenuOpen.value;
+}
+
+const closeUserMenu = () => {
+  isUserMenuOpen.value = false;
+}
+
+// Wrapper for logout that also closes the menu
+const handleLogout = async () => {
+  closeUserMenu();
+  await logout();
+}
+
+// Click outside handler
+const handleClickOutside = (event: MouseEvent) => {
+  const target = event.target as HTMLElement;
+  // Close if click is outside dropdown and not on the trigger link
+  if (
+    userMenuRef.value &&
+    !userMenuRef.value.contains(target) &&
+    !target.closest('.user-email-link')
+  ) {
+    closeUserMenu();
+  }
+};
+
+// Watch the menu state to add/remove the global listener
+watch(isUserMenuOpen, (isOpen) => {
+  if (isOpen) {
+    // Use nextTick to ensure the menu is rendered before adding listener
+    nextTick(() => {
+      document.addEventListener('click', handleClickOutside);
+    });
+  } else {
+    document.removeEventListener('click', handleClickOutside);
+  }
+});
+
+// Cleanup listener on unmount
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside);
+});
+// --- End User Menu Logic ---
+
+// --- Theme Logic ---
+const applyTheme = (dark: boolean) => {
+  const theme = dark ? 'dark' : 'light';
+  document.documentElement.dataset.theme = theme;
+  isDarkMode.value = dark;
+  if (process.client) {
+      localStorage.setItem('theme', theme);
+  }
+}
+
+const toggleTheme = () => {
+  applyTheme(!isDarkMode.value);
+}
+
+const initializeTheme = () => {
+  if (!process.client) return; // Only run on client
+
+  const storedTheme = localStorage.getItem('theme');
+  let preferDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+
+  if (storedTheme) {
+    applyTheme(storedTheme === 'dark');
+  } else {
+    applyTheme(preferDark);
+  }
+}
+// --- End Theme Logic ---
+
 // Check authentication on mount and fetch notes
 onMounted(async () => {
+  initializeTheme(); // Set initial theme
+
   const { data: { session } } = await supabase.auth.getSession();
   if (!session) {
     router.push('/'); // Redirect if not logged in
@@ -277,7 +369,6 @@ watch(selectedNote, (newVal, oldVal) => {
     statusMessage.value = ''; // Clear status when changing notes
   }
 });
-
 </script>
 
 <style scoped>
@@ -437,20 +528,75 @@ article form textarea {
     resize: vertical; /* Allow vertical resize only */
 }
 
-/* Logout Link Styling */
-.logout-link {
-  color: var(--pico-primary);
-  text-decoration: none;
-  cursor: pointer;
-}
-.logout-link:hover {
-  text-decoration: underline;
-}
-.logout-link.disabled {
-  color: var(--pico-muted-color);
-  cursor: not-allowed;
-  pointer-events: none; /* Prevent click events when disabled */
-  opacity: 0.7;
+/* User Menu Specific Styles */
+.user-menu-container {
+  position: relative; /* Needed for absolute positioning of dropdown */
+  margin-left: 1rem; /* Adjust spacing */
 }
 
+.user-email-link {
+  cursor: pointer;
+  text-decoration: none;
+  color: var(--pico-contrast); /* Or primary color */
+  padding: 0.5rem; /* Add some padding for easier clicking */
+}
+
+.user-email-link:hover {
+  text-decoration: underline;
+}
+
+.user-menu-dropdown {
+  position: absolute;
+  top: 100%; /* Position below the email link */
+  right: 0;
+  background-color: var(--pico-card-background-color);
+  border: 1px solid var(--pico-muted-border-color);
+  border-radius: var(--pico-border-radius);
+  box-shadow: var(--pico-card-box-shadow);
+  padding: 0.5rem 0; /* Padding top/bottom */
+  min-width: 150px; /* Adjust as needed */
+  z-index: 10; /* Ensure it's above other content */
+  margin-top: 0.5rem; /* Small gap */
+}
+
+.dropdown-item {
+  display: block;
+  padding: 0.5rem 1rem; /* Padding left/right */
+  color: var(--pico-contrast);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.dropdown-item:hover {
+  background-color: var(--pico-muted-background-color);
+}
+
+/* Transition Styles */
+.slide-fade-enter-active {
+  transition: all 0.2s ease-out;
+}
+
+.slide-fade-leave-active {
+  transition: all 0.2s cubic-bezier(1, 0.5, 0.8, 1);
+}
+
+.slide-fade-enter-from,
+.slide-fade-leave-to {
+  transform: translateY(-10px);
+  opacity: 0;
+}
+
+/* Theme Toggle Styles */
+.theme-toggle {
+  background: none;
+  border: none;
+  padding: 0.5rem; /* Match user link padding */
+  cursor: pointer;
+  font-size: 1.2em; /* Make icon slightly larger */
+  line-height: 1; /* Prevent extra spacing */
+  color: var(--pico-contrast);
+}
+.theme-toggle:hover {
+  opacity: 0.8;
+}
 </style>
