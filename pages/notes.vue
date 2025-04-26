@@ -1,48 +1,55 @@
 <template>
-  <div class="container">
-    <nav class="container-fluid">
+  <div class="notes-page">
+    <nav class="container-fluid header-nav">
       <ul>
         <li><strong>High Notes</strong></li>
       </ul>
       <ul>
         <li v-if="user">Logged in as {{ user.email }}</li>
-        <li><button @click="logout" class="secondary outline" :disabled="loading">Logout</button></li>
+        <li><a href="#" @click.prevent="logout" :class="{ 'logout-link': true, 'disabled': loading }" :aria-disabled="loading">Logout</a></li>
       </ul>
     </nav>
 
-    <div class="grid">
-      <aside>
-        <h3>My Notes</h3>
-        <button @click="createNewNote" :disabled="loading">New Note +</button>
-        <div v-if="notes.length">
-          <a href="#" v-for="note in notes" :key="note.id" @click.prevent="selectNote(note)" :aria-busy="loading && selectedNote?.id === note.id" :class="{ 'secondary': selectedNote?.id === note.id }">
-            {{ note.title || 'Untitled Note' }}
+    <div class="main-content">
+      <aside class="sidebar">
+        <div class="sidebar-header">
+           <h3>My Notes</h3>
+           <button @click="createNewNote" :disabled="loading" class="outline small">New Note</button>
+        </div>
+        <div class="notes-list" v-if="notes.length">
+          <a href="#" v-for="note in notes" :key="note.id!" @click.prevent="selectNote(note)" :aria-busy="loading && selectedNote?.id === note.id" :class="{ 'active': selectedNote?.id === note.id }">
+             <span class="note-title">{{ note.title || 'Untitled Note' }}</span>
+             <span class="note-date">{{ formatDate(note.updated_at) }}</span>
           </a>
         </div>
-        <p v-else-if="!loading">No notes yet. Create one!</p>
-        <p v-else aria-busy="true">Loading notes...</p>
+        <p v-else-if="!loading" class="no-notes">No notes yet.</p>
+         <p v-else aria-busy="true" class="loading-notes">Loading notes...</p>
       </aside>
 
-      <article>
-        <form v-if="selectedNote" @submit.prevent="saveNote">
-          <label for="title">
-            Title
-            <input type="text" id="title" name="title" v-model="selectedNote.title" required :disabled="loading">
-          </label>
-          <label for="content">
-            Content
-            <textarea id="content" name="content" v-model="selectedNote.content" rows="10" :disabled="loading"></textarea>
-          </label>
-          <div class="grid">
-            <button type="submit" :disabled="!isNoteDirty || loading" :aria-busy="loading">Save Note</button>
-            <button type="button" class="contrast" @click="deleteNote" :disabled="!selectedNote.id || loading" :aria-busy="loading">Delete Note</button>
-          </div>
-          <p v-if="statusMessage">{{ statusMessage }}</p>
-        </form>
-        <div v-else>
-          <p>Select a note from the left, or create a new one.</p>
+      <main class="editor-area">
+        <article v-if="selectedNote">
+          <form @submit.prevent="saveNote">
+            <label for="title">
+              Title
+              <input type="text" id="title" name="title" v-model="selectedNote.title" required :disabled="loading">
+            </label>
+            <label for="content">
+              Content
+              <textarea id="content" name="content" v-model="selectedNote.content" rows="10" :disabled="loading"></textarea>
+            </label>
+            <div class="grid">
+              <button type="submit" :disabled="!isNoteDirty || loading" :aria-busy="loading">Save Note</button>
+              <button type="button" class="contrast" @click="deleteNote" :disabled="!selectedNote.id || loading" :aria-busy="loading">Delete Note</button>
+              <!-- Optional Spacer -->
+              <div></div>
+            </div>
+            <p v-if="statusMessage">{{ statusMessage }}</p>
+          </form>
+        </article>
+        <div v-else class="placeholder-content">
+           <p>Select a note or create a new one.</p>
         </div>
-      </article>
+      </main>
     </div>
   </div>
 </template>
@@ -60,6 +67,18 @@ interface Note {
   content: string | null;
   inserted_at?: string;
   updated_at?: string;
+}
+
+// Helper function for date formatting
+const formatDate = (dateString: string | undefined): string => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  // Example format: 'Sep 26, 2024' - adjust options as needed
+  return date.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
 }
 
 // Supabase setup
@@ -173,14 +192,9 @@ const saveNote = async () => {
       statusMessage.value = 'Note saved successfully!';
       // Update the list and selection
       await fetchNotes(); // Re-fetch to get the latest list + updated_at timestamps
-      // Reselect the saved note (important for newly created notes to get their ID)
-      const newlySavedNote = notes.value.find(n => n.id === data!.id);
-      if (newlySavedNote) {
-        selectNote(newlySavedNote);
-      } else if (!selectedNote.value.id) { // If it was a new note, clear selection
-        selectedNote.value = null;
-        originalSelectedNote.value = null;
-      }
+      // Clear the selection and form
+      selectedNote.value = null;
+      originalSelectedNote.value = null;
     }
   } catch (err) {
     console.error('Error saving note:', err);
@@ -267,51 +281,176 @@ watch(selectedNote, (newVal, oldVal) => {
 </script>
 
 <style scoped>
-  /* PicoCSS handles most styling, add custom overrides here */
-  aside {
-    padding-right: 1rem;
-    border-right: 1px solid var(--pico-muted-border-color);
+.notes-page {
+  display: flex;
+  flex-direction: column;
+  height: 100vh; /* Full viewport height */
+  overflow: hidden; /* Prevent body scrolling */
+}
+
+.header-nav {
+  flex-shrink: 0; /* Prevent header from shrinking */
+  border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+.main-content {
+  display: flex;
+  flex-grow: 1; /* Take remaining vertical space */
+  overflow: hidden; /* Important for child scrolling */
+}
+
+.sidebar {
+  width: 280px; /* Fixed width for the sidebar */
+  flex-shrink: 0; /* Prevent sidebar from shrinking */
+  border-right: 1px solid var(--pico-muted-border-color);
+  display: flex;
+  flex-direction: column;
+  overflow-y: auto; /* Enable vertical scrolling for the sidebar */
+  padding: 1rem;
+  background-color: var(--pico-card-background-color); /* Slightly different background? */
+}
+
+.sidebar-header {
     display: flex;
-    flex-direction: column;
-  }
-  aside > h3 {
+    justify-content: space-between;
+    align-items: center;
     margin-bottom: 1rem;
-  }
-  aside > button { /* New Note button */
+    padding-bottom: 0.5rem;
+    border-bottom: 1px solid var(--pico-muted-border-color);
+}
+
+.sidebar-header h3 {
+    margin-bottom: 0;
+}
+
+.sidebar-header button.small { /* Adjust Pico button size if needed */
+  padding: 0.25rem 0.5rem;
+  font-size: 0.875em;
+}
+
+.notes-list {
+  flex-grow: 1; /* Allow list to take up remaining space */
+  /* overflow-y: auto; already handled by .sidebar */
+}
+
+.notes-list a {
+  display: block;
+  padding: 0.75rem 0.5rem;
+  margin-bottom: 0.5rem;
+  text-decoration: none;
+  border-radius: var(--pico-border-radius);
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.notes-list a:hover {
+  background-color: var(--pico-muted-background-color);
+}
+
+.notes-list a.active {
+  border-color: var(--pico-primary-border);
+  background-color: var(--pico-primary-background);
+  color: var(--pico-primary-inverse);
+}
+
+.notes-list a .note-title {
+  display: block;
+  font-weight: 600; /* Make title slightly bolder */
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis; /* Add ellipsis if title is too long */
+  margin-bottom: 0.25rem;
+}
+
+.notes-list a .note-date {
+  display: block;
+  font-size: 0.8em;
+  color: var(--pico-muted-color);
+}
+
+.notes-list a.active .note-date {
+    color: var(--pico-primary-inverse); /* Adjust date color for active note */
+    opacity: 0.8;
+}
+
+
+.no-notes,
+.loading-notes {
+    text-align: center;
+    color: var(--pico-muted-color);
+    margin-top: 2rem;
+}
+
+.editor-area {
+  flex-grow: 1; /* Take remaining horizontal space */
+  padding: 1.5rem;
+  overflow-y: auto; /* Enable vertical scrolling for the editor */
+  display: flex; /* Use flex to center placeholder */
+  flex-direction: column;
+}
+
+.editor-area article {
+  width: 100%; /* Ensure form takes full width */
+}
+
+
+.placeholder-content {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    height: 100%; /* Center vertically */
+    text-align: center;
+    color: var(--pico-muted-color);
+}
+
+
+/* Remove old grid styles if they existed */
+/* .grid { display: block; } Remove if you had .grid */
+
+/* Adjust nav styles from previous implementation if necessary */
+nav ul:last-child {
+  align-items: center;
+}
+nav ul:last-child li {
+  margin-left: 1rem;
+}
+nav ul:last-child button {
+  margin-bottom: 0;
+}
+
+/* Form button adjustments */
+article form .grid {
+  margin-top: 1rem;
+  grid-template-columns: auto auto 1fr; /* Save, Delete, Spacer */
+  gap: 1rem;
+}
+
+/* Optional: Style form elements for better spacing/look */
+article form label {
     margin-bottom: 1rem;
-  }
-  aside > div > a { /* Note links */
-    display: block;
-    padding: 0.5rem;
-    margin-bottom: 0.5rem;
-    text-decoration: none;
-    border-radius: var(--pico-border-radius);
-    border: 1px solid transparent; /* Placeholder for consistent spacing */
-    cursor: pointer;
-  }
-  aside > div > a:hover {
-    background-color: var(--pico-muted-background-color);
-  }
-  aside > div > a.secondary { /* Style for selected note */
-    border-color: var(--pico-secondary-border);
-    background-color: var(--pico-secondary-background);
-    color: var(--pico-secondary-inverse);
-  }
-  nav ul:last-child {
-    align-items: center; /* Vertically align logout button with email */
-  }
-  nav ul:last-child li {
-    margin-left: 1rem; /* Space between email and logout */
-  }
-  nav ul:last-child button {
-    margin-bottom: 0; /* Remove default button margin */
-  }
-  article form .grid { /* Adjust buttons spacing in the form */
-    margin-top: 1rem;
-    grid-template-columns: 1fr 1fr; /* Two equal columns for buttons */
-    gap: 1rem;
-  }
-  article p { /* Placeholder text */
-      color: var(--pico-muted-color);
-  }
+}
+article form input[type="text"] {
+    margin-bottom: 0.5rem; /* Space between title input and content label */
+}
+article form textarea {
+    resize: vertical; /* Allow vertical resize only */
+}
+
+/* Logout Link Styling */
+.logout-link {
+  color: var(--pico-primary);
+  text-decoration: none;
+  cursor: pointer;
+}
+.logout-link:hover {
+  text-decoration: underline;
+}
+.logout-link.disabled {
+  color: var(--pico-muted-color);
+  cursor: not-allowed;
+  pointer-events: none; /* Prevent click events when disabled */
+  opacity: 0.7;
+}
+
 </style>

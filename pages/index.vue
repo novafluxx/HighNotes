@@ -1,31 +1,36 @@
 <template>
-  <main class="container">
-    <nav>
+  <div>
+    <nav class="container-fluid header-nav">
       <ul>
         <li><strong>High Notes</strong></li>
       </ul>
+      <ul>
+        <!-- Login page has no user info/logout -->
+      </ul>
     </nav>
-    <article>
-      <hgroup>
-        <h1>Sign In</h1>
-        <h2>Access your high notes</h2>
-      </hgroup>
-      <form @submit.prevent="login">
-        <label for="email">
-          Email address
-          <input type="email" id="email" name="email" placeholder="Email address" v-model="email" required>
-        </label>
+    <main class="container">
+      <article>
+        <hgroup>
+          <h1>Sign In</h1>
+          <h2>Access your high notes</h2>
+        </hgroup>
+        <form @submit.prevent="login">
+          <label for="email">
+            Email address
+            <input type="email" id="email" name="email" placeholder="Email address" v-model="email" required>
+          </label>
 
-        <label for="password">
-          Password
-          <input type="password" id="password" name="password" placeholder="Password" v-model="password" required>
-        </label>
+          <label for="password">
+            Password
+            <input type="password" id="password" name="password" placeholder="Password" v-model="password" required>
+          </label>
 
-        <button type="submit" :disabled="loading">Login</button>
-        <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
-      </form>
-    </article>
-  </main>
+          <button type="submit" :disabled="loading">Login</button>
+          <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
+        </form>
+      </article>
+    </main>
+  </div>
 </template>
 
 <script setup lang="ts">
@@ -76,23 +81,33 @@ const login = async () => {
 </script>
 
 <style scoped>
-  main.container {
-    max-width: 768px; /* Adjust as needed */
-    margin-top: 2rem;
-  }
-  nav {
-    margin-bottom: 2rem;
-  }
-  article {
-    padding: 2rem;
-    border-radius: var(--border-radius);
-    box-shadow: var(--card-box-shadow);
-  }
-  button {
-    width: 100%;
-  }
-  .error-message {
-    color: var(--pico-color-red-500);
-    margin-top: 1rem;
-  }
+.header-nav {
+  border-bottom: 1px solid var(--pico-muted-border-color);
+  margin-bottom: 1rem; /* Add some space below the nav */
+}
+
+main.container {
+  max-width: 500px; /* Keep login form constrained */
+  margin-top: 2rem; /* Adjust top margin */
+}
+
+article {
+  padding: 2rem;
+  border-radius: var(--border-radius);
+  box-shadow: var(--card-box-shadow);
+}
+
+button {
+  width: 100%;
+}
+
+.error-message {
+  color: var(--pico-color-red);
+  margin-top: 1rem;
+}
+
+/* Ensure consistent alignment for the nav like in notes.vue */
+.header-nav ul:last-child {
+  align-items: center;
+}
 </style>
