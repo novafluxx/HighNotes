@@ -6,7 +6,7 @@
         <div>
           <hgroup>
             <h1>Sign In</h1>
-            <h2>Access your high notes</h2>
+            <h2>Access your <strong>High Notes</strong></h2>
           </hgroup>
           <form @submit.prevent="handleLogin">
             <label for="email">
