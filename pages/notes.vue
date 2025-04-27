@@ -1,15 +1,7 @@
 <template>
   <div class="notes-page">
-    <AppHeader /> <!-- Use the shared header component -->
+    <AppHeader :is-mobile="isMobile" @toggle-sidebar="toggleSidebar" /> <!-- Use the shared header component -->
     <div class="main-content">
-      <!-- Hamburger toggle for mobile -->
-      <button class="sidebar-toggle" @click="sidebarOpen = !sidebarOpen" aria-label="Toggle sidebar" :aria-expanded="sidebarOpen">
-        <span :class="{ 'open': sidebarOpen }">
-          <span class="bar"></span>
-          <span class="bar"></span>
-          <span class="bar"></span>
-        </span>
-      </button>
       <!-- Sidebar with transition -->
       <transition name="sidebar-slide">
         <aside v-show="sidebarOpen || !isMobile" class="sidebar" :class="{ 'mobile': isMobile, 'open': sidebarOpen }" @click.self="isMobile ? sidebarOpen = false : null">
@@ -79,40 +71,16 @@ const checkMobile = () => {
     else sidebarOpen.value = false;
   }
 };
-import { onMounted, onUnmounted } from 'vue';
-onMounted(() => {
-  checkMobile();
-  if (typeof window !== 'undefined') {
-    window.addEventListener('resize', checkMobile);
-  }
-});
-onUnmounted(() => {
-  if (typeof window !== 'undefined') {
-    window.removeEventListener('resize', checkMobile);
-  }
-});
-// No direct assignment to sidebarOpen at the top level (SSR-safe)
 
+// Theme setup
+const theme = ref('light');
 
-// Define constants for validation
-const TITLE_MAX_LENGTH = 255;
-const CONTENT_MAX_LENGTH = 10000;
+// === Setup ===
+const supabase = useSupabase();
+const router = useRouter();
 
-// Helper function for date formatting
-const formatDate = (dateString: string | undefined): string => {
-  if (!dateString) return '';
-  const date = new Date(dateString);
-  // Example format: 'Sep 26, 2024' - adjust options as needed
-  return date.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
-
-const supabase = useSupabase(); // Get Supabase client via composable
-const { user, isLoggedIn, loading: authLoading } = useAuth(); // Get auth state and user via composable
-const router = useRouter(); // Get router instance
+// Move useAuth earlier
+const { user, isLoggedIn, loading: authLoading } = useAuth();
 
 // Reactive state
 const notes = ref<Note[]>([]);
@@ -147,10 +115,30 @@ const isSaveDisabled = computed(() => {
   return !isNoteDirty.value || loading.value || isTitleTooLong.value || isContentTooLong.value;
 });
 
+// Define constants for validation
+const TITLE_MAX_LENGTH = 255;
+const CONTENT_MAX_LENGTH = 10000;
+
+// Helper function for date formatting
+const formatDate = (dateString: string | undefined): string => {
+  if (!dateString) return '';
+  const date = new Date(dateString);
+  // Example format: 'Sep 26, 2024' - adjust options as needed
+  return date.toLocaleDateString(undefined, {
+    year: 'numeric',
+    month: 'short',
+    day: 'numeric',
+  });
+}
+
+// === Note Fetching ===
 // Fetch notes function
 const fetchNotes = async () => {
-  if (!user.value) return;
+  if (!user.value) {
+    return;
+  }
   loading.value = true;
+  statusMessage.value = 'Loading notes...';
   try {
     const { data, error } = await supabase
       .from('notes')
@@ -158,11 +146,17 @@ const fetchNotes = async () => {
       .eq('user_id', user.value.id)
       .order('updated_at', { ascending: false });
 
-    if (error) throw error;
-    // Use type assertion carefully or validate data if necessary
-    notes.value = data as Note[]; // Supabase provides typed data based on select, cast might be okay if confident
-    // Alternatively, for more safety:
-    // notes.value = data ? data.map(item => item as Note) : [];
+    if (error) {
+      throw error;
+    }
+    // Use double assertion for type safety
+    notes.value = data as unknown as Note[] || [];
+    if (notes.value.length > 0) {
+      // Automatically select the most recently updated note
+      if (!selectedNote.value?.id) { // Only auto-select if no note is currently selected
+        selectNote(notes.value[0]);
+      }
+    }
   } catch (error) {
     console.error('Error fetching notes:', error);
     statusMessage.value = 'Failed to load notes.';
@@ -170,6 +164,39 @@ const fetchNotes = async () => {
     loading.value = false;
   }
 }
+
+// --- Watcher for Auth State (Stays outside onMounted) ---
+watch(authLoading, (newVal) => {
+  if (newVal === false) { // Wait until auth check is complete
+    if (!isLoggedIn.value) {
+      router.push('/');
+    } else {
+      fetchNotes();
+    }
+  }
+}, { immediate: true }); // immediate: true to run the check initially
+
+// --- Single onMounted Hook ---
+onMounted(() => {
+  // Theme initialization
+  const storedTheme = localStorage.getItem('theme') || 'light';
+  theme.value = storedTheme;
+  document.documentElement.setAttribute('data-theme', theme.value);
+
+  // Resize listener and initial check
+  if (typeof window !== 'undefined') {
+    window.addEventListener('resize', checkMobile);
+    checkMobile(); // Initial check
+    sidebarOpen.value = !isMobile.value; // Set initial sidebar state
+  }
+
+  // Cleanup function
+  return () => {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('resize', checkMobile);
+    }
+  };
+});
 
 // Select note function
 const selectNote = (note: Note) => {
@@ -217,7 +244,8 @@ const saveNote = async () => {
         .select()
         .single(); // Get the updated record
       if (error) throw error;
-      savedNoteData = data as Note; // Cast carefully
+      // Use double assertion for type safety
+      savedNoteData = data as unknown as Note;
     } else {
       // Insert new note
       const { data, error } = await supabase
@@ -226,7 +254,8 @@ const saveNote = async () => {
         .select()
         .single(); // Get the inserted record
       if (error) throw error;
-      savedNoteData = data as Note; // Cast carefully
+      // Use double assertion for type safety
+      savedNoteData = data as unknown as Note;
     }
 
     if (savedNoteData) {
@@ -270,28 +299,36 @@ const deleteNote = async () => {
   }
 }
 
-// Check authentication on mount and fetch notes
-onMounted(async () => {
-  // Auth check is now handled by useAuth composable.
-  // We might need to wait for authLoading to be false before fetching notes
-  // or redirecting if not logged in.
-
-  // Watch for auth state to settle before fetching notes or redirecting
-  watch(authLoading, (newVal) => {
-    if (newVal === false) { // Wait until auth check is complete
-      if (!isLoggedIn.value) {
-        console.log('User not logged in, redirecting...');
-        router.push('/');
-      } else {
-        console.log('User logged in, fetching notes...');
-        fetchNotes();
-      }
-    }
-  }, { immediate: true }); // immediate: true to run the check initially
-});
+// Toggle sidebar function
+const toggleSidebar = () => {
+  sidebarOpen.value = !sidebarOpen.value;
+}
 </script>
 
 <style scoped>
+/* Add relative positioning to the main page container */
+.notes-page {
+  display: flex;
+  flex-direction: column; /* Stack header and main content vertically */
+  height: 100vh;
+  overflow: hidden; /* Prevent scrolling on the main page */
+  position: relative; /* Added for absolute positioning context */
+}
+
+/* NEW: Add flex styles for main layout */
+.main-content {
+  display: flex;
+  flex-grow: 1; /* Allow main content to fill remaining vertical space if AppHeader shrinks */
+  overflow: hidden; /* Prevent overflow within the main area */
+}
+
+.editor-area {
+  flex-grow: 1; /* Make editor area fill remaining horizontal space */
+  overflow-y: auto; /* Allow editor scrolling */
+  padding: 1rem; /* Add some padding inside the editor */
+  min-width: 0; /* Prevent content from breaking flex layout */
+}
+
 /* Sidebar slide transition */
 .sidebar-slide-enter-active,
 .sidebar-slide-leave-active {
@@ -308,143 +345,17 @@ onMounted(async () => {
   opacity: 1;
 }
 
-/* Hamburger toggle styles */
-.sidebar-toggle {
-  display: none;
-  position: absolute;
-  top: 1rem;
-  left: 1rem;
-  z-index: 120;
-  background: none;
-  border: none;
-  padding: 0.5rem;
-  cursor: pointer;
-}
-.sidebar-toggle span {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  width: 2rem;
-  height: 2rem;
-  justify-content: center;
-  align-items: center;
-}
-.sidebar-toggle .bar {
-  width: 1.8rem;
-  height: 0.22rem;
-  background: var(--pico-primary-focus);
-  border-radius: 2px;
-  transition: all 0.3s;
-}
-.sidebar-toggle span.open .bar:nth-child(1) {
-  transform: translateY(0.44rem) rotate(45deg);
-}
-.sidebar-toggle span.open .bar:nth-child(2) {
-  opacity: 0;
-}
-.sidebar-toggle span.open .bar:nth-child(3) {
-  transform: translateY(-0.44rem) rotate(-45deg);
-}
+/* Removed Hamburger toggle styles */
 
-@media (max-width: 600px) {
-  .sidebar-toggle {
-    display: block;
-  }
-  .main-content {
-    grid-template-columns: 1fr !important;
-    padding: 0;
-    position: relative;
-  }
-  .sidebar {
-    position: fixed;
-    top: 0;
-    left: 0;
-    height: 100vh;
-    width: 80vw;
-    max-width: 320px;
-    background: var(--pico-card-background-color);
-    color: var(--pico-card-color);
-    z-index: 110;
-    box-shadow: 2px 0 16px 0 rgba(0,0,0,0.18);
-    border-right: 1px solid var(--pico-muted-border-color);
-    will-change: transform, opacity;
-  }
-  .editor-area {
-    margin-left: 0 !important;
-    width: 100vw;
-    min-width: 0;
-  }
-}
-
-.notes-page { /* Keep basic page structure if needed */
-  min-height: 100vh;
-}
-
-.main-content {
-  display: flex;
-  flex-grow: 1; /* Take remaining horizontal space */
-  padding: 1.5rem;
-  overflow-y: auto; /* Enable vertical scrolling for the editor */
-  display: flex; /* Use flex to center placeholder */
-  flex-direction: column;
-}
-
-.editor-area article {
-  width: 100%; /* Ensure form takes full width */
-}
-
-.placeholder-content {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%; /* Center vertically */
-  text-align: center;
-  color: var(--pico-muted-color);
-}
-
-/* Form button adjustments */
-article form .grid {
-  margin-top: 1rem;
-  grid-template-columns: auto auto 1fr; /* Adjust button layout */
-  gap: 1rem;
-}
-
-/* Optional: Style form elements for better spacing/look */
-article form label {
-  margin-bottom: 1rem;
-}
-article form input[type="text"] {
-  margin-bottom: 0.5rem; /* Space between title input and content label */
-}
-article form textarea {
-  resize: vertical; /* Allow vertical resize only */
-}
-
-/* Add back the necessary layout styles */
-.notes-page {
-  display: flex;
-  flex-direction: column;
-  height: 100vh; /* Full viewport height */
-}
-
-/* Header is handled by AppHeader now */
-
-.main-content {
-  flex-grow: 1; /* Takes remaining vertical space */
-  display: grid;
-  grid-template-columns: 300px 1fr; /* Sidebar width + Editor area */
-  gap: 1rem; /* Gap between sidebar and editor */
-  padding: 1rem;
-  overflow: hidden; /* Prevent overall page scroll */
-  background-color: var(--pico-main-background); /* Use PicoCSS variables */
-}
-
+/* Sidebar Styles */
 .sidebar {
   display: flex;
   flex-direction: column;
   overflow-y: auto; /* Allow sidebar scrolling if needed */
   border-right: 1px solid var(--pico-muted-border-color);
   padding-right: 1rem;
+  min-width: 250px; /* Add minimum width for non-mobile view */
+  flex-shrink: 0; /* Prevent sidebar from shrinking */
 }
 
 .sidebar-header {
@@ -498,10 +409,6 @@ article form textarea {
   text-align: center;
   color: var(--pico-muted-color);
   margin-top: 1rem;
-}
-
-.editor-area {
-  overflow-y: auto; /* Allow editor scrolling */
 }
 
 .placeholder-content {

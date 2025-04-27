@@ -1,7 +1,17 @@
 <template>
   <nav class="container-fluid header-nav">
     <ul>
-      <li><NuxtLink to="/" class="header-title"><strong>High Notes</strong></NuxtLink></li>
+      <li>
+        <!-- Hamburger Toggle for Mobile -->
+        <button v-if="isMobile" @click="$emit('toggle-sidebar')" class="mobile-sidebar-toggle" aria-label="Toggle sidebar">
+          <span>
+            <i></i>
+            <i></i>
+            <i></i>
+          </span>
+        </button>
+      </li>
+      <li><a href="#" @click.prevent="refreshPage" class="header-title"><strong>High Notes</strong></a></li>
     </ul>
     <ul>
       <li>
@@ -48,6 +58,15 @@
 import { ref, onMounted, watch, nextTick, onUnmounted } from 'vue';
 import { useAuth } from '~/composables/useAuth';
 import { NuxtLink } from '#components'; // Import NuxtLink for programmatic usage if needed, or just use in template
+
+// --- Props and Emits ---
+defineProps({
+  isMobile: {
+    type: Boolean,
+    default: false
+  }
+});
+defineEmits(['toggle-sidebar']);
 
 const { user, isLoggedIn, logout } = useAuth();
 
@@ -128,6 +147,12 @@ onUnmounted(() => {
   }
 });
 
+// Function to refresh the page
+const refreshPage = () => {
+  if (typeof window !== 'undefined') {
+    window.location.reload();
+  }
+};
 </script>
 
 <style scoped>
@@ -137,6 +162,7 @@ onUnmounted(() => {
   padding-bottom: 1px;
   margin-bottom: var(--pico-block-spacing-vertical);
   background-color: var(--pico-card-background-color); /* Ensure contrast */
+  display: flex;
 }
 
 .header-nav ul {
@@ -227,5 +253,35 @@ onUnmounted(() => {
 .slide-fade-leave-to {
   transform: translateY(-10px);
   opacity: 0;
+}
+
+/* Mobile Sidebar Toggle Styles */
+.mobile-sidebar-toggle {
+  display: inline-flex; /* Use flex for alignment */
+  align-items: center;
+  justify-content: center;
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  margin-right: 0.5rem; /* Space between button and title */
+  cursor: pointer;
+  color: var(--pico-nav-link-color);
+}
+
+.mobile-sidebar-toggle span {
+  display: flex;
+  flex-direction: column;
+  gap: 4px; /* Adjust gap between lines */
+  width: 20px; /* Adjust width */
+  height: 20px; /* Adjust height */
+  justify-content: center;
+}
+
+.mobile-sidebar-toggle i {
+  display: block;
+  background-color: currentColor; /* Use text color for lines */
+  height: 2px; /* Line thickness */
+  width: 100%;
+  border-radius: 1px;
 }
 </style>
