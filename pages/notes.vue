@@ -5,7 +5,7 @@
       <aside class="sidebar">
         <div class="sidebar-header">
           <h3>My Notes</h3>
-          <a href="#" @click.prevent="createNewNote" :aria-busy="loading">New Note</a>
+          <button @click.prevent="createNewNote" :aria-busy="loading">New</button>
         </div>
         <div class="notes-list" v-if="notes.length">
           <a href="#" v-for="note in notes" :key="note.id!" @click.prevent="selectNote(note)" :aria-busy="loading && selectedNote?.id === note.id" :class="{ 'active': selectedNote?.id === note.id }">
@@ -258,7 +258,7 @@ onMounted(async () => {
 /* Form button adjustments */
 article form .grid {
   margin-top: 1rem;
-  grid-template-columns: auto auto 1fr; /* Save, Delete, Spacer */
+  grid-template-columns: auto auto 1fr; /* Adjust button layout */
   gap: 1rem;
 }
 

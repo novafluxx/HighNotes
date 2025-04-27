@@ -133,8 +133,8 @@ onUnmounted(() => {
 <style scoped>
 .header-nav {
   border-bottom: 1px solid var(--pico-muted-border-color);
-  padding-top: 0.5rem;
-  padding-bottom: 0.5rem;
+  padding-top: 1px;
+  padding-bottom: 1px;
   margin-bottom: var(--pico-block-spacing-vertical);
   background-color: var(--pico-card-background-color); /* Ensure contrast */
 }
