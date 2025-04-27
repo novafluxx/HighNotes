@@ -5,7 +5,7 @@
       <aside class="sidebar">
         <div class="sidebar-header">
           <h3>My Notes</h3>
-          <button @click.prevent="createNewNote" :aria-busy="loading">New</button>
+          <button @click.prevent="createNewNote" :aria-busy="loading">New Note</button>
         </div>
         <div class="notes-list" v-if="notes.length">
           <a href="#" v-for="note in notes" :key="note.id!" @click.prevent="selectNote(note)" :aria-busy="loading && selectedNote?.id === note.id" :class="{ 'active': selectedNote?.id === note.id }">
@@ -23,13 +23,15 @@
             <label for="title">
               Title
               <input type="text" id="title" name="title" v-model="selectedNote.title" required :disabled="loading">
+              <small v-if="isTitleTooLong" class="error-message">Title cannot exceed {{ TITLE_MAX_LENGTH }} characters.</small>
             </label>
             <label for="content">
               Content
               <textarea id="content" name="content" v-model="selectedNote.content" rows="10" :disabled="loading"></textarea>
+              <small v-if="isContentTooLong" class="error-message">Content cannot exceed {{ CONTENT_MAX_LENGTH }} characters.</small>
             </label>
             <div class="grid">
-              <button type="submit" :disabled="!isNoteDirty || loading" :aria-busy="loading">Save Note</button>
+              <button type="submit" :disabled="isSaveDisabled" :aria-busy="loading">Save Note</button>
               <button type="button" class="contrast" @click="deleteNote" :disabled="!selectedNote.id || loading" :aria-busy="loading">Delete Note</button>
               <!-- Optional Spacer -->
               <div></div>
@@ -53,6 +55,10 @@ import { type Note } from '~/types'; // Import the Note type
 import { useAuth } from '~/composables/useAuth';
 import { useSupabase } from '~/composables/useSupabase';
 import AppHeader from '~/components/AppHeader.vue';
+
+// Define constants for validation
+const TITLE_MAX_LENGTH = 255;
+const CONTENT_MAX_LENGTH = 10000;
 
 // Helper function for date formatting
 const formatDate = (dateString: string | undefined): string => {
@@ -84,6 +90,23 @@ const isNoteDirty = computed(() => {
     selectedNote.value.title !== originalSelectedNote.value.title ||
     selectedNote.value.content !== originalSelectedNote.value.content
   );
+});
+
+// Computed properties for length validation
+const isTitleTooLong = computed(() => {
+  return selectedNote.value ? selectedNote.value.title.length > TITLE_MAX_LENGTH : false;
+});
+
+const isContentTooLong = computed(() => {
+  // Check if note exists AND content exists before checking length
+  return selectedNote.value && selectedNote.value.content
+    ? selectedNote.value.content.length > CONTENT_MAX_LENGTH
+    : false;
+});
+
+// Combine validation checks for button disabling
+const isSaveDisabled = computed(() => {
+  return !isNoteDirty.value || loading.value || isTitleTooLong.value || isContentTooLong.value;
 });
 
 // Fetch notes function
@@ -383,5 +406,13 @@ textarea {
 /* Ensure loading states look right */
 [aria-busy="true"] {
   cursor: wait;
+}
+
+/* Add styles for validation messages */
+.error-message {
+  color: var(--pico-color-red);
+  font-size: 0.8em;
+  display: block; /* Ensure it takes its own line */
+  margin-top: 0.25rem;
 }
 </style>
