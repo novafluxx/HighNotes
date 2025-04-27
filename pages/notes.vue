@@ -2,20 +2,31 @@
   <div class="notes-page">
     <AppHeader /> <!-- Use the shared header component -->
     <div class="main-content">
-      <aside class="sidebar">
-        <div class="sidebar-header">
-          <h3>My Notes</h3>
-          <button @click.prevent="createNewNote" :aria-busy="loading">New Note</button>
-        </div>
-        <div class="notes-list" v-if="notes.length">
-          <a href="#" v-for="note in notes" :key="note.id!" @click.prevent="selectNote(note)" :aria-busy="loading && selectedNote?.id === note.id" :class="{ 'active': selectedNote?.id === note.id }">
-            <span class="note-title">{{ note.title || 'Untitled Note' }}</span>
-            <span class="note-date">{{ formatDate(note.updated_at) }}</span>
-          </a>
-        </div>
-        <p v-else-if="!loading" class="no-notes">No notes yet.</p>
-        <p v-else aria-busy="true" class="loading-notes">Loading notes...</p>
-      </aside>
+      <!-- Hamburger toggle for mobile -->
+      <button class="sidebar-toggle" @click="sidebarOpen = !sidebarOpen" aria-label="Toggle sidebar" :aria-expanded="sidebarOpen">
+        <span :class="{ 'open': sidebarOpen }">
+          <span class="bar"></span>
+          <span class="bar"></span>
+          <span class="bar"></span>
+        </span>
+      </button>
+      <!-- Sidebar with transition -->
+      <transition name="sidebar-slide">
+        <aside v-show="sidebarOpen || !isMobile" class="sidebar" :class="{ 'mobile': isMobile, 'open': sidebarOpen }" @click.self="isMobile ? sidebarOpen = false : null">
+          <div class="sidebar-header">
+            <h3>My Notes</h3>
+            <button @click.prevent="createNewNote" :aria-busy="loading">New Note</button>
+          </div>
+          <div class="notes-list" v-if="notes.length">
+            <a href="#" v-for="note in notes" :key="note.id!" @click.prevent="selectNote(note)" :aria-busy="loading && selectedNote?.id === note.id" :class="{ 'active': selectedNote?.id === note.id }">
+              <span class="note-title">{{ note.title || 'Untitled Note' }}</span>
+              <span class="note-date">{{ formatDate(note.updated_at) }}</span>
+            </a>
+          </div>
+          <p v-else-if="!loading" class="no-notes">No notes yet.</p>
+          <p v-else aria-busy="true" class="loading-notes">Loading notes...</p>
+        </aside>
+      </transition>
 
       <main class="editor-area">
         <article v-if="selectedNote">
@@ -55,6 +66,33 @@ import { type Note } from '~/types'; // Import the Note type
 import { useAuth } from '~/composables/useAuth';
 import { useSupabase } from '~/composables/useSupabase';
 import AppHeader from '~/components/AppHeader.vue';
+
+// Responsive sidebar state
+const sidebarOpen = ref(false);
+const isMobile = ref(false);
+
+// Watch for window resize to update isMobile
+const checkMobile = () => {
+  if (typeof window !== 'undefined') {
+    isMobile.value = window.innerWidth <= 600;
+    if (!isMobile.value) sidebarOpen.value = true;
+    else sidebarOpen.value = false;
+  }
+};
+import { onMounted, onUnmounted } from 'vue';
+onMounted(() => {
+  checkMobile();
+  if (typeof window !== 'undefined') {
+    window.addEventListener('resize', checkMobile);
+  }
+});
+onUnmounted(() => {
+  if (typeof window !== 'undefined') {
+    window.removeEventListener('resize', checkMobile);
+  }
+});
+// No direct assignment to sidebarOpen at the top level (SSR-safe)
+
 
 // Define constants for validation
 const TITLE_MAX_LENGTH = 255;
@@ -139,6 +177,8 @@ const selectNote = (note: Note) => {
   selectedNote.value = { ...note }; // Clone to allow editing without modifying the list directly
   originalSelectedNote.value = { ...note }; // Store original for comparison
   statusMessage.value = '';
+  // Close sidebar on mobile after selecting a note
+  if (isMobile.value) sidebarOpen.value = false;
 }
 
 // Create new note function
@@ -252,6 +292,90 @@ onMounted(async () => {
 </script>
 
 <style scoped>
+/* Sidebar slide transition */
+.sidebar-slide-enter-active,
+.sidebar-slide-leave-active {
+  transition: transform 0.38s cubic-bezier(.4,2,.6,1), opacity 0.32s ease;
+}
+.sidebar-slide-enter-from,
+.sidebar-slide-leave-to {
+  transform: translateX(-100%);
+  opacity: 0;
+}
+.sidebar-slide-enter-to,
+.sidebar-slide-leave-from {
+  transform: translateX(0);
+  opacity: 1;
+}
+
+/* Hamburger toggle styles */
+.sidebar-toggle {
+  display: none;
+  position: absolute;
+  top: 1rem;
+  left: 1rem;
+  z-index: 120;
+  background: none;
+  border: none;
+  padding: 0.5rem;
+  cursor: pointer;
+}
+.sidebar-toggle span {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  width: 2rem;
+  height: 2rem;
+  justify-content: center;
+  align-items: center;
+}
+.sidebar-toggle .bar {
+  width: 1.8rem;
+  height: 0.22rem;
+  background: var(--pico-primary-focus);
+  border-radius: 2px;
+  transition: all 0.3s;
+}
+.sidebar-toggle span.open .bar:nth-child(1) {
+  transform: translateY(0.44rem) rotate(45deg);
+}
+.sidebar-toggle span.open .bar:nth-child(2) {
+  opacity: 0;
+}
+.sidebar-toggle span.open .bar:nth-child(3) {
+  transform: translateY(-0.44rem) rotate(-45deg);
+}
+
+@media (max-width: 600px) {
+  .sidebar-toggle {
+    display: block;
+  }
+  .main-content {
+    grid-template-columns: 1fr !important;
+    padding: 0;
+    position: relative;
+  }
+  .sidebar {
+    position: fixed;
+    top: 0;
+    left: 0;
+    height: 100vh;
+    width: 80vw;
+    max-width: 320px;
+    background: var(--pico-card-background-color);
+    color: var(--pico-card-color);
+    z-index: 110;
+    box-shadow: 2px 0 16px 0 rgba(0,0,0,0.18);
+    border-right: 1px solid var(--pico-muted-border-color);
+    will-change: transform, opacity;
+  }
+  .editor-area {
+    margin-left: 0 !important;
+    width: 100vw;
+    min-width: 0;
+  }
+}
+
 .notes-page { /* Keep basic page structure if needed */
   min-height: 100vh;
 }
