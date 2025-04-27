@@ -1,94 +1,74 @@
 <template>
   <div>
-    <nav class="container-fluid header-nav">
-      <ul>
-        <li><strong>High Notes</strong></li>
-      </ul>
-      <ul>
-        <!-- Login page has no user info/logout -->
-      </ul>
-    </nav>
-    <main class="container">
-      <article>
-        <hgroup>
-          <h1>Sign In</h1>
-          <h2>Access your high notes</h2>
-        </hgroup>
-        <form @submit.prevent="login">
-          <label for="email">
-            Email address
-            <input type="email" id="email" name="email" placeholder="Email address" v-model="email" required>
-          </label>
+    <AppHeader /> <!-- Use the shared header component -->
+    <main class="container main-container">
+      <article class="grid">
+        <div>
+          <hgroup>
+            <h1>Sign In</h1>
+            <h2>Access your high notes</h2>
+          </hgroup>
+          <form @submit.prevent="handleLogin">
+            <label for="email">
+              Email address
+              <input type="email" id="email" name="email" placeholder="Email address" v-model="email" required>
+            </label>
 
-          <label for="password">
-            Password
-            <input type="password" id="password" name="password" placeholder="Password" v-model="password" required>
-          </label>
+            <label for="password">
+              Password
+              <input type="password" id="password" name="password" placeholder="Password" v-model="password" required>
+            </label>
 
-          <button type="submit" :disabled="loading">Login</button>
-          <p v-if="errorMessage" class="error-message">{{ errorMessage }}</p>
-        </form>
+            <button type="submit" :disabled="loading" :aria-busy="loading">Login</button>
+            <p v-if="authError" class="error-message">{{ authError.message }}</p>
+          </form>
+        </div> <!-- Closing div for grid column, if applicable (assuming it was there before) -->
       </article>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue'
-import { createClient, AuthError } from '@supabase/supabase-js'
-import { useRouter, useRuntimeConfig } from '#app'
+import { ref, computed } from 'vue';
+import { useAuth } from '~/composables/useAuth';
+import AppHeader from '~/components/AppHeader.vue';
+import type { AuthError } from '@supabase/supabase-js'; // Import type if needed
 
-// Initialize Supabase client with validated config
-const config = useRuntimeConfig()
-const supabaseUrl = config.public.supabaseUrl as string
-const supabaseKey = config.public.supabaseKey as string
-if (!supabaseUrl || !supabaseKey) {
-  throw new Error('Missing SUPABASE_URL or SUPABASE_KEY in runtimeConfig')
-}
-const supabase = createClient(supabaseUrl, supabaseKey)
-
-// Get router for navigation
-const router = useRouter()
+const { login, loading: authLoading } = useAuth(); // Use login function and loading state from useAuth
 
 const email = ref('')
 const password = ref('')
-const loading = ref(false)
-const errorMessage = ref('')
+const authError = ref<AuthError | null>(null); // Store potential auth error
 
-const login = async () => {
-  loading.value = true
-  errorMessage.value = ''
+// Computed property to pass loading state to button
+const loading = computed(() => authLoading.value);
+
+const handleLogin = async () => {
+  authError.value = null; // Clear previous errors
   try {
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.value,
-      password: password.value
-    })
+    // Call the login function from useAuth
+    const { error } = await login(email.value, password.value);
     if (error) {
-      errorMessage.value = (error as AuthError).message
-    } else {
-      router.push('/notes')
+      authError.value = error;
+      console.error('Login Error:', error);
     }
-  } catch (err: unknown) {
-    if (err instanceof Error) {
-      errorMessage.value = err.message
-    } else {
-      errorMessage.value = String(err)
-    }
-  } finally {
-    loading.value = false
+    // Redirect is handled within the useAuth login function on success
+  } catch (error) {
+    // Handle unexpected errors if login itself throws (unlikely with current setup)
+    console.error('Unexpected Login Process Error:', error);
+    authError.value = { name: 'UnexpectedError', message: 'An unexpected error occurred.' } as AuthError;
   }
 }
 </script>
 
 <style scoped>
-.header-nav {
-  border-bottom: 1px solid var(--pico-muted-border-color);
-  margin-bottom: 1rem; /* Add some space below the nav */
+.main-container { /* Keep container styles */
+  margin-top: var(--pico-block-spacing-vertical);
+  max-width: 600px;
 }
 
-main.container {
-  max-width: 500px; /* Keep login form constrained */
-  margin-top: 2rem; /* Adjust top margin */
+hgroup h1 {
+  margin-bottom: 0;
 }
 
 article {
@@ -104,10 +84,5 @@ button {
 .error-message {
   color: var(--pico-color-red);
   margin-top: 1rem;
-}
-
-/* Ensure consistent alignment for the nav like in notes.vue */
-.header-nav ul:last-child {
-  align-items: center;
 }
 </style>
