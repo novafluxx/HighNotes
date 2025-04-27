@@ -55,8 +55,9 @@
 </template>
 
 <script setup lang="ts">
-import { ref, onMounted, watch, nextTick, onUnmounted } from 'vue';
-import { useAuth } from '~/composables/useAuth';
+import { ref, computed, onMounted, watch, defineProps, defineEmits, nextTick, onUnmounted } from 'vue';
+// useSupabaseUser will be auto-imported by Nuxt
+import { useAuth } from '~/composables/useAuth'; // Import useAuth for logout
 import { NuxtLink } from '#components'; // Import NuxtLink for programmatic usage if needed, or just use in template
 
 // --- Props and Emits ---
@@ -68,7 +69,12 @@ defineProps({
 });
 defineEmits(['toggle-sidebar']);
 
-const { user, isLoggedIn, logout } = useAuth();
+// Get user state from Supabase module
+const user = useSupabaseUser();
+const isLoggedIn = computed(() => !!user.value);
+
+// Get logout function and loading state from our composable
+const { logout, loading: logoutLoading } = useAuth();
 
 // --- Theme State & Logic ---
 const isDarkMode = ref(false);
@@ -112,8 +118,9 @@ const closeUserMenu = () => {
 }
 
 const handleLogout = async () => {
-  closeUserMenu();
-  await logout(); // Use logout from useAuth
+  console.log('Logout initiated');
+  isUserMenuOpen.value = false; // Close menu on logout attempt
+  await logout(); // Call the logout function from useAuth
 }
 
 const handleClickOutside = (event: MouseEvent) => {

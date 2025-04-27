@@ -1,71 +1,47 @@
 // composables/useAuth.ts
-import { ref, onMounted, readonly } from 'vue';
-import type { User, AuthError } from '@supabase/supabase-js';
-import { useSupabase } from './useSupabase';
-import { useRouter } from '#app';
+import { ref, readonly, computed } from 'vue';
+import type { AuthError } from '@supabase/supabase-js';
+import type { Database } from '~/database.types'; // Import generated DB types
+import { useRouter } from '#app'; // Nuxt's router composable
+// useSupabaseClient will be auto-imported by Nuxt
 
-const user = ref<User | null>(null);
-const loading = ref(true);
+// This composable now primarily provides login/logout *actions*
+// and a loading state for those actions.
+// User state management is delegated to useSupabaseUser().
 
 export const useAuth = () => {
-  const supabase = useSupabase();
+  const client = useSupabaseClient<Database>(); // Use standard composable with DB types
   const router = useRouter();
-
-  const fetchUser = async () => {
-    loading.value = true;
-    const { data: { session } } = await supabase.auth.getSession();
-    user.value = session?.user ?? null;
-    loading.value = false;
-  };
+  const loading = ref(false); // Loading state specifically for login/logout actions
 
   const login = async (email: string, password: string): Promise<{ error: AuthError | null }> => {
     loading.value = true;
-    const { error } = await supabase.auth.signInWithPassword({
+    const { error } = await client.auth.signInWithPassword({
       email,
       password,
     });
-    if (!error) {
-      await fetchUser(); // Update user state after login
-      router.push('/notes');
-    } else {
-        // Ensure loading is false even on error
-        loading.value = false;
-    }
+    // NOTE: User state updates handled by useSupabaseUser() reactively.
+    // NOTE: Redirection is handled by the @nuxtjs/supabase module config or the calling page (login.vue)
+    loading.value = false;
     return { error };
   };
 
   const logout = async () => {
     loading.value = true;
-    const { error } = await supabase.auth.signOut();
+    const { error } = await client.auth.signOut();
     if (!error) {
-      user.value = null;
-      router.push('/'); // Redirect to login
+      // User state will update automatically via useSupabaseUser()
+      router.push('/'); // Redirect after logout
     } else {
       console.error('Logout error:', error);
     }
     loading.value = false;
   };
 
-  // Fetch user on initial load (client-side)
-  onMounted(() => {
-    if (process.client) {
-        fetchUser();
-
-        // Listen for auth changes
-        supabase.auth.onAuthStateChange((event, session) => {
-          console.log('Auth state changed:', event, session);
-          user.value = session?.user ?? null;
-          // Optionally handle specific events like PASSWORD_RECOVERY, USER_UPDATED etc.
-        });
-    }
-  });
-
+  // --- Return reactive state and methods ---
   return {
-    user: readonly(user), // Expose user as readonly ref
-    isLoggedIn: computed(() => !!user.value),
-    loading: readonly(loading),
+    loading: readonly(loading), // Loading state for login/logout actions
     login,
     logout,
-    fetchUser, // Expose fetchUser if needed elsewhere
   };
 };

@@ -53,11 +53,9 @@
 <script setup lang="ts">
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
-import type { User } from '@supabase/supabase-js';
 import { type Note } from '~/types'; // Import the Note type
-import { useAuth } from '~/composables/useAuth';
-import { useSupabase } from '~/composables/useSupabase';
 import AppHeader from '~/components/AppHeader.vue';
+import type { Database } from '~/database.types'; // Import generated DB types
 
 // Responsive sidebar state
 const sidebarOpen = ref(false);
@@ -76,11 +74,16 @@ const checkMobile = () => {
 const theme = ref('light');
 
 // === Setup ===
-const supabase = useSupabase();
 const router = useRouter();
 
-// Move useAuth earlier
-const { user, isLoggedIn, loading: authLoading } = useAuth();
+// Use the composables provided by the supabase module (auto-imported)
+const client = useSupabaseClient<Database>(); // Add Database generic
+
+// Get reactive user state directly from the Supabase module
+const user = useSupabaseUser();
+
+// Define isLoggedIn based on the reactive user ref
+const isLoggedIn = computed(() => !!user.value);
 
 // Reactive state
 const notes = ref<Note[]>([]);
@@ -138,9 +141,9 @@ const fetchNotes = async () => {
     return;
   }
   loading.value = true;
-  statusMessage.value = 'Loading notes...';
+  // statusMessage.value = 'Fetching notes...'; // Maybe too noisy
   try {
-    const { data, error } = await supabase
+    const { data, error } = await client
       .from('notes')
       .select('*')
       .eq('user_id', user.value.id)
@@ -165,22 +168,24 @@ const fetchNotes = async () => {
   }
 }
 
-// --- Watcher for Auth State (Stays outside onMounted) ---
-watch(authLoading, (newVal) => {
-  if (newVal === false) { // Wait until auth check is complete
-    if (!isLoggedIn.value) {
-      router.push('/');
-    } else {
-      fetchNotes();
-    }
+// --- Watcher for User State --- // NEW
+watch(user, (currentUser) => { // Watch the user ref from useSupabaseUser
+  if (currentUser) { // Check if the user object exists (is not null)
+    // User is logged in, fetch their notes
+    fetchNotes();
+  } else {
+    // If no user, potentially clear notes or handle logged-out state
+    notes.value = [];
+    selectedNote.value = null;
   }
-}, { immediate: true }); // immediate: true to run the check initially
+}, { immediate: true }); // Run immediately on load
 
+// --- Lifecycle Hook ---
 // --- Single onMounted Hook ---
 onMounted(() => {
   // Theme initialization
-  const storedTheme = localStorage.getItem('theme') || 'light';
-  theme.value = storedTheme;
+  const savedTheme = localStorage.getItem('theme');
+  theme.value = savedTheme || 'light';
   document.documentElement.setAttribute('data-theme', theme.value);
 
   // Resize listener and initial check
@@ -209,19 +214,48 @@ const selectNote = (note: Note) => {
 }
 
 // Create new note function
-const createNewNote = () => {
-  if (!user.value) return;
-  const newNote: Note = {
-    id: '', // Will be assigned by DB
-    user_id: user.value.id,
-    title: 'New Note',
+const createNewNote = async () => {
+  if (!user.value) {
+    statusMessage.value = 'Error: You must be logged in.';
+    return;
+  }
+
+  console.log('Attempting to insert note for user ID:', user.value.id);
+
+  const newNoteData: Omit<Note, 'id' | 'created_at' | 'updated_at'> = {
+    title: 'Untitled Note',
     content: '',
-    updated_at: new Date().toISOString(), // Provide a default timestamp
+    user_id: user.value.id, // Add user_id
   };
-  selectedNote.value = newNote;
-  // Reset originalSelectedNote when creating a new one
-  originalSelectedNote.value = { ...newNote, id: null }; // Mark as unsaved
-  statusMessage.value = 'Editing new note...';
+
+  loading.value = true;
+  try {
+    const { data, error } = await client
+      .from('notes')
+      .insert(newNoteData)
+      .select()
+      .single(); // Get the inserted record
+
+    if (error) throw error;
+    // Ensure data has the expected structure (basic check)
+    if (!data || typeof data.id !== 'string') {
+      throw new Error('Invalid data returned after creating note.');
+    }
+    // Cast the returned data to our Note type (via unknown)
+    const createdNote = data as unknown as Note;
+    // Refresh the list in the sidebar *after* successful creation
+    await fetchNotes();
+    // Directly select the note we just created using the data returned from Supabase
+    selectNote(createdNote);
+    statusMessage.value = 'Note created.';
+    setTimeout(() => statusMessage.value = '', 3000); // Clear message
+  } catch (error) {
+    console.error('Error creating note:', error);
+    statusMessage.value = 'Error creating note.';
+    setTimeout(() => statusMessage.value = '', 3000); // Clear message on error too
+  } finally {
+    loading.value = false;
+  }
 }
 
 // Save note function (handles create and update)
@@ -237,7 +271,7 @@ const saveNote = async () => {
     let savedNoteData: Note | null = null;
     if (selectedNote.value.id) {
       // Update existing note
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('notes')
         .update(noteDataToSave) // Pass only data fields, not id
         .eq('id', selectedNote.value.id)
@@ -248,7 +282,7 @@ const saveNote = async () => {
       savedNoteData = data as unknown as Note;
     } else {
       // Insert new note
-      const { data, error } = await supabase
+      const { data, error } = await client
         .from('notes')
         .insert(noteDataToSave) // Pass only data fields, not id
         .select()
@@ -259,12 +293,11 @@ const saveNote = async () => {
     }
 
     if (savedNoteData) {
-      statusMessage.value = 'Note saved successfully!';
-      // Update the list and selection
-      await fetchNotes(); // Re-fetch to get the latest list + updated_at timestamps
-      // Clear the selection and form
-      selectedNote.value = null;
-      originalSelectedNote.value = null;
+      statusMessage.value = 'Note saved.';
+      originalSelectedNote.value = null; // Clear original state after successful save
+      await fetchNotes(); // Refresh list to show updated timestamp/new note
+      selectedNote.value = null; // Clear the selection to hide the editor
+      setTimeout(() => statusMessage.value = '', 3000); // Clear message
     }
   } catch (error) {
     console.error('Error saving note:', error);
@@ -276,14 +309,18 @@ const saveNote = async () => {
 
 // Delete note function
 const deleteNote = async () => {
-  if (!selectedNote.value || !selectedNote.value.id || !confirm('Are you sure you want to delete this note?')) return;
+  if (!selectedNote.value || !selectedNote.value.id || !user.value) {
+    statusMessage.value = 'Cannot delete: Note not selected or user not logged in.';
+    return;
+  }
+ 
   loading.value = true;
   statusMessage.value = 'Deleting...';
   try {
-    const { error } = await supabase
+    const { error } = await client
       .from('notes')
       .delete()
-      .eq('id', selectedNote.value.id);
+      .match({ id: selectedNote.value.id, user_id: user.value.id }); // Ensure user owns the note
 
     if (error) throw error;
 
@@ -291,6 +328,7 @@ const deleteNote = async () => {
     selectedNote.value = null;
     originalSelectedNote.value = null;
     await fetchNotes(); // Refresh the list
+    setTimeout(() => statusMessage.value = '', 3000); // Clear message
   } catch (error) {
     console.error('Error deleting note:', error);
     statusMessage.value = 'Error deleting note.';

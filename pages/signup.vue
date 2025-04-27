@@ -9,11 +9,11 @@
             <h2>Create your <strong>High Notes</strong> account</h2>
           </hgroup>
           <form @submit.prevent="handleSignup">
-            <label for="email">Email address</label>
+            <label for="email">Email Address</label>
             <input type="email" id="email" v-model="email" placeholder="Email address" required />
 
             <label for="password">Password</label>
-            <input type="password" id="password" v-model="password" placeholder="Password (min. 6 characters)" required />
+            <input type="password" id="password" v-model="password" placeholder="Password (min. 8 characters)" required />
 
             <!-- Optional: Add Confirm Password -->
             <!--

@@ -9,7 +9,7 @@
             <h2>Access your <strong>High Notes</strong></h2>
           </hgroup>
           <form @submit.prevent="login">
-            <label for="email">Email address</label> 
+            <label for="email">Email Address</label> 
             <input type="email" id="email" v-model="email" placeholder="Email address" required /> 
 
             <label for="password">Password</label>
@@ -40,11 +40,12 @@ const login = async () => {
       password: password.value,
     });
     if (error) throw error;
-    router.push('/notes'); // Redirect to notes page on successful login
+    router.push('/notes'); 
   } catch (error: any) {
+    console.error('Login failed:', error); 
     errorMsg.value = error.message;
     setTimeout(() => {
-        errorMsg.value = null; // Clear error after 5 seconds
+        errorMsg.value = null; 
     }, 5000)
   }
 };
