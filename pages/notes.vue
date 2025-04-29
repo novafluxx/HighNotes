@@ -25,12 +25,14 @@
           <form @submit.prevent="saveNote">
             <label for="title">
               Title
-              <input type="text" id="title" name="title" v-model="selectedNote.title" required :disabled="loading">
+              <input type="text" id="title" name="title" v-model="selectedNote.title" required :disabled="loading" :maxlength="TITLE_MAX_LENGTH">
+              <small class="char-counter">{{ selectedNote.title?.length || 0 }} / {{ TITLE_MAX_LENGTH }} characters</small>
               <small v-if="isTitleTooLong" class="error-message">Title cannot exceed {{ TITLE_MAX_LENGTH }} characters.</small>
             </label>
             <label for="content">
               Content
-              <textarea id="content" name="content" v-model="selectedNote.content" rows="10" :disabled="loading"></textarea>
+              <textarea id="content" name="content" v-model="selectedNote.content" rows="10" :disabled="loading" :maxlength="CONTENT_MAX_LENGTH"></textarea>
+              <small class="char-counter">{{ selectedNote.content?.length || 0 }} / {{ CONTENT_MAX_LENGTH }} characters</small>
               <small v-if="isContentTooLong" class="error-message">Content cannot exceed {{ CONTENT_MAX_LENGTH }} characters.</small>
             </label>
             <div class="grid">
@@ -475,6 +477,15 @@ textarea {
 /* Ensure loading states look right */
 [aria-busy="true"] {
   cursor: wait;
+}
+
+/* Add styles for character counter */
+.char-counter {
+  display: block; /* Ensure it takes its own line */
+  text-align: right; /* Align to the right */
+  font-size: 0.8em;
+  color: var(--pico-muted-color);
+  margin-top: 0.25rem;
 }
 
 /* Add styles for validation messages */
