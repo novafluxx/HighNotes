@@ -23,7 +23,9 @@ const supabase = useSupabaseClient();
 const route = useRoute();
 const router = useRouter();
 
-const isRecovery = computed(() => route.query.type === 'recovery');
+const isRecovery = computed(() =>
+  route.query.type === 'recovery' || !!route.query.code
+);
 const newPassword = ref('');
 const successMsg = ref<string | null>(null);
 const errorMsg = ref<string | null>(null);
