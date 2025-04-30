@@ -10,10 +10,7 @@
         <p v-if="errorMsg" class="error-message">{{ errorMsg }}</p>
       </form>
     </article>
-    <article v-else-if="showVerification">
-      <h2>Thank you for verifying your email!</h2>
-      <p>Redirecting you to the login page...</p>
-    </article>
+
     <article v-else>
       <h2>Checking credentials...</h2>
       <p aria-busy="true">Please wait while we confirm your login.</p>
@@ -32,7 +29,7 @@ const newPassword = ref('');
 const successMsg = ref<string | null>(null);
 const errorMsg = ref<string | null>(null);
 const showReset = ref(false);
-const showVerification = ref(false);
+
 
 const submitNewPassword = async () => {
   errorMsg.value = null;
@@ -59,24 +56,16 @@ onMounted(async () => {
     showReset.value = true;
     return;
   }
-  // If type is explicitly 'signup', always show verification
-  if (route.query.type === 'signup') {
-    showVerification.value = true;
-    setTimeout(() => {
-      router.push('/login');
-    }, 3000);
-    return;
-  }
+
   // If only code is present, wait for Supabase to process, then check user
   if (route.query.code) {
     setTimeout(() => {
-      if (!user.value) {
-        showVerification.value = true;
+      if (user.value) {
+        showReset.value = true;
+      } else {
         setTimeout(() => {
           router.push('/login');
         }, 3000);
-      } else {
-        showReset.value = true;
       }
     }, 2000); // Give Supabase time to process session
     return;
