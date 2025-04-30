@@ -10,7 +10,7 @@ export default defineNuxtConfig({
     redirectOptions: {
       login: '/login',
       callback: '/confirm', // Assuming you have a /confirm route for email confirmations
-      exclude: ['/', '/signup'], // Allow access to the index and signup pages without login
+      exclude: ['/', '/signup', '/reset'], // Allow access to the index and signup pages without login
     }
   },
   runtimeConfig: {

@@ -26,6 +26,7 @@
             <p v-if="successMsg" class="success-message">{{ successMsg }}</p>
           </form>
           <p>Already have an account? <NuxtLink to="/login">Login</NuxtLink></p>
+          <p>Forgot your password? <NuxtLink to="/reset">Reset it here</NuxtLink></p>
         </div>
       </article>
     </main>

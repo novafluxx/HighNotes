@@ -18,7 +18,8 @@
             <button type="submit">Login</button>
             <p v-if="errorMsg" class="error-message">{{ errorMsg }}</p> 
           </form>
-          <p>Don't have an account? <NuxtLink to="/signup">Sign Up</NuxtLink></p> 
+          <p>Don't have an account? <NuxtLink to="/signup">Sign Up</NuxtLink></p>
+          <p>Forgot your password? <NuxtLink to="/reset">Reset it here</NuxtLink></p> 
         </div>
       </article>
     </main>
