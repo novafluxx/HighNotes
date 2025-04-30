@@ -20,6 +20,8 @@
 
 <script setup lang="ts">
 import { useRoute, useRouter } from 'vue-router';
+import { watchEffect, ref } from 'vue';
+
 const supabase = useSupabaseClient();
 const route = useRoute();
 const router = useRouter();
@@ -30,6 +32,26 @@ const successMsg = ref<string | null>(null);
 const errorMsg = ref<string | null>(null);
 const showReset = ref(false);
 
+// Watch for changes in user state
+watchEffect(() => {
+  // Explicitly handle recovery type first
+  if (route.query.type === 'recovery') {
+    showReset.value = true;
+    return;
+  }
+
+  // If user becomes available (logged in) and it's not a recovery flow,
+  // assume confirmation succeeded and redirect.
+  if (user.value) {
+    // Maybe redirect to a dashboard or home page instead of showing reset?
+    router.push('/notes'); 
+  }
+  
+  // If user is null and type is not 'recovery', the component will show
+  // the 'Checking credentials...' message by default (showReset is false).
+  // Supabase listener should handle the session update eventually.
+  // If it remains null indefinitely, the user might need to log in manually.
+});
 
 const submitNewPassword = async () => {
   errorMsg.value = null;
@@ -49,28 +71,6 @@ const submitNewPassword = async () => {
     errorMsg.value = err.message || 'Failed to update password.';
   }
 };
-
-onMounted(async () => {
-  // If type is explicitly 'recovery', always show reset
-  if (route.query.type === 'recovery') {
-    showReset.value = true;
-    return;
-  }
-
-  // If only code is present, wait for Supabase to process, then check user
-  if (route.query.code) {
-    setTimeout(() => {
-      if (user.value) {
-        showReset.value = true;
-      } else {
-        setTimeout(() => {
-          router.push('/login');
-        }, 3000);
-      }
-    }, 2000); // Give Supabase time to process session
-    return;
-  }
-});
 </script>
 
 <style scoped>
