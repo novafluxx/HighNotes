@@ -1,6 +1,6 @@
 <template>
   <main class="container">
-    <article v-if="isRecovery">
+    <article v-if="showReset">
       <h2>Reset Your Password</h2>
       <form @submit.prevent="submitNewPassword">
         <label for="new-password">New Password</label>
@@ -10,7 +10,7 @@
         <p v-if="errorMsg" class="error-message">{{ errorMsg }}</p>
       </form>
     </article>
-    <article v-else-if="isSignup">
+    <article v-else-if="showVerification">
       <h2>Thank you for verifying your email!</h2>
       <p>Redirecting you to the login page...</p>
     </article>
@@ -26,14 +26,13 @@ import { useRoute, useRouter } from 'vue-router';
 const supabase = useSupabaseClient();
 const route = useRoute();
 const router = useRouter();
+const user = useSupabaseUser();
 
-const isRecovery = computed(() =>
-  route.query.type === 'recovery' || !!route.query.code
-);
-const isSignup = computed(() => route.query.type === 'signup');
 const newPassword = ref('');
 const successMsg = ref<string | null>(null);
 const errorMsg = ref<string | null>(null);
+const showReset = ref(false);
+const showVerification = ref(false);
 
 const submitNewPassword = async () => {
   errorMsg.value = null;
@@ -54,11 +53,33 @@ const submitNewPassword = async () => {
   }
 };
 
-watchEffect(() => {
-  if (isSignup.value) {
+onMounted(async () => {
+  // If type is explicitly 'recovery', always show reset
+  if (route.query.type === 'recovery') {
+    showReset.value = true;
+    return;
+  }
+  // If type is explicitly 'signup', always show verification
+  if (route.query.type === 'signup') {
+    showVerification.value = true;
     setTimeout(() => {
       router.push('/login');
     }, 3000);
+    return;
+  }
+  // If only code is present, wait for Supabase to process, then check user
+  if (route.query.code) {
+    setTimeout(() => {
+      if (!user.value) {
+        showVerification.value = true;
+        setTimeout(() => {
+          router.push('/login');
+        }, 3000);
+      } else {
+        showReset.value = true;
+      }
+    }, 2000); // Give Supabase time to process session
+    return;
   }
 });
 </script>
