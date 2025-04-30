@@ -55,7 +55,7 @@
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, defineProps, defineEmits, nextTick, onUnmounted } from 'vue';
+import { ref, computed, onMounted, watch, nextTick, onUnmounted } from 'vue';
 // useSupabaseUser will be auto-imported by Nuxt
 import { useAuth } from '~/composables/useAuth'; // Import useAuth for logout
 import { NuxtLink } from '#components'; // Import NuxtLink for programmatic usage if needed, or just use in template
