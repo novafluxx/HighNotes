@@ -10,6 +10,10 @@
         <p v-if="errorMsg" class="error-message">{{ errorMsg }}</p>
       </form>
     </article>
+    <article v-else-if="isSignup">
+      <h2>Thank you for verifying your email!</h2>
+      <p>Redirecting you to the login page...</p>
+    </article>
     <article v-else>
       <h2>Checking credentials...</h2>
       <p aria-busy="true">Please wait while we confirm your login.</p>
@@ -26,6 +30,7 @@ const router = useRouter();
 const isRecovery = computed(() =>
   route.query.type === 'recovery' || !!route.query.code
 );
+const isSignup = computed(() => route.query.type === 'signup');
 const newPassword = ref('');
 const successMsg = ref<string | null>(null);
 const errorMsg = ref<string | null>(null);
@@ -48,6 +53,14 @@ const submitNewPassword = async () => {
     errorMsg.value = err.message || 'Failed to update password.';
   }
 };
+
+watchEffect(() => {
+  if (isSignup.value) {
+    setTimeout(() => {
+      router.push('/login');
+    }, 3000);
+  }
+});
 </script>
 
 <style scoped>
