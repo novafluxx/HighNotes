@@ -11,9 +11,12 @@ import { useRoute } from 'vue-router';
 const route = useRoute();
 const confirmationUrl = route.query.confirmation_url as string | undefined;
 
-function confirm() {
+async function confirm() {
   if (confirmationUrl) {
-    window.location.href = confirmationUrl;
+    // Visit the confirmation URL to complete the signup
+    await fetch(confirmationUrl, { credentials: 'include' });
+    // Redirect to login page
+    window.location.href = '/login';
   }
 }
 </script>
