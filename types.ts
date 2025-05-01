@@ -4,5 +4,6 @@ export interface Note {
   user_id: string;
   title: string;
   content: string | null; // Content can potentially be null
+  created_at: string; // Add missing property (ISO string format)
   updated_at: string; // ISO string format from Supabase timestamp
 }
