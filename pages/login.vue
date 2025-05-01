@@ -1,53 +1,86 @@
 <template>
   <div>
     <AppHeader />
-    <main class="container login-container">
-      <article class="grid">
-        <div> 
-          <hgroup>
-            <h1>Sign In</h1>
-            <h2>Access your <strong>High Notes</strong></h2>
-          </hgroup>
-          <form @submit.prevent="login">
-            <label for="email">Email Address</label> 
-            <input type="email" id="email" v-model="email" placeholder="Email address" required /> 
+    <!-- Use Tailwind for centering and padding -->
+    <main class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <!-- UCard provides a container -->
+      <UCard class="max-w-md w-full space-y-8">
+        <template #header>
+          <h1 class="text-center text-2xl font-bold text-gray-900 dark:text-white">Sign In</h1>
+          <h2 class="mt-2 text-center text-sm text-gray-600 dark:text-gray-300">Access your High Notes</h2>
+        </template>
 
-            <label for="password">Password</label>
-            <input type="password" id="password" v-model="password" placeholder="Password" required /> 
+        <!-- UForm for structure and potential validation -->
+        <UForm :state="{ email, password }" class="space-y-6" @submit="login">
+          <UFormField label="Email Address" name="email" required>
+            <UInput v-model="email" type="email" placeholder="you@example.com" icon="i-heroicons-envelope" />
+          </UFormField>
 
-            <button type="submit">Login</button>
-            <p v-if="errorMsg" class="error-message">{{ errorMsg }}</p> 
-          </form>
-          <p>Don't have an account? <NuxtLink to="/signup">Sign Up</NuxtLink></p>
-          <p>Forgot your password? <NuxtLink to="/reset">Reset it here</NuxtLink></p> 
-        </div>
-      </article>
+          <UFormField label="Password" name="password" required>
+            <UInput v-model="password" type="password" placeholder="Password" icon="i-heroicons-lock-closed" />
+          </UFormField>
+
+          <!-- Display error message using UAlert -->
+          <UAlert
+            v-if="errorMsg"
+            icon="i-heroicons-exclamation-triangle"
+            color="red"
+            variant="soft"
+            title="Login Error"
+            :description="errorMsg"
+            :close-button="{ icon: 'i-heroicons-x-mark-20-solid', color: 'gray', variant: 'link', padded: false }"
+            @close="errorMsg = null"
+          />
+
+          <UButton type="submit" block label="Login" :loading="loading" />
+        </UForm>
+
+        <template #footer>
+          <div class="text-sm text-center">
+            <p class="text-gray-600 dark:text-gray-400">
+              Don't have an account? 
+              <NuxtLink to="/signup" class="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">Sign Up</NuxtLink>
+            </p>
+            <p class="mt-2 text-gray-600 dark:text-gray-400">
+              Forgot your password? 
+              <NuxtLink to="/reset" class="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">Reset it here</NuxtLink>
+            </p>
+          </div>
+        </template>
+      </UCard>
     </main>
   </div>
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 const supabase = useSupabaseClient();
 const router = useRouter();
 
 const email = ref('');
 const password = ref('');
 const errorMsg = ref<string | null>(null);
+const loading = ref(false); // Added loading state for button
 
 const login = async () => {
+  loading.value = true; // Start loading
+  errorMsg.value = null; // Clear previous errors
   try {
     const { error } = await supabase.auth.signInWithPassword({
       email: email.value,
       password: password.value,
     });
     if (error) throw error;
-    router.push('/notes'); 
+    router.push('/notes');
   } catch (error: any) {
-    console.error('Login failed:', error); 
-    errorMsg.value = error.message;
-    setTimeout(() => {
-        errorMsg.value = null; 
-    }, 5000)
+    console.error('Login failed:', error);
+    errorMsg.value = error.message || 'An unexpected error occurred.';
+    // Removed the automatic timeout for error message, using UAlert close button instead
+    // setTimeout(() => {
+    //     errorMsg.value = null; 
+    // }, 5000)
+  } finally {
+    loading.value = false; // Stop loading regardless of outcome
   }
 };
 
@@ -59,45 +92,3 @@ const login = async () => {
 //   }
 // });
 </script>
-
-<style scoped>
-/* Add PicoCSS or custom styles if needed */
-.login-container { 
-  max-width: 600px; 
-  margin: 2rem auto; 
-  padding: 0; 
-}
-
-article {
-  padding: 2rem; 
-}
-
-hgroup h1 {
-  margin-bottom: 0; 
-}
-
-hgroup h2 {
-    margin-bottom: var(--pico-block-spacing-vertical); 
-}
-
-form {
-  display: grid;
-  gap: var(--pico-form-element-spacing-vertical); 
-}
-
-button {
-  margin-top: var(--pico-form-element-spacing-vertical); 
-  width: 100%; 
-}
-
-p {
-    text-align: center;
-    margin-top: 1rem;
-}
-
-.error-message { 
-  color: var(--pico-color-red);
-  margin-top: 1rem;
-  text-align: center;
-}
-</style>

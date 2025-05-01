@@ -1,34 +1,66 @@
 <template>
   <div>
     <AppHeader />
-    <main class="container signup-container">
-      <article class="grid">
-        <div>
-          <hgroup>
-            <h1>Sign Up</h1>
-            <h2>Create your <strong>High Notes</strong> account</h2>
-          </hgroup>
-          <form @submit.prevent="handleSignup">
-            <label for="email">Email Address</label>
-            <input type="email" id="email" v-model="email" placeholder="Email address" required />
+    <!-- Use Tailwind for centering and padding -->
+    <main class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
+      <!-- UCard provides a container -->
+      <UCard class="max-w-md w-full space-y-8">
+        <template #header>
+          <h1 class="text-center text-2xl font-bold text-gray-900 dark:text-white">Sign Up</h1>
+          <h2 class="mt-2 text-center text-sm text-gray-600 dark:text-gray-300">Create your High Notes account</h2>
+        </template>
 
-            <label for="password">Password</label>
-            <input type="password" id="password" v-model="password" placeholder="Password (min. 8 characters)" required />
+        <!-- UForm for structure and potential validation -->
+        <UForm :state="{ email, password }" class="space-y-6" @submit="handleSignup">
+          <UFormField label="Email Address" name="email" required>
+            <UInput v-model="email" type="email" placeholder="you@example.com" icon="i-heroicons-envelope" />
+          </UFormField>
 
-            <!-- Optional: Add Confirm Password -->
-            <!--
-            <label for="confirmPassword">Confirm Password</label>
-            <input type="password" id="confirmPassword" v-model="confirmPassword" placeholder="Confirm Password" required />
-            -->
+          <UFormField label="Password" name="password" required help="Minimum 8 characters">
+            <UInput v-model="password" type="password" placeholder="Password" icon="i-heroicons-lock-closed" />
+          </UFormField>
 
-            <button type="submit">Sign Up</button>
-            <p v-if="errorMsg" class="error-message">{{ errorMsg }}</p>
-            <p v-if="successMsg" class="success-message">{{ successMsg }}</p>
-          </form>
-          <p>Already have an account? <NuxtLink to="/login">Login</NuxtLink></p>
-          <p>Forgot your password? <NuxtLink to="/reset">Reset it here</NuxtLink></p>
-        </div>
-      </article>
+          <!-- Optional: Add Confirm Password using UFormField/UInput if needed -->
+
+          <!-- Display success message -->
+           <UAlert
+            v-if="successMsg"
+            icon="i-heroicons-check-circle"
+            color="green"
+            variant="soft"
+            title="Account Created"
+            :description="successMsg"
+          />
+
+          <!-- Display error message -->
+          <UAlert
+            v-if="errorMsg"
+            icon="i-heroicons-exclamation-triangle"
+            color="red"
+            variant="soft"
+            title="Signup Error"
+            :description="errorMsg"
+            :close-button="{ icon: 'i-heroicons-x-mark-20-solid', color: 'gray', variant: 'link', padded: false }"
+            @close="errorMsg = null"
+          />
+
+          <!-- Disable button if success message is shown -->
+          <UButton type="submit" block label="Sign Up" :loading="loading" :disabled="!!successMsg" />
+        </UForm>
+
+        <template #footer>
+          <div class="text-sm text-center">
+            <p class="text-gray-600 dark:text-gray-400">
+              Already have an account? 
+              <NuxtLink to="/login" class="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">Login</NuxtLink>
+            </p>
+            <p class="mt-2 text-gray-600 dark:text-gray-400">
+              Forgot your password? 
+              <NuxtLink to="/reset" class="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">Reset it here</NuxtLink>
+            </p>
+          </div>
+        </template>
+      </UCard>
     </main>
   </div>
 </template>
@@ -42,14 +74,17 @@ const password = ref('');
 // const confirmPassword = ref(''); // Uncomment if using confirm password
 const errorMsg = ref<string | null>(null);
 const successMsg = ref<string | null>(null);
+const loading = ref(false); // Added loading state
 
 const handleSignup = async () => {
+  loading.value = true; // Start loading
   errorMsg.value = null;
-  successMsg.value = null;
+  successMsg.value = null; // Clear previous success message
 
   // Optional: Check if passwords match
   // if (password.value !== confirmPassword.value) {
   //   errorMsg.value = 'Passwords do not match.';
+  //   loading.value = false;
   //   return;
   // }
 
@@ -57,64 +92,26 @@ const handleSignup = async () => {
     const { error } = await supabase.auth.signUp({
       email: email.value,
       password: password.value,
+      // Optional: Add options like redirect URL or data
+      // options: {
+      //   emailRedirectTo: `${window.location.origin}/confirm` // Redirect to confirm page after email link click
+      // }
     });
     if (error) throw error;
-    successMsg.value = 'Account created successfully! Please check your email to confirm your registration.';
+    successMsg.value = 'Account created! Please check your email to confirm your registration.';
+    // Clear form potentially
+    // email.value = '';
+    // password.value = '';
     // Optionally redirect after a delay or keep user on page
     // setTimeout(() => router.push('/login'), 5000); 
   } catch (error: any) {
-    errorMsg.value = error.message;
-    setTimeout(() => {
-        errorMsg.value = null; // Clear error after 5 seconds
-    }, 5000)
+    errorMsg.value = error.message || 'An unexpected error occurred during sign up.';
+    // Removed the automatic timeout for error message
+    // setTimeout(() => {
+    //     errorMsg.value = null; // Clear error after 5 seconds
+    // }, 5000)
+  } finally {
+    loading.value = false; // Stop loading
   }
 };
 </script>
-
-<style scoped>
-/* Styles adapted from login.vue */
-.signup-container {
-  max-width: 600px;
-  margin: 2rem auto;
-  padding: 0;
-}
-
-article {
-  padding: 2rem;
-}
-
-hgroup h1 {
-  margin-bottom: 0;
-}
-
-hgroup h2 {
-    margin-bottom: var(--pico-block-spacing-vertical);
-}
-
-form {
-  display: grid;
-  gap: var(--pico-form-element-spacing-vertical);
-}
-
-button {
-  margin-top: var(--pico-form-element-spacing-vertical);
-  width: 100%;
-}
-
-p {
-    text-align: center;
-    margin-top: 1rem;
-}
-
-.error-message {
-  color: var(--pico-color-red);
-  margin-top: 1rem;
-  text-align: center;
-}
-
-.success-message {
-  color: var(--pico-color-green);
-  margin-top: 1rem;
-  text-align: center;
-}
-</style>

@@ -1,11 +1,15 @@
 <template>
   <div>
     <AppHeader /> <!-- Use the shared header component -->
-    <main class="container welcome-container">
-      <h1>Welcome to High Notes</h1>
-      <p>Your space for brilliant thoughts.</p>
-      <NuxtLink to="/login" role="button">Login</NuxtLink> 
-      <p>or <NuxtLink to="/signup">Sign Up</NuxtLink></p>
+    <!-- Replace main container and styles with Tailwind -->
+    <main class="flex flex-col justify-center items-center min-h-[80vh] text-center px-4">
+      <h1 class="text-4xl font-bold mb-2 text-gray-900 dark:text-white">Welcome to High Notes</h1>
+      <p class="text-lg text-gray-600 dark:text-gray-300 mb-6">Your space for brilliant thoughts.</p>
+      <!-- Replace NuxtLink role="button" with UButton -->
+      <UButton to="/login" label="Login" size="lg" class="mb-4" />
+      <p class="text-sm text-gray-500 dark:text-gray-400">
+        or <NuxtLink to="/signup" class="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">Sign Up</NuxtLink>
+      </p>
     </main>
   </div>
 </template>
@@ -14,28 +18,3 @@
 // No script logic needed for the welcome page itself anymore
 // Login/auth checks might be handled by middleware or layout
 </script>
-
-<style scoped>
-/* PicoCSS is included globally via nuxt.config.ts */
-.welcome-container {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  min-height: 80vh; /* Adjust as needed */
-  text-align: center;
-}
-
-h1 {
-  margin-bottom: 0.5rem;
-}
-
-p {
-  margin-bottom: 1.5rem;
-}
-
-/* Optional: Adjust button spacing if needed */
-[role="button"] {
-    margin-bottom: 0.5rem; /* Space between login button and signup text */
-}
-</style>
