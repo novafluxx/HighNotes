@@ -30,5 +30,10 @@ export default defineNuxtConfig({
   },
   css: [
     '~/assets/css/main.css'
-  ]
+  ],
+  nitro: {
+    externals: {
+      inline: ['@vueuse/core', '@vueuse/shared']
+    }
+  }
 })
