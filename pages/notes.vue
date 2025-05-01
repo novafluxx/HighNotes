@@ -150,6 +150,25 @@
       ></div>
 
     </div>
+<!-- Delete Confirmation Modal -->
+    <UModal v-model:open="isDeleteModalOpen" :ui="{ footer: 'justify-end' }">
+      <template #header>
+        <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Confirm Deletion</h3>
+      </template>
+
+      <template #body>
+        <p class="text-gray-700 dark:text-gray-300">
+          Are you sure you want to delete the note titled "<strong>{{ selectedNote?.title || 'Untitled Note' }}</strong>"?
+          <br>
+          This action cannot be undone.
+        </p>
+      </template>
+
+      <template #footer>
+        <UButton label="Cancel" color="neutral" variant="outline" @click="isDeleteModalOpen = false" :disabled="loading" />
+        <UButton label="Confirm Delete" color="error" @click="confirmDeleteNote" :loading="loading" icon="i-heroicons-trash" />
+      </template>
+    </UModal>
   </div>
 </template>
 
@@ -186,18 +205,24 @@ const selectedNote = ref<Note | null>(null);
 const originalSelectedNote = ref<Note | null>(null); // For dirty checking
 const loading = ref(false);
 const statusMessage = ref('');
+const isDeleteModalOpen = ref(false); // State for delete confirmation modal
 
 // --- Computed Properties for Validation/State --- (Modified)
 const isNoteDirty = computed(() => {
-  if (!selectedNote.value || !originalSelectedNote.value) {
+  if (!selectedNote.value) {
     return false;
   }
+  // If it's a new note (no ID), it's dirty if title or content is not empty
+  if (!selectedNote.value.id) {
+    return !!selectedNote.value.title || !!selectedNote.value.content;
+  }
+  // If it's an existing note, compare with original
+  if (!originalSelectedNote.value) return false; // Should not happen if id exists, but safety check
   return (
     selectedNote.value.title !== originalSelectedNote.value.title ||
     selectedNote.value.content !== originalSelectedNote.value.content
   );
 });
-
 const TITLE_MAX_LENGTH = 255;
 const CONTENT_MAX_LENGTH = 10000;
 
@@ -212,7 +237,11 @@ const isContentTooLong = computed(() => {
 });
 
 const isSaveDisabled = computed(() => {
-  return !isNoteDirty.value || loading.value || isTitleTooLong.value || isContentTooLong.value;
+  // Disable if loading, title/content too long, or (if it's an existing note) it's not dirty
+  return loading.value ||
+         isTitleTooLong.value ||
+         isContentTooLong.value ||
+         (!!selectedNote.value?.id && !isNoteDirty.value); // Only check dirty for existing notes
 });
 
 // --- Utility Functions --- (Unchanged)
@@ -295,9 +324,15 @@ onMounted(() => {
 });
 
 // --- Select Note --- (Unchanged)
-const selectNote = (note: Note) => {
+const selectNote = (note: Note | null) => { // Allow null to deselect
+  if (!note) {
+    selectedNote.value = null;
+    originalSelectedNote.value = null;
+    statusMessage.value = '';
+    return;
+  }
   // Simple deep copy for dirty checking comparison
-  originalSelectedNote.value = JSON.parse(JSON.stringify(note)); 
+  originalSelectedNote.value = JSON.parse(JSON.stringify(note));
   selectedNote.value = note;
   statusMessage.value = ''; // Clear any previous status
   // Close sidebar on mobile after selection
@@ -306,50 +341,34 @@ const selectNote = (note: Note) => {
   }
 };
 
-// --- Create New Note --- (Unchanged logic, adapted for state)
-const createNewNote = async () => {
+// --- Create New Note --- (MODIFIED: Creates temporary local note)
+const createNewNote = () => {
   if (!isLoggedIn.value || !user.value) return;
-  loading.value = true;
-  statusMessage.value = 'Creating new note...';
 
-  // Define the type for insertion explicitly, excluding fields managed by DB (id, created_at, updated_at)
-  // Ensure required fields (user_id, title) are present.
-  const newNoteData: { user_id: string; title: string; content: string | null } = {
+  // Create a temporary note object without an ID
+  const tempNewNote: Note = {
+    // No id, created_at, updated_at yet
+    id: undefined, // Explicitly undefined or null to signify it's new
     user_id: user.value.id,
-    title: 'Untitled Note',
-    content: '', // Initialize content, can be empty string or null depending on schema
+    title: '', // Start with empty title
+    content: '', // Start with empty content
+    created_at: new Date().toISOString(), // Temporary, will be set by DB
+    updated_at: new Date().toISOString(), // Temporary, will be set by DB
   };
 
-  try {
-    // Insert the note
-    const { data, error } = await client
-      .from('notes')
-      .insert(newNoteData)
-      .select()
-      .single(); // Select the newly created note data
+  // Set the selected note to this temporary object
+  selectedNote.value = tempNewNote;
+  // Set original to a copy for dirty checking (representing the initial empty state)
+  originalSelectedNote.value = JSON.parse(JSON.stringify(tempNewNote));
+  statusMessage.value = ''; // Clear status
 
-    if (error) throw error;
-
-    if (data) {
-        notes.value.unshift(data); // Add to the top of the local list
-        selectNote(data); // Select the new note
-        statusMessage.value = 'New note created.';
-    } else {
-        throw new Error('Failed to retrieve new note data after creation.');
-    }
-
-  } catch (error) {
-    console.error('Error creating new note:', error);
-    statusMessage.value = 'Error creating note.';
-  } finally {
-    loading.value = false;
-    setTimeout(() => { if (statusMessage.value === 'New note created.') statusMessage.value = ''; }, 3000);
-  }
+  // Close sidebar on mobile if open
+  if (isMobile.value) sidebarOpen.value = false;
 };
 
-// --- Save Note (Update) --- (Unchanged)
+// --- Save Note (Insert or Update) --- (MODIFIED)
 const saveNote = async () => {
-  if (!selectedNote.value || !isNoteDirty.value || !isLoggedIn.value) return;
+  if (!selectedNote.value || !isLoggedIn.value || isSaveDisabled.value) return; // Use isSaveDisabled computed
 
   loading.value = true;
   statusMessage.value = 'Saving...';
@@ -357,30 +376,59 @@ const saveNote = async () => {
   const noteToUpdate = {
     title: selectedNote.value.title,
     content: selectedNote.value.content,
-    updated_at: new Date().toISOString(), // Explicitly set updated_at
+    // updated_at will be set by the database trigger/default
   };
 
   try {
-    const { data, error } = await client
-      .from('notes')
-      .update(noteToUpdate)
-      .eq('id', selectedNote.value.id!) // Ensure ID is present
-      .select()
-      .single();
+    let savedNoteData: Note | null = null;
+    let operationError: Error | null = null;
 
-    if (error) throw error;
-
-    if (data) {
-      // Update the note in the local list
-      const index = notes.value.findIndex(n => n.id === data.id);
-      if (index !== -1) {
-        notes.value[index] = data;
-      }
-      // Re-select to update originalSelectedNote for dirty checking
-      selectNote(data);
-      statusMessage.value = 'Note saved!';
+    if (selectedNote.value.id) {
+      // --- UPDATE existing note ---
+      const { data, error } = await client
+        .from('notes')
+        .update({ ...noteToUpdate, updated_at: new Date().toISOString() }) // Explicitly set updated_at on update
+        .eq('id', selectedNote.value.id)
+        .select()
+        .single();
+      savedNoteData = data;
+      operationError = error as Error | null; // Cast SupabaseError
     } else {
-      throw new Error('Failed to retrieve updated note data.');
+      // --- INSERT new note ---
+      const noteToInsert = {
+        user_id: user.value!.id, // User is checked via isLoggedIn
+        title: selectedNote.value.title || 'Untitled Note', // Use default if empty
+        content: selectedNote.value.content,
+      };
+      const { data, error } = await client
+        .from('notes')
+        .insert(noteToInsert)
+        .select()
+        .single();
+      savedNoteData = data;
+      operationError = error as Error | null; // Cast SupabaseError
+    }
+
+    if (operationError) throw operationError;
+
+    if (savedNoteData) {
+      if (selectedNote.value.id) {
+        // Update existing note in the list
+        const index = notes.value.findIndex(n => n.id === savedNoteData!.id);
+        if (index !== -1) {
+          notes.value[index] = savedNoteData;
+        }
+      } else {
+        // Add new note to the beginning of the list
+        notes.value.unshift(savedNoteData);
+      }
+
+      // TASK 2: Reset selection to show placeholder
+      selectNote(null);
+      statusMessage.value = 'Note saved!';
+
+    } else {
+      throw new Error('Failed to retrieve saved note data.');
     }
 
   } catch (error) {
@@ -388,22 +436,31 @@ const saveNote = async () => {
     statusMessage.value = 'Error saving note.';
   } finally {
     loading.value = false;
-    setTimeout(() => { if (statusMessage.value === 'Note saved!') statusMessage.value = ''; }, 3000);
+    // Clear status message after a delay
+    setTimeout(() => { if (statusMessage.value === 'Note saved!' || statusMessage.value === 'Error saving note.') statusMessage.value = ''; }, 3000);
   }
 };
 
-// --- Delete Note --- (Unchanged)
-const deleteNote = async () => {
+// --- Delete Note --- (Logic mostly unchanged, relies on selectedNote.id)
+const deleteNote = () => {
+  // Open the confirmation modal instead of using confirm()
+  if (!selectedNote.value?.id || !isLoggedIn.value) return;
+  isDeleteModalOpen.value = true;
+};
+
+// --- Confirm Delete Note --- (Logic unchanged)
+const confirmDeleteNote = async () => {
   if (!selectedNote.value?.id || !isLoggedIn.value) return;
 
-  // Confirmation dialog
-  if (!confirm('Are you sure you want to delete this note? This action cannot be undone.')) {
-    return;
-  }
-
+  isDeleteModalOpen.value = false; // Close modal immediately
   loading.value = true;
   statusMessage.value = 'Deleting...';
   const noteIdToDelete = selectedNote.value.id;
+  const noteTitleToDelete = selectedNote.value.title || 'Untitled Note'; // Store title for status message
+
+  // Deselect note optimistically before deletion
+  selectedNote.value = null;
+  originalSelectedNote.value = null;
 
   try {
     const { error } = await client
@@ -413,26 +470,23 @@ const deleteNote = async () => {
 
     if (error) throw error;
 
-    statusMessage.value = 'Note deleted.';
-    // Find index and remove from local array *before* deselecting
+    statusMessage.value = `Note "${noteTitleToDelete}" deleted.`;
+    // Find index and remove from local array
     const index = notes.value.findIndex(n => n.id === noteIdToDelete);
     if (index !== -1) {
         notes.value.splice(index, 1);
     }
-    // Deselect note
-    selectedNote.value = null;
-    originalSelectedNote.value = null;
     // No need to fetch notes again, already removed locally
-    // await fetchNotes(); // Refresh the list - Redundant if spliced correctly
-    
+
   } catch (error) {
     console.error('Error deleting note:', error);
-    statusMessage.value = 'Error deleting note.';
+    statusMessage.value = `Error deleting note "${noteTitleToDelete}".`;
   } finally {
     loading.value = false;
-    setTimeout(() => { if (statusMessage.value === 'Note deleted.') statusMessage.value = ''; }, 3000);
+    // Keep status message slightly longer for delete confirmation
+    setTimeout(() => { if (statusMessage.value.includes('deleted') || statusMessage.value.includes('Error deleting')) statusMessage.value = ''; }, 4000);
   }
-}
+};
 
 // --- Toggle Sidebar --- (Unchanged)
 const toggleSidebar = () => {

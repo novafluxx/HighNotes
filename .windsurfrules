@@ -1,3 +1,6 @@
-My project is a note taking app that uses Supabase for authentication and data storage.
-My project is built with Nuxt 3 and NuxtUI 3 and Tailwind CSS.
-My project uses pnpm for package management.
+# Project Stack:
+- Nuxt 3
+- NuxtUI 3
+- Tailwind CSS
+- Supabase
+- pnpm
