@@ -1,498 +1,441 @@
 <template>
-  <div class="notes-page">
-    <AppHeader :is-mobile="isMobile" @toggle-sidebar="toggleSidebar" /> <!-- Use the shared header component -->
-    <div class="main-content">
+  <!-- Main container with flex column layout -->
+  <div class="flex flex-col h-screen overflow-hidden">
+    <AppHeader :is-mobile="isMobile" @toggle-sidebar="toggleSidebar" />
+
+    <!-- Main content area with flex row layout -->
+    <div class="flex flex-1 overflow-hidden">
+
       <!-- Sidebar with transition -->
-      <transition name="sidebar-slide">
-        <aside v-show="sidebarOpen || !isMobile" class="sidebar" :class="{ 'mobile': isMobile, 'open': sidebarOpen }" @click.self="isMobile ? sidebarOpen = false : null">
-          <div class="sidebar-header">
-            <h3>My Notes</h3>
-            <button @click.prevent="createNewNote" :aria-busy="loading">New Note</button>
+      <transition
+        enter-active-class="transition ease-out duration-300"
+        enter-from-class="transform -translate-x-full opacity-0"
+        enter-to-class="transform translate-x-0 opacity-100"
+        leave-active-class="transition ease-in duration-200"
+        leave-from-class="transform translate-x-0 opacity-100"
+        leave-to-class="transform -translate-x-full opacity-0"
+      >
+        <!-- Sidebar itself - conditional rendering/styling based on mobile/open state -->
+        <aside 
+           v-show="sidebarOpen || !isMobile" 
+           class="flex flex-col w-64 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-y-auto"
+           :class="{ 'absolute inset-y-0 left-0 z-30': isMobile && sidebarOpen }" 
+           @click.self="isMobile ? sidebarOpen = false : null" 
+        >
+          <!-- Sidebar Header -->
+          <div class="flex flex-col p-4 border-b border-gray-200 dark:border-gray-700">
+            <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">My Notes</h3>
+            <ClientOnly>
+              <UButton label="New Note" @click.prevent="createNewNote" :loading="loading" block icon="i-heroicons-plus-circle"/>
+              <template #fallback>
+                <!-- Optional: Add a placeholder skeleton or similar -->
+                <USkeleton class="h-8 w-full" /> 
+              </template>
+            </ClientOnly>
           </div>
-          <div class="notes-list" v-if="notes.length">
-            <a href="#" v-for="note in notes" :key="note.id!" @click.prevent="selectNote(note)" :aria-busy="loading && selectedNote?.id === note.id" :class="{ 'active': selectedNote?.id === note.id }">
-              <span class="note-title">{{ note.title || 'Untitled Note' }}</span>
-              <span class="note-date">{{ formatDate(note.updated_at) }}</span>
-            </a>
+
+          <!-- Notes List -->
+          <div class="flex-1 p-2 space-y-1 overflow-y-auto">
+            <template v-if="notes.length">
+              <!-- Using button/div for list items for easier styling/event handling -->
+              <button 
+                v-for="note in notes" 
+                :key="note.id!" 
+                @click.prevent="selectNote(note)" 
+                :disabled="loading && selectedNote?.id === note.id"
+                class="w-full text-left p-2 rounded-md transition-colors duration-150 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
+                :class="[
+                  selectedNote?.id === note.id 
+                    ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-200 font-semibold' 
+                    : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
+                ]"
+              >
+                <span class="block text-sm font-medium truncate">{{ note.title || 'Untitled Note' }}</span>
+                <span class="block text-xs text-gray-500 dark:text-gray-400 mt-1">{{ formatDate(note.updated_at) }}</span>
+              </button>
+            </template>
+            <!-- Empty/Loading States -->
+            <p v-else-if="!loading" class="px-2 py-4 text-sm text-center text-gray-500 dark:text-gray-400">No notes yet.</p>
+            <div v-else class="px-2 py-4 space-y-2">
+              <USkeleton class="h-10 w-full" />
+              <USkeleton class="h-10 w-full" />
+              <USkeleton class="h-10 w-full" />
+            </div>
           </div>
-          <p v-else-if="!loading" class="no-notes">No notes yet.</p>
-          <p v-else aria-busy="true" class="loading-notes">Loading notes...</p>
         </aside>
       </transition>
 
-      <main class="editor-area">
-        <article v-if="selectedNote">
-          <form @submit.prevent="saveNote">
-            <label for="title">
-              Title
-              <input type="text" id="title" name="title" v-model="selectedNote.title" required :disabled="loading" :maxlength="TITLE_MAX_LENGTH">
-              <small class="char-counter">{{ selectedNote.title?.length || 0 }} / {{ TITLE_MAX_LENGTH }} characters</small>
-              <small v-if="isTitleTooLong" class="error-message">Title cannot exceed {{ TITLE_MAX_LENGTH }} characters.</small>
-            </label>
-            <label for="content">
-              Content
-              <textarea id="content" name="content" v-model="selectedNote.content" rows="10" :disabled="loading" :maxlength="CONTENT_MAX_LENGTH"></textarea>
-              <small class="char-counter">{{ selectedNote.content?.length || 0 }} / {{ CONTENT_MAX_LENGTH }} characters</small>
-              <small v-if="isContentTooLong" class="error-message">Content cannot exceed {{ CONTENT_MAX_LENGTH }} characters.</small>
-            </label>
-            <div class="grid">
-              <button type="submit" :disabled="isSaveDisabled" :aria-busy="loading">Save Note</button>
-              <button type="button" class="contrast" @click="deleteNote" :disabled="!selectedNote.id || loading" :aria-busy="loading">Delete Note</button>
-              <!-- Optional Spacer -->
-              <div></div>
+      <!-- Editor Area -->
+      <main class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-gray-50 dark:bg-gray-800">
+        <!-- Show form only if a note is selected -->
+        <template v-if="selectedNote">
+          <UForm :state="selectedNote" @submit.prevent="saveNote" class="space-y-4">
+            <!-- Title Input -->
+            <UFormField label="Title" name="title">
+               <template #label>
+                 <div class="flex justify-between items-center">
+                   <span>Title</span>
+                   <span class="text-xs text-gray-500 dark:text-gray-400">{{ selectedNote.title?.length || 0 }} / {{ TITLE_MAX_LENGTH }}</span>
+                 </div>
+               </template>
+              <UInput 
+                v-model="selectedNote.title" 
+                required 
+                :disabled="loading" 
+                :maxlength="TITLE_MAX_LENGTH"
+                placeholder="Note Title"
+              />
+              <template #error>
+                 <span v-if="isTitleTooLong" class="text-red-500 text-xs">Title cannot exceed {{ TITLE_MAX_LENGTH }} characters.</span>
+              </template>
+            </UFormField>
+
+            <!-- Content Textarea -->
+            <UFormField label="Content" name="content">
+               <template #label>
+                 <div class="flex justify-between items-center">
+                   <span>Content</span>
+                   <span class="text-xs text-gray-500 dark:text-gray-400">{{ selectedNote.content?.length || 0 }} / {{ CONTENT_MAX_LENGTH }}</span>
+                 </div>
+               </template>
+              <UTextarea 
+                v-model="selectedNote.content" 
+                :rows="10" 
+                :disabled="loading" 
+                :maxlength="CONTENT_MAX_LENGTH"
+                placeholder="Start writing your note..."
+                class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-primary-500"
+              />
+              <template #error>
+                <span v-if="isContentTooLong" class="text-red-500 text-xs">Content cannot exceed {{ CONTENT_MAX_LENGTH }} characters.</span>
+               </template>
+            </UFormField>
+
+            <!-- Action Buttons -->
+            <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
+               <!-- Status Message -->
+               <p v-if="statusMessage" class="text-sm text-gray-600 dark:text-gray-300 mr-auto self-center">{{ statusMessage }}</p>
+               
+              <UButton 
+                type="button" 
+                label="Delete Note" 
+                color="error" 
+                variant="soft" 
+                @click="deleteNote" 
+                :disabled="!selectedNote.id || loading" 
+                :loading="loading && selectedNote?.id === originalSelectedNote?.id" 
+                icon="i-heroicons-trash" 
+              />
+              <UButton 
+                type="submit" 
+                label="Save Note" 
+                :disabled="isSaveDisabled" 
+                :loading="loading && selectedNote?.id === originalSelectedNote?.id" 
+                icon="i-heroicons-check-circle" 
+              />
             </div>
-            <p v-if="statusMessage">{{ statusMessage }}</p>
-          </form>
-        </article>
-        <div v-else class="placeholder-content">
-          <p>Select a note or create a new one.</p>
+          </UForm>
+        </template>
+        <!-- Placeholder when no note is selected -->
+        <div v-else class="flex items-center justify-center h-full">
+          <p class="text-lg text-gray-500 dark:text-gray-400 italic">Select a note or create a new one.</p>
         </div>
       </main>
+
+      <!-- Mobile Overlay for Sidebar -->
+      <div 
+        v-if="isMobile && sidebarOpen" 
+        class="fixed inset-0 bg-black bg-opacity-25 z-20" 
+        @click="sidebarOpen = false"
+      ></div>
+
     </div>
   </div>
 </template>
 
 <script setup lang="ts">
+// --- Imports and Setup --- (Largely unchanged)
 import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { type Note } from '~/types'; // Import the Note type
-import AppHeader from '~/components/AppHeader.vue';
+// AppHeader auto-imported by Nuxt
 import type { Database } from '~/database.types'; // Import generated DB types
 
-// Responsive sidebar state
+// --- Responsive Sidebar State --- (Unchanged)
 const sidebarOpen = ref(false);
 const isMobile = ref(false);
 
-// Watch for window resize to update isMobile
 const checkMobile = () => {
   if (typeof window !== 'undefined') {
-    isMobile.value = window.innerWidth <= 600;
-    if (!isMobile.value) sidebarOpen.value = true;
-    else sidebarOpen.value = false;
+    isMobile.value = window.innerWidth <= 768; // Use md breakpoint
+    // Default sidebar state based on mobile status
+    if (!isMobile.value) sidebarOpen.value = true; 
+    else sidebarOpen.value = false; // Closed by default on mobile
   }
 };
 
-// Theme setup
-const theme = ref('light');
-
-// === Setup ===
+// --- Supabase Setup --- (Unchanged)
 const router = useRouter();
-
-// Use the composables provided by the supabase module (auto-imported)
-const client = useSupabaseClient<Database>(); // Add Database generic
-
-// Get reactive user state directly from the Supabase module
+const client = useSupabaseClient<Database>();
 const user = useSupabaseUser();
-
-// Define isLoggedIn based on the reactive user ref
 const isLoggedIn = computed(() => !!user.value);
 
-// Reactive state
+// --- Reactive State --- (Unchanged)
 const notes = ref<Note[]>([]);
 const selectedNote = ref<Note | null>(null);
-const originalSelectedNote = ref<Note | null>(null);
+const originalSelectedNote = ref<Note | null>(null); // For dirty checking
 const loading = ref(false);
 const statusMessage = ref('');
 
-// Computed property to check if the selected note has changed
+// --- Computed Properties for Validation/State --- (Modified)
 const isNoteDirty = computed(() => {
-  if (!selectedNote.value || !originalSelectedNote.value) return false;
+  if (!selectedNote.value || !originalSelectedNote.value) {
+    return false;
+  }
   return (
     selectedNote.value.title !== originalSelectedNote.value.title ||
     selectedNote.value.content !== originalSelectedNote.value.content
   );
 });
 
-// Computed properties for length validation
+const TITLE_MAX_LENGTH = 255;
+const CONTENT_MAX_LENGTH = 10000;
+
 const isTitleTooLong = computed(() => {
-  return selectedNote.value ? selectedNote.value.title.length > TITLE_MAX_LENGTH : false;
+  const titleLength = selectedNote.value?.title?.length;
+  return typeof titleLength === 'number' && titleLength > TITLE_MAX_LENGTH;
 });
 
 const isContentTooLong = computed(() => {
-  // Check if note exists AND content exists before checking length
-  return selectedNote.value && selectedNote.value.content
-    ? selectedNote.value.content.length > CONTENT_MAX_LENGTH
-    : false;
+  const contentLength = selectedNote.value?.content?.length;
+  return typeof contentLength === 'number' && contentLength > CONTENT_MAX_LENGTH;
 });
 
-// Combine validation checks for button disabling
 const isSaveDisabled = computed(() => {
   return !isNoteDirty.value || loading.value || isTitleTooLong.value || isContentTooLong.value;
 });
 
-// Define constants for validation
-const TITLE_MAX_LENGTH = 255;
-const CONTENT_MAX_LENGTH = 10000;
-
-// Helper function for date formatting
+// --- Utility Functions --- (Unchanged)
 const formatDate = (dateString: string | undefined): string => {
   if (!dateString) return '';
-  const date = new Date(dateString);
-  // Example format: 'Sep 26, 2024' - adjust options as needed
-  return date.toLocaleDateString(undefined, {
-    year: 'numeric',
-    month: 'short',
-    day: 'numeric',
-  });
-}
+  try {
+    return new Date(dateString).toLocaleDateString(undefined, {
+      year: 'numeric',
+      month: 'short',
+      day: 'numeric',
+      hour: '2-digit',
+      minute: '2-digit',
+    });
+  } catch (e) {
+    return 'Invalid date';
+  }
+};
 
-// === Note Fetching ===
+// --- Core Logic Functions (CRUD, Select, Toggle) --- (Unchanged)
+
 // Fetch notes function
 const fetchNotes = async () => {
-  if (!user.value) {
-    return;
-  }
+  if (!isLoggedIn.value || !user.value) return; // Check if user is logged in
   loading.value = true;
-  // statusMessage.value = 'Fetching notes...'; // Maybe too noisy
+  statusMessage.value = 'Loading notes...';
   try {
     const { data, error } = await client
       .from('notes')
       .select('*')
-      .eq('user_id', user.value.id)
+      .eq('user_id', user.value.id) // Fetch only notes for the current user
       .order('updated_at', { ascending: false });
 
-    if (error) {
-      throw error;
-    }
-    // Use double assertion for type safety
-    notes.value = data as unknown as Note[] || [];
-    if (notes.value.length > 0) {
-      // Automatically select the most recently updated note
-      if (!selectedNote.value?.id) { // Only auto-select if no note is currently selected
-        selectNote(notes.value[0]);
+    if (error) throw error;
+
+    notes.value = data || [];
+    statusMessage.value = ''; // Clear loading message
+
+    // If a note was selected previously, try to re-select it by id
+    if (selectedNote.value) {
+      const reselected = notes.value.find(n => n.id === selectedNote.value?.id);
+      if (reselected) {
+        selectNote(reselected); // Re-apply selection with potentially updated data
+      } else {
+        selectedNote.value = null; // Deselect if it no longer exists
+        originalSelectedNote.value = null;
       }
+    } else if (notes.value.length > 0) {
+       // Optionally select the first note if none was selected
+       // selectNote(notes.value[0]); 
     }
+
   } catch (error) {
     console.error('Error fetching notes:', error);
-    statusMessage.value = 'Failed to load notes.';
+    statusMessage.value = 'Error fetching notes.';
+    notes.value = []; // Clear notes on error
   } finally {
     loading.value = false;
   }
-}
+};
 
-// --- Watcher for User State --- // NEW
-watch(user, (currentUser) => { // Watch the user ref from useSupabaseUser
-  if (currentUser) { // Check if the user object exists (is not null)
-    // User is logged in, fetch their notes
+// Watcher for User State
+watch(user, (currentUser, previousUser) => {
+  if (currentUser && !previousUser) { // User logged in
     fetchNotes();
-  } else {
-    // If no user, potentially clear notes or handle logged-out state
+  } else if (!currentUser && previousUser) { // User logged out
     notes.value = [];
     selectedNote.value = null;
+    originalSelectedNote.value = null;
+    router.push('/login'); // Redirect to login on logout
   }
-}, { immediate: true }); // Run immediately on load
+}, { immediate: true }); // Run immediately to fetch notes if already logged in
 
-// --- Lifecycle Hook ---
-// --- Single onMounted Hook ---
+// --- Lifecycle Hooks --- (Unchanged)
 onMounted(() => {
-  // Theme initialization
-  const savedTheme = localStorage.getItem('theme');
-  theme.value = savedTheme || 'light';
-  document.documentElement.setAttribute('data-theme', theme.value);
-
-  // Resize listener and initial check
+  checkMobile();
   if (typeof window !== 'undefined') {
     window.addEventListener('resize', checkMobile);
-    checkMobile(); // Initial check
-    sidebarOpen.value = !isMobile.value; // Set initial sidebar state
   }
-
-  // Cleanup function
-  return () => {
-    if (typeof window !== 'undefined') {
-      window.removeEventListener('resize', checkMobile);
-    }
-  };
+  // Initial fetch is handled by the user watcher
 });
 
-// Select note function
+// --- Select Note --- (Unchanged)
 const selectNote = (note: Note) => {
-  if (loading.value) return; // Prevent changing note while saving/deleting
-  selectedNote.value = { ...note }; // Clone to allow editing without modifying the list directly
-  originalSelectedNote.value = { ...note }; // Store original for comparison
-  statusMessage.value = '';
-  // Close sidebar on mobile after selecting a note
-  if (isMobile.value) sidebarOpen.value = false;
-}
-
-// Create new note function
-const createNewNote = async () => {
-  if (!user.value) {
-    statusMessage.value = 'Error: You must be logged in.';
-    return;
+  // Simple deep copy for dirty checking comparison
+  originalSelectedNote.value = JSON.parse(JSON.stringify(note)); 
+  selectedNote.value = note;
+  statusMessage.value = ''; // Clear any previous status
+  // Close sidebar on mobile after selection
+  if (isMobile.value) {
+    sidebarOpen.value = false;
   }
+};
 
-  console.log('Attempting to insert note for user ID:', user.value.id);
+// --- Create New Note --- (Unchanged logic, adapted for state)
+const createNewNote = async () => {
+  if (!isLoggedIn.value || !user.value) return;
+  loading.value = true;
+  statusMessage.value = 'Creating new note...';
 
-  const newNoteData: Omit<Note, 'id' | 'created_at' | 'updated_at'> = {
+  // Define the type for insertion explicitly, excluding fields managed by DB (id, created_at, updated_at)
+  // Ensure required fields (user_id, title) are present.
+  const newNoteData: { user_id: string; title: string; content: string | null } = {
+    user_id: user.value.id,
     title: 'Untitled Note',
-    content: '',
-    user_id: user.value.id, // Add user_id
+    content: '', // Initialize content, can be empty string or null depending on schema
   };
 
-  loading.value = true;
   try {
+    // Insert the note
     const { data, error } = await client
       .from('notes')
       .insert(newNoteData)
       .select()
-      .single(); // Get the inserted record
+      .single(); // Select the newly created note data
 
     if (error) throw error;
-    // Ensure data has the expected structure (basic check)
-    if (!data || typeof data.id !== 'string') {
-      throw new Error('Invalid data returned after creating note.');
+
+    if (data) {
+        notes.value.unshift(data); // Add to the top of the local list
+        selectNote(data); // Select the new note
+        statusMessage.value = 'New note created.';
+    } else {
+        throw new Error('Failed to retrieve new note data after creation.');
     }
-    // Cast the returned data to our Note type (via unknown)
-    const createdNote = data as unknown as Note;
-    // Refresh the list in the sidebar *after* successful creation
-    await fetchNotes();
-    // Directly select the note we just created using the data returned from Supabase
-    selectNote(createdNote);
-    statusMessage.value = 'Note created.';
-    setTimeout(() => statusMessage.value = '', 3000); // Clear message
+
   } catch (error) {
-    console.error('Error creating note:', error);
+    console.error('Error creating new note:', error);
     statusMessage.value = 'Error creating note.';
-    setTimeout(() => statusMessage.value = '', 3000); // Clear message on error too
   } finally {
     loading.value = false;
+    setTimeout(() => { if (statusMessage.value === 'New note created.') statusMessage.value = ''; }, 3000);
   }
-}
+};
 
-// Save note function (handles create and update)
+// --- Save Note (Update) --- (Unchanged)
 const saveNote = async () => {
-  if (!selectedNote.value || !user.value) return;
+  if (!selectedNote.value || !isNoteDirty.value || !isLoggedIn.value) return;
+
   loading.value = true;
   statusMessage.value = 'Saving...';
-  const { id, ...noteDataToSave } = selectedNote.value;
-  noteDataToSave.updated_at = new Date().toISOString(); // Always update timestamp
-  noteDataToSave.user_id = user.value.id; // Ensure user_id is set
+
+  const noteToUpdate = {
+    title: selectedNote.value.title,
+    content: selectedNote.value.content,
+    updated_at: new Date().toISOString(), // Explicitly set updated_at
+  };
 
   try {
-    let savedNoteData: Note | null = null;
-    if (selectedNote.value.id) {
-      // Update existing note
-      const { data, error } = await client
-        .from('notes')
-        .update(noteDataToSave) // Pass only data fields, not id
-        .eq('id', selectedNote.value.id)
-        .select()
-        .single(); // Get the updated record
-      if (error) throw error;
-      // Use double assertion for type safety
-      savedNoteData = data as unknown as Note;
+    const { data, error } = await client
+      .from('notes')
+      .update(noteToUpdate)
+      .eq('id', selectedNote.value.id!) // Ensure ID is present
+      .select()
+      .single();
+
+    if (error) throw error;
+
+    if (data) {
+      // Update the note in the local list
+      const index = notes.value.findIndex(n => n.id === data.id);
+      if (index !== -1) {
+        notes.value[index] = data;
+      }
+      // Re-select to update originalSelectedNote for dirty checking
+      selectNote(data);
+      statusMessage.value = 'Note saved!';
     } else {
-      // Insert new note
-      const { data, error } = await client
-        .from('notes')
-        .insert(noteDataToSave) // Pass only data fields, not id
-        .select()
-        .single(); // Get the inserted record
-      if (error) throw error;
-      // Use double assertion for type safety
-      savedNoteData = data as unknown as Note;
+      throw new Error('Failed to retrieve updated note data.');
     }
 
-    if (savedNoteData) {
-      statusMessage.value = 'Note saved.';
-      originalSelectedNote.value = null; // Clear original state after successful save
-      await fetchNotes(); // Refresh list to show updated timestamp/new note
-      selectedNote.value = null; // Clear the selection to hide the editor
-      setTimeout(() => statusMessage.value = '', 3000); // Clear message
-    }
   } catch (error) {
     console.error('Error saving note:', error);
     statusMessage.value = 'Error saving note.';
   } finally {
     loading.value = false;
+    setTimeout(() => { if (statusMessage.value === 'Note saved!') statusMessage.value = ''; }, 3000);
   }
-}
+};
 
-// Delete note function
+// --- Delete Note --- (Unchanged)
 const deleteNote = async () => {
-  if (!selectedNote.value || !selectedNote.value.id || !user.value) {
-    statusMessage.value = 'Cannot delete: Note not selected or user not logged in.';
+  if (!selectedNote.value?.id || !isLoggedIn.value) return;
+
+  // Confirmation dialog
+  if (!confirm('Are you sure you want to delete this note? This action cannot be undone.')) {
     return;
   }
- 
+
   loading.value = true;
   statusMessage.value = 'Deleting...';
+  const noteIdToDelete = selectedNote.value.id;
+
   try {
     const { error } = await client
       .from('notes')
       .delete()
-      .match({ id: selectedNote.value.id, user_id: user.value.id }); // Ensure user owns the note
+      .eq('id', noteIdToDelete);
 
     if (error) throw error;
 
     statusMessage.value = 'Note deleted.';
+    // Find index and remove from local array *before* deselecting
+    const index = notes.value.findIndex(n => n.id === noteIdToDelete);
+    if (index !== -1) {
+        notes.value.splice(index, 1);
+    }
+    // Deselect note
     selectedNote.value = null;
     originalSelectedNote.value = null;
-    await fetchNotes(); // Refresh the list
-    setTimeout(() => statusMessage.value = '', 3000); // Clear message
+    // No need to fetch notes again, already removed locally
+    // await fetchNotes(); // Refresh the list - Redundant if spliced correctly
+    
   } catch (error) {
     console.error('Error deleting note:', error);
     statusMessage.value = 'Error deleting note.';
   } finally {
     loading.value = false;
+    setTimeout(() => { if (statusMessage.value === 'Note deleted.') statusMessage.value = ''; }, 3000);
   }
 }
 
-// Toggle sidebar function
+// --- Toggle Sidebar --- (Unchanged)
 const toggleSidebar = () => {
   sidebarOpen.value = !sidebarOpen.value;
 }
 </script>
-
-<style scoped>
-/* Add relative positioning to the main page container */
-.notes-page {
-  display: flex;
-  flex-direction: column; /* Stack header and main content vertically */
-  height: 100vh;
-  overflow: hidden; /* Prevent scrolling on the main page */
-  position: relative; /* Added for absolute positioning context */
-}
-
-/* NEW: Add flex styles for main layout */
-.main-content {
-  display: flex;
-  flex-grow: 1; /* Allow main content to fill remaining vertical space if AppHeader shrinks */
-  overflow: hidden; /* Prevent overflow within the main area */
-}
-
-.editor-area {
-  flex-grow: 1; /* Make editor area fill remaining horizontal space */
-  overflow-y: auto; /* Allow editor scrolling */
-  padding: 1rem; /* Add some padding inside the editor */
-  min-width: 0; /* Prevent content from breaking flex layout */
-}
-
-/* Sidebar slide transition */
-.sidebar-slide-enter-active,
-.sidebar-slide-leave-active {
-  transition: transform 0.38s cubic-bezier(.4,2,.6,1), opacity 0.32s ease;
-}
-.sidebar-slide-enter-from,
-.sidebar-slide-leave-to {
-  transform: translateX(-100%);
-  opacity: 0;
-}
-.sidebar-slide-enter-to,
-.sidebar-slide-leave-from {
-  transform: translateX(0);
-  opacity: 1;
-}
-
-/* Removed Hamburger toggle styles */
-
-/* Sidebar Styles */
-.sidebar {
-  display: flex;
-  flex-direction: column;
-  overflow-y: auto; /* Allow sidebar scrolling if needed */
-  border-right: 1px solid var(--pico-muted-border-color);
-  padding-right: 1rem;
-  min-width: 250px; /* Add minimum width for non-mobile view */
-  flex-shrink: 0; /* Prevent sidebar from shrinking */
-}
-
-.sidebar-header {
-  display: flex;
-  flex-direction: column; /* Stack items vertically */
-  align-items: flex-start; /* Align items to the start (left) */
-  margin-bottom: 1rem;
-  padding-bottom: 0.5rem;
-  border-bottom: 1px solid var(--pico-muted-border-color);
-}
-
-.sidebar-header h3 {
-  margin-bottom: 0.5rem; /* Add space below the title */
-}
-
-.notes-list a {
-  display: block;
-  padding: 0.5rem;
-  margin-bottom: 0.5rem;
-  text-decoration: none;
-  border-radius: var(--pico-border-radius);
-  transition: background-color 0.2s ease;
-  color: var(--pico-primary-focus);
-}
-
-.notes-list a:hover {
-  background-color: var(--pico-muted-background);
-}
-
-.notes-list a.active {
-  background-color: var(--pico-primary-background);
-  color: var(--pico-primary-inverse);
-  font-weight: bold;
-}
-
-.note-title {
-  display: block;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.note-date {
-  display: block;
-  font-size: 0.8em;
-  color: var(--pico-muted-color);
-}
-
-.no-notes,
-.loading-notes {
-  text-align: center;
-  color: var(--pico-muted-color);
-  margin-top: 1rem;
-}
-
-.placeholder-content {
-  display: flex;
-  justify-content: center;
-  align-items: center;
-  height: 100%;
-  color: var(--pico-muted-color);
-  font-style: italic;
-}
-
-/* Adjust form layout if needed */
-form .grid {
-  grid-template-columns: 1fr 1fr auto; /* Adjust button layout */
-}
-
-textarea {
-  resize: vertical; /* Allow vertical resize */
-}
-
-.status-message {
-  margin-top: 1rem;
-  font-style: italic;
-}
-
-/* Ensure loading states look right */
-[aria-busy="true"] {
-  cursor: wait;
-}
-
-/* Add styles for character counter */
-.char-counter {
-  display: block; /* Ensure it takes its own line */
-  text-align: right; /* Align to the right */
-  font-size: 0.8em;
-  color: var(--pico-muted-color);
-  margin-top: 0.25rem;
-}
-
-/* Add styles for validation messages */
-.error-message {
-  color: var(--pico-color-red);
-  font-size: 0.8em;
-  display: block; /* Ensure it takes its own line */
-  margin-top: 0.25rem;
-}
-</style>

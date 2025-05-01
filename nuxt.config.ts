@@ -3,7 +3,8 @@ export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
   modules: [
-    '@nuxtjs/supabase'
+    '@nuxtjs/supabase',
+    '@nuxt/ui'
   ],
   supabase: {
     // Options https://supabase.nuxtjs.org/get-started/options
@@ -23,8 +24,16 @@ export default defineNuxtConfig({
     head: {
       title: 'High Notes',
       link: [
-        { rel: 'stylesheet', href: 'https://cdn.jsdelivr.net/npm/@picocss/pico@latest/css/pico.min.css' }
+        //{ rel: 'stylesheet', href: 'https://cdn.jsdelivr.net/npm/@picocss/pico@latest/css/pico.min.css' } // Removed PicoCSS
       ]
+    }
+  },
+  css: [
+    '~/assets/css/main.css'
+  ],
+  nitro: {
+    externals: {
+      inline: ['@vueuse/core', '@vueuse/shared']
     }
   }
 })

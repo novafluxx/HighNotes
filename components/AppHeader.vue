@@ -1,66 +1,74 @@
 <template>
-  <nav class="container-fluid header-nav">
-    <ul>
-      <li>
-        <!-- Hamburger Toggle for Mobile -->
-        <button v-if="isMobile" @click="$emit('toggle-sidebar')" class="mobile-sidebar-toggle" aria-label="Toggle sidebar">
-          <span>
-            <i></i>
-            <i></i>
-            <i></i>
-          </span>
-        </button>
-      </li>
-      <li><a href="#" @click.prevent="refreshPage" class="header-title"><strong>High Notes</strong></a></li>
-    </ul>
-    <ul>
-      <li>
-        <button @click="toggleTheme" class="theme-toggle" :aria-label="`Switch to ${isDarkMode ? 'light' : 'dark'} theme`">
-          <!-- Sun icon for Light Mode (when isDarkMode is true) -->
-          <svg v-if="isDarkMode" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <circle cx="12" cy="12" r="5"></circle>
-            <line x1="12" y1="1" x2="12" y2="3"></line>
-            <line x1="12" y1="21" x2="12" y2="23"></line>
-            <line x1="4.22" y1="4.22" x2="5.64" y2="5.64"></line>
-            <line x1="18.36" y1="18.36" x2="19.78" y2="19.78"></line>
-            <line x1="1" y1="12" x2="3" y2="12"></line>
-            <line x1="21" y1="12" x2="23" y2="12"></line>
-            <line x1="4.22" y1="19.78" x2="5.64" y2="18.36"></line>
-            <line x1="18.36" y1="5.64" x2="19.78" y2="4.22"></line>
-          </svg>
-          <!-- Moon icon for Dark Mode (when isDarkMode is false) -->
-          <svg v-else xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-            <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"></path>
-          </svg>
-        </button>
-      </li>
-      <!-- User Menu if logged in -->
-      <li v-if="isLoggedIn" class="user-menu-container">
-        <a href="#" @click.prevent="toggleUserMenu" class="user-email-link" aria-haspopup="true" :aria-expanded="isUserMenuOpen">
-          {{ user?.email }} &#9660;
-        </a>
-        <transition name="slide-fade">
-          <div v-if="isUserMenuOpen" class="user-menu-dropdown" ref="userMenuRef">
-            <a href="#" @click.prevent="handleLogout" class="dropdown-item">Logout</a>
-            <!-- Add other menu items here if needed -->
-          </div>
-        </transition>
-      </li>
-      <!-- Login Link if logged out -->
-      <li v-else>
-        <NuxtLink to="/" class="login-link">Login</NuxtLink>
-      </li>
-    </ul>
+  <!-- Use Tailwind for layout, background, border -->
+  <nav class="bg-white dark:bg-gray-900 border-b border-gray-200 dark:border-gray-800 px-4 py-2 flex justify-between items-center">
+    <!-- Left side: Mobile Toggle (if needed) and Title -->
+    <div class="flex items-center gap-4">
+      <!-- Mobile Hamburger Toggle (Kept structure, needs Tailwind styling) -->
+      <button v-if="isMobile" @click="$emit('toggle-sidebar')" class="p-2 rounded-md text-gray-700 dark:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-800 lg:hidden" aria-label="Toggle sidebar">
+        <!-- Simple hamburger icon using divs -->
+        <div class="space-y-1.5">
+          <div class="w-6 h-0.5 bg-current"></div>
+          <div class="w-6 h-0.5 bg-current"></div>
+          <div class="w-6 h-0.5 bg-current"></div>
+        </div>
+      </button>
+      <!-- Title -->
+      <a href="#" @click.prevent="refreshPage" class="text-xl font-bold text-gray-900 dark:text-white">
+        High Notes
+      </a>
+    </div>
+
+    <!-- Right side: Theme Toggle and User Menu/Login -->
+    <div class="flex items-center gap-4">
+      <!-- Theme Toggle using NuxtUI's useColorMode -->
+      <ClientOnly>
+        <UButton
+          :icon="isDark ? 'i-heroicons-moon-20-solid' : 'i-heroicons-sun-20-solid'"
+          variant="ghost"
+          aria-label="Theme"
+          @click="isDark = !isDark"
+        />
+        <template #fallback>
+          <div class="w-8 h-8" />
+        </template>
+      </ClientOnly>
+
+      <!-- User Menu Dropdown (if logged in) -->
+      <div v-if="isLoggedIn">
+         <UDropdownMenu :items="userMenuItems" :popper="{ placement: 'bottom-end' }">
+           <UAvatar :alt="user?.email?.charAt(0).toUpperCase() || 'U'" size="sm" />
+
+           <template #account="{ item }">
+             <div class="text-left">
+               <p>Signed in as</p>
+               <p class="truncate font-medium text-gray-900 dark:text-white">
+                 {{ user?.email }}
+               </p>
+             </div>
+           </template>
+
+           <template #item="{ item }">
+             <span class="truncate">{{ item.label }}</span>
+             <UIcon v-if="item.icon" :name="item.icon" class="flex-shrink-0 h-4 w-4 text-gray-400 dark:text-gray-500 ms-auto" />
+           </template>
+         </UDropdownMenu>
+      </div>
+
+      <!-- Login Link (if logged out) -->
+      <NuxtLink v-else to="/login" class="text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-primary dark:hover:text-primary">
+        Login
+      </NuxtLink>
+    </div>
   </nav>
 </template>
 
 <script setup lang="ts">
-import { ref, computed, onMounted, watch, nextTick, onUnmounted } from 'vue';
-// useSupabaseUser will be auto-imported by Nuxt
-import { useAuth } from '~/composables/useAuth'; // Import useAuth for logout
-import { NuxtLink } from '#components'; // Import NuxtLink for programmatic usage if needed, or just use in template
+// Keep necessary imports, remove unused ones related to old theme/dropdown
+import { computed } from 'vue';
+import { useAuth } from '~/composables/useAuth';
+// NuxtLink is auto-imported if used in template
 
-// --- Props and Emits ---
+// --- Props and Emits (Keep) ---
 defineProps({
   isMobile: {
     type: Boolean,
@@ -69,226 +77,51 @@ defineProps({
 });
 defineEmits(['toggle-sidebar']);
 
-// Get user state from Supabase module
+// --- Supabase User State (Keep) ---
 const user = useSupabaseUser();
 const isLoggedIn = computed(() => !!user.value);
 
-// Get logout function and loading state from our composable
+// --- Logout Logic (Keep) ---
 const { logout, loading: logoutLoading } = useAuth();
-
-// --- Theme State & Logic ---
-const isDarkMode = ref(false);
-
-const applyTheme = (dark: boolean) => {
-  const theme = dark ? 'dark' : 'light';
-  // Ensure this runs only client-side
-  if (process.client) {
-      document.documentElement.dataset.theme = theme;
-      localStorage.setItem('theme', theme);
-  }
-  isDarkMode.value = dark;
-}
-
-const toggleTheme = () => {
-  applyTheme(!isDarkMode.value);
-}
-
-const initializeTheme = () => {
-  if (!process.client) return; // Only run on client
-  const storedTheme = localStorage.getItem('theme');
-  let preferDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
-
-  if (storedTheme) {
-    applyTheme(storedTheme === 'dark');
-  } else {
-    applyTheme(preferDark);
-  }
-}
-
-// --- User Menu State & Logic ---
-const isUserMenuOpen = ref(false);
-const userMenuRef = ref<HTMLElement | null>(null);
-
-const toggleUserMenu = () => {
-  isUserMenuOpen.value = !isUserMenuOpen.value;
-}
-
-const closeUserMenu = () => {
-  isUserMenuOpen.value = false;
-}
-
 const handleLogout = async () => {
   console.log('Logout initiated');
-  isUserMenuOpen.value = false; // Close menu on logout attempt
-  await logout(); // Call the logout function from useAuth
+  await logout();
 }
 
-const handleClickOutside = (event: MouseEvent) => {
-  const target = event.target as HTMLElement;
-  if (
-    userMenuRef.value &&
-    !userMenuRef.value.contains(target) &&
-    !target.closest('.user-email-link')
-  ) {
-    closeUserMenu();
-  }
-};
-
-watch(isUserMenuOpen, (isOpen) => {
-  if (isOpen && process.client) {
-    nextTick(() => {
-      document.addEventListener('click', handleClickOutside);
-    });
-  } else if (process.client) {
-    document.removeEventListener('click', handleClickOutside);
+// --- NuxtUI Color Mode --- NEW
+const colorMode = useColorMode();
+const isDark = computed({
+  get () {
+    return colorMode.value === 'dark'
+  },
+  set () {
+    colorMode.preference = colorMode.value === 'dark' ? 'light' : 'dark'
   }
 });
 
-onMounted(() => {
-  initializeTheme();
-});
+// --- User Dropdown Items --- NEW
+const userMenuItems = [
+  [
+    {
+      label: user.value?.email || 'Account',
+      slot: 'account',
+      disabled: true
+    }
+  ], [
+    {
+      label: 'Logout',
+      icon: 'i-heroicons-arrow-left-on-rectangle',
+      onSelect: () => {
+        handleLogout();
+      }
+    }
+  ]
+];
 
-onUnmounted(() => {
-  if (process.client) {
-      document.removeEventListener('click', handleClickOutside);
-  }
-});
-
-// Function to refresh the page
+// --- Page Refresh Logic (Keep) ---
 const refreshPage = () => {
   if (typeof window !== 'undefined') {
     window.location.reload();
   }
 };
 </script>
-
-<style scoped>
-.header-nav {
-  border-bottom: 1px solid var(--pico-muted-border-color);
-  padding-top: 1px;
-  padding-bottom: 1px;
-  margin-bottom: var(--pico-block-spacing-vertical);
-  background-color: var(--pico-card-background-color); /* Ensure contrast */
-  display: flex;
-}
-
-.header-nav ul {
-  margin-bottom: 0;
-}
-
-.header-title,
-.login-link {
-    text-decoration: none;
-    color: var(--pico-contrast);
-}
-.login-link:hover {
-    text-decoration: underline;
-}
-
-/* Theme Toggle Styles */
-.theme-toggle {
-  background: none;
-  border: none;
-  padding: 0.5rem;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  line-height: 1;
-  color: var(--pico-contrast);
-}
-.theme-toggle svg {
-  width: 20px;
-  height: 20px;
-}
-.theme-toggle:hover {
-  opacity: 0.8;
-}
-
-/* User Menu Specific Styles */
-.user-menu-container {
-  position: relative;
-  margin-left: 0.5rem; /* Reduced margin slightly */
-}
-
-.user-email-link {
-  cursor: pointer;
-  text-decoration: none;
-  color: var(--pico-contrast);
-  padding: 0.5rem;
-}
-.user-email-link:hover {
-  text-decoration: underline;
-}
-
-.user-menu-dropdown {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  background-color: var(--pico-card-background-color);
-  border: 1px solid var(--pico-muted-border-color);
-  border-radius: var(--pico-border-radius);
-  box-shadow: var(--pico-card-box-shadow);
-  padding: 0.5rem 0;
-  min-width: 150px;
-  z-index: 10;
-  margin-top: 0.5rem;
-}
-
-.dropdown-item {
-  display: block;
-  padding: 0.5rem 1rem;
-  color: var(--pico-contrast);
-  text-decoration: none;
-  white-space: nowrap;
-}
-
-.dropdown-item:hover {
-  background-color: var(--pico-muted-background-color);
-}
-
-/* Transition Styles */
-.slide-fade-enter-active {
-  transition: all 0.2s ease-out;
-}
-
-.slide-fade-leave-active {
-  transition: all 0.2s cubic-bezier(1, 0.5, 0.8, 1);
-}
-
-.slide-fade-enter-from,
-.slide-fade-leave-to {
-  transform: translateY(-10px);
-  opacity: 0;
-}
-
-/* Mobile Sidebar Toggle Styles */
-.mobile-sidebar-toggle {
-  display: inline-flex; /* Use flex for alignment */
-  align-items: center;
-  justify-content: center;
-  background: none;
-  border: none;
-  padding: 0.5rem;
-  margin-right: 0.5rem; /* Space between button and title */
-  cursor: pointer;
-  color: var(--pico-nav-link-color);
-}
-
-.mobile-sidebar-toggle span {
-  display: flex;
-  flex-direction: column;
-  gap: 4px; /* Adjust gap between lines */
-  width: 20px; /* Adjust width */
-  height: 20px; /* Adjust height */
-  justify-content: center;
-}
-
-.mobile-sidebar-toggle i {
-  display: block;
-  background-color: currentColor; /* Use text color for lines */
-  height: 2px; /* Line thickness */
-  width: 100%;
-  border-radius: 1px;
-}
-</style>
