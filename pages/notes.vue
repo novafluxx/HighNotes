@@ -338,8 +338,8 @@ const createNewNote = () => {
   // Create a temporary note object without an ID
   const tempNewNote: Note = {
     // No id, created_at, updated_at yet
-    id: undefined, // Explicitly undefined or null to signify it's new
-    user_id: user.value.id,
+    id: null, // Explicitly null to signify it's new
+    user_id: user.value!.id, // Add non-null assertion
     title: '', // Start with empty title
     content: '', // Start with empty content
     created_at: new Date().toISOString(), // Temporary, will be set by DB
@@ -386,7 +386,7 @@ const saveNote = async () => {
     } else {
       // --- INSERT new note ---
       const noteToInsert = {
-        user_id: user.value!.id, // User is checked via isLoggedIn
+        user_id: user.value!.id, // Add non-null assertion
         title: selectedNote.value.title || 'Untitled Note', // Use default if empty
         content: selectedNote.value.content,
       };
