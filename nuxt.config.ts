@@ -38,25 +38,8 @@ export default defineNuxtConfig({
     '~/assets/css/main.css'
   ],
   nitro: {
-    externals: { 
-      inline: ['@vueuse/core', '@vueuse/shared'] 
-    },
-    compressPublicAssets: true, // generate gzip/brotli static assets
-    routeRules: {
-      '/_nuxt/**': { headers: { 'cache-control': 'public, max-age=31536000, immutable' } },
-      '/**': { swr: 60 } // stale-while-revalidate caching
-    }
-  },
-  vite: {
-    build: {
-      chunkSizeWarningLimit: 1200,
-      rollupOptions: {
-        output: {
-          manualChunks: {
-            'supabase': ['@supabase/supabase-js']
-          }
-        }
-      }
+    externals: {
+      inline: ['@vueuse/core', '@vueuse/shared']
     }
   }
 })

@@ -69,16 +69,16 @@ const loading = ref(false);
 
 watchEffect(() => {
   // Ensure route is available before accessing query
-  if (!route) return;
+  if (!route) {
+    // console.warn('Route not available yet in confirm.vue watchEffect'); // Optional logging
+    return; // Wait for next run when route is available
+  }
 
-  // Normalize query param to single string
-  const rawType = route.query?.type;
-  const type = Array.isArray(rawType) ? rawType[0] : rawType;
-  if (type === 'recovery') {
+  // Now safe to access route.query
+  if (route.query && route.query.type === 'recovery') {
     showReset.value = true;
     return;
   }
-
   // Check user AFTER route check
   if (user.value) {
     router.push('/notes');

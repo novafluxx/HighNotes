@@ -54,7 +54,6 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-
 const supabase = useSupabaseClient();
 const router = useRouter();
 
@@ -76,6 +75,10 @@ const login = async () => {
   } catch (error: any) {
     console.error('Login failed:', error);
     errorMsg.value = error.message || 'An unexpected error occurred.';
+    // Removed the automatic timeout for error message, using UAlert close button instead
+    // setTimeout(() => {
+    //     errorMsg.value = null; 
+    // }, 5000)
   } finally {
     loading.value = false; // Stop loading regardless of outcome
   }
