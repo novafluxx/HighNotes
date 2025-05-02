@@ -6,21 +6,22 @@
     <!-- Main content area with flex row layout -->
     <div class="flex flex-1 overflow-hidden relative">
 
-      <!-- Sidebar with transition -->
-      <transition
-        enter-active-class="transition ease-out duration-300"
-        enter-from-class="transform -translate-x-full opacity-0"
-        enter-to-class="transform translate-x-0 opacity-100"
-        leave-active-class="transition ease-in duration-200"
-        leave-from-class="transform translate-x-0 opacity-100"
-        leave-to-class="transform -translate-x-full opacity-0"
-      >
-        <!-- Sidebar itself - conditional rendering/styling based on mobile/open state -->
-        <aside 
-           v-show="sidebarOpen || !isMobile" 
-           class="flex flex-col w-64 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-y-auto"
-           :class="{ 'absolute inset-y-0 left-0 z-30': isMobile && sidebarOpen }" 
-           @click.self="isMobile ? sidebarOpen = false : null" 
+      <!-- Sidebar with transition - wrapped in ClientOnly to prevent hydration issues -->
+      <ClientOnly>
+        <transition
+          enter-active-class="transition ease-out duration-300"
+          enter-from-class="transform -translate-x-full opacity-0"
+          enter-to-class="transform translate-x-0 opacity-100"
+          leave-active-class="transition ease-in duration-200"
+          leave-from-class="transform translate-x-0 opacity-100"
+          leave-to-class="transform -translate-x-full opacity-0"
+        >
+          <!-- Sidebar itself - conditional rendering/styling based on mobile/open state -->
+          <aside 
+             v-if="sidebarOpen || !isMobile" 
+             class="flex flex-col w-64 flex-shrink-0 border-r border-gray-200 dark:border-gray-700 bg-white dark:bg-gray-900 overflow-y-auto"
+             :class="{ 'absolute inset-y-0 left-0 z-30': isMobile && sidebarOpen }" 
+             @click.self="isMobile ? sidebarOpen = false : null" 
         >
           <!-- Sidebar Header -->
           <div class="flex flex-col p-4 border-b border-gray-200 dark:border-gray-700">
@@ -63,7 +64,11 @@
             </div>
           </div>
         </aside>
-      </transition>
+        </transition>
+        <template #fallback>
+          <!-- Empty fallback to prevent flash -->
+        </template>
+      </ClientOnly>
 
       <!-- Editor Area -->
       <main class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-gray-50 dark:bg-gray-800">
@@ -171,9 +176,10 @@ import { type Note } from '~/types'; // Import the Note type
 import type { Database } from '~/types/database.types'; // Import generated DB types
 import { useToast } from '#imports' // Added import
 
-// --- Responsive Sidebar State --- (Unchanged)
-const sidebarOpen = ref(false);
-const isMobile = ref(false);
+// --- Responsive Sidebar State ---
+// Initialize with SSR-safe defaults that prevent flash
+const sidebarOpen = ref(false); // Always start closed to prevent flash
+const isMobile = ref(true); // Default to mobile for SSR to prevent flash
 
 const checkMobile = () => {
   if (typeof window !== 'undefined') {
@@ -306,8 +312,14 @@ watch(user, (currentUser, previousUser) => {
   }
 }, { immediate: true }); // Run immediately to fetch notes if already logged in
 
-// --- Lifecycle Hooks --- (Unchanged)
+// --- Lifecycle Hooks ---
+// Use immediate execution for client-side
+if (process.client) {
+  checkMobile();
+}
+
 onMounted(() => {
+  // Re-check in case it wasn't set properly
   checkMobile();
   if (typeof window !== 'undefined') {
     window.addEventListener('resize', checkMobile);
