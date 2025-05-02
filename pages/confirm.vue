@@ -70,12 +70,14 @@ const loading = ref(false);
 watchEffect(() => {
   // Ensure route is available before accessing query
   if (!route) {
-    // console.warn('Route not available yet in confirm.vue watchEffect'); // Optional logging
-    return; // Wait for next run when route is available
+    return;
   }
 
-  // Now safe to access route.query
-  if (route.query && route.query.type === 'recovery') {
+  // Safely handle query params (defend against array injection)
+  const type = Array.isArray(route.query.type) ? route.query.type[0] : route.query.type;
+  const accessToken = Array.isArray(route.query.access_token) ? route.query.access_token[0] : route.query.access_token;
+
+  if (type === 'recovery') {
     showReset.value = true;
     return;
   }
