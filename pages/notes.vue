@@ -4,7 +4,7 @@
     <AppHeader :is-mobile="isMobile" @toggle-sidebar="toggleSidebar" />
 
     <!-- Main content area with flex row layout -->
-    <div class="flex flex-1 overflow-hidden">
+    <div class="flex flex-1 overflow-hidden relative">
 
       <!-- Sidebar with transition -->
       <transition
@@ -135,7 +135,7 @@
       <!-- Mobile Overlay for Sidebar -->
       <div 
         v-if="isMobile && sidebarOpen" 
-        class="fixed inset-0 bg-black bg-opacity-25 z-20" 
+        class="fixed inset-0 z-20 bg-[rgba(0,0,0,0.1)]" 
         @click="sidebarOpen = false"
       ></div>
 
@@ -168,7 +168,7 @@ import { ref, computed, onMounted, watch } from 'vue';
 import { useRouter } from 'vue-router';
 import { type Note } from '~/types'; // Import the Note type
 // AppHeader auto-imported by Nuxt
-import type { Database } from '~/database.types'; // Import generated DB types
+import type { Database } from '~/types/database.types'; // Import generated DB types
 import { useToast } from '#imports' // Added import
 
 // --- Responsive Sidebar State --- (Unchanged)
