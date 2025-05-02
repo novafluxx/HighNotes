@@ -475,7 +475,7 @@ const saveNote = async () => {
 
       // TASK 2: Update selection with saved data to keep editor open
       selectNote(savedNoteData); // New behavior: Keep editor open with updated data
-      toast.add({ title: 'Note saved!', icon: 'i-heroicons-check-circle', color: 'success', duration: 3000 }) // Corrected color to 'success'
+      toast.add({ title: 'Note saved!', icon: 'i-heroicons-check-circle', color: 'success', duration: 3000 })
 
     } else {
       throw new Error('Failed to retrieve saved note data.');
@@ -483,11 +483,9 @@ const saveNote = async () => {
 
   } catch (error) {
     console.error('Error saving note:', error);
-    statusMessage.value = 'Error saving note.';
+    toast.add({ title: 'Error saving note', description: (error as Error).message, color: 'error', duration: 5000 });
   } finally {
     loading.value = false;
-    // Clear status message after a delay
-    setTimeout(() => { if (statusMessage.value === 'Note saved!' || statusMessage.value === 'Error saving note.') statusMessage.value = ''; }, 3000);
   }
 };
 
@@ -504,7 +502,6 @@ const confirmDeleteNote = async () => {
 
   isDeleteModalOpen.value = false // Close the modal
   loading.value = true;
-  statusMessage.value = 'Deleting...';
   const noteIdToDelete = selectedNote.value.id;
   const noteTitleToDelete = selectedNote.value.title || 'Untitled Note'; // Store title for status message
 
@@ -520,22 +517,19 @@ const confirmDeleteNote = async () => {
 
     if (error) throw error;
 
-    statusMessage.value = `Note "${noteTitleToDelete}" deleted.`;
+    toast.add({ title: 'Note deleted', icon: 'i-heroicons-trash', color: 'warning', duration: 3000 })
     // Find index and remove from local array
     const index = notes.value.findIndex(n => n.id === noteIdToDelete);
     if (index !== -1) {
         notes.value.splice(index, 1);
     }
     // No need to fetch notes again, already removed locally
-    toast.add({ title: 'Note deleted', icon: 'i-heroicons-trash', color: 'warning', duration: 3000 }) // Moved deletion toast here
 
   } catch (error) {
     console.error('Error deleting note:', error);
-    statusMessage.value = `Error deleting note "${noteTitleToDelete}".`;
+    toast.add({ title: 'Error deleting note', description: (error as Error).message, color: 'error', duration: 5000 });
   } finally {
     loading.value = false;
-    // Keep status message slightly longer for delete confirmation
-    setTimeout(() => { if (statusMessage.value.includes('deleted') || statusMessage.value.includes('Error deleting')) statusMessage.value = ''; }, 4000);
   }
 };
 
