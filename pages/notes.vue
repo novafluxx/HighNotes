@@ -72,12 +72,6 @@
           <UForm :state="selectedNote" @submit.prevent="saveNote" class="space-y-4">
             <!-- Title Input -->
             <UFormField label="Title" name="title">
-               <template #label>
-                 <div class="flex justify-between items-center">
-                   <span>Title</span>
-                   <span class="text-xs text-gray-500 dark:text-gray-400">{{ selectedNote.title?.length || 0 }} / {{ TITLE_MAX_LENGTH }}</span>
-                 </div>
-               </template>
               <UInput 
                 v-model="selectedNote.title" 
                 required 
@@ -85,6 +79,7 @@
                 :maxlength="TITLE_MAX_LENGTH"
                 placeholder="Note Title"
               />
+              <span class="text-xs text-gray-400 mt-1 block">{{ selectedNote.title?.length || 0 }} / {{ TITLE_MAX_LENGTH }}</span>
               <template #error>
                  <span v-if="isTitleTooLong" class="text-red-500 text-xs">Title cannot exceed {{ TITLE_MAX_LENGTH }} characters.</span>
               </template>
@@ -92,12 +87,6 @@
 
             <!-- Content Textarea -->
             <UFormField label="Content" name="content">
-               <template #label>
-                 <div class="flex justify-between items-center">
-                   <span>Content</span>
-                   <span class="text-xs text-gray-500 dark:text-gray-400">{{ selectedNote.content?.length || 0 }} / {{ CONTENT_MAX_LENGTH }}</span>
-                 </div>
-               </template>
               <UTextarea 
                 v-model="selectedNote.content" 
                 :rows="10" 
@@ -106,6 +95,7 @@
                 placeholder="Start writing your note..."
                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-primary-500"
               />
+              <span class="text-xs text-gray-400 mt-1 block">{{ selectedNote.content?.length || 0 }} / {{ CONTENT_MAX_LENGTH }}</span>
               <template #error>
                 <span v-if="isContentTooLong" class="text-red-500 text-xs">Content cannot exceed {{ CONTENT_MAX_LENGTH }} characters.</span>
                </template>
@@ -228,12 +218,12 @@ const CONTENT_MAX_LENGTH = 10000;
 
 const isTitleTooLong = computed(() => {
   const titleLength = selectedNote.value?.title?.length;
-  return typeof titleLength === 'number' && titleLength > TITLE_MAX_LENGTH;
+  return typeof titleLength === 'number' && titleLength > TITLE_MAX_LENGTH -1;
 });
 
 const isContentTooLong = computed(() => {
   const contentLength = selectedNote.value?.content?.length;
-  return typeof contentLength === 'number' && contentLength > CONTENT_MAX_LENGTH;
+  return typeof contentLength === 'number' && contentLength > CONTENT_MAX_LENGTH -1;
 });
 
 const isSaveDisabled = computed(() => {
