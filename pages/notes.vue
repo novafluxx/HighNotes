@@ -266,9 +266,10 @@ const fetchNotes = async () => {
   loading.value = true;
   statusMessage.value = 'Loading notes...';
   try {
+    // OPTIMIZATION: Select only necessary fields for the list view
     const { data, error } = await client
       .from('notes')
-      .select('*')
+      .select('id, user_id, title, updated_at') // <-- MODIFIED
       .eq('user_id', user.value.id) // Fetch only notes for the current user
       .order('updated_at', { ascending: false });
 
@@ -277,19 +278,20 @@ const fetchNotes = async () => {
     notes.value = data || [];
     statusMessage.value = ''; // Clear loading message
 
-    // If a note was selected previously, try to re-select it by id
-    if (selectedNote.value) {
-      const reselected = notes.value.find(n => n.id === selectedNote.value?.id);
-      if (reselected) {
-        selectNote(reselected); // Re-apply selection with potentially updated data
-      } else {
-        selectedNote.value = null; // Deselect if it no longer exists
-        originalSelectedNote.value = null;
-      }
-    } else if (notes.value.length > 0) {
+    // If a note was selected previously, try to find its stub in the new list
+    // NOTE: We don't re-select here because the full content might not be loaded yet
+    if (selectedNote.value?.id) {
+        const stillExists = notes.value.some(n => n.id === selectedNote.value?.id);
+        if (!stillExists) {
+            selectedNote.value = null; // Deselect if it no longer exists in the list
+            originalSelectedNote.value = null;
+        }
+    }
+    // Remove auto-selection of first note if desired
+    // else if (notes.value.length > 0) {
        // Optionally select the first note if none was selected
        // selectNote(notes.value[0]); 
-    }
+    // }
 
   } catch (error) {
     console.error('Error fetching notes:', error);
@@ -327,19 +329,63 @@ onMounted(() => {
   // Initial fetch is handled by the user watcher
 });
 
-// --- Select Note --- (Unchanged)
-const selectNote = (note: Note | null) => { // Allow null to deselect
-  if (!note) {
+// --- Select Note --- (MODIFIED: Fetch full content on demand)
+const selectNote = async (noteStub: Note | null) => { // Allow null to deselect
+  if (!noteStub) {
     selectedNote.value = null;
     originalSelectedNote.value = null;
     statusMessage.value = '';
     return;
   }
-  // Simple deep copy for dirty checking comparison
-  originalSelectedNote.value = JSON.parse(JSON.stringify(note));
-  selectedNote.value = note;
+
+  // If the note is already selected and fully loaded, do nothing
+  if (selectedNote.value?.id === noteStub.id && typeof selectedNote.value.content === 'string') {
+      if (isMobile.value) sidebarOpen.value = false; // Still close sidebar on mobile
+      return;
+  }
+
+  // Check if content is already loaded (simple check assumes content is string)
+  // We use the stub from the list first
+  selectedNote.value = noteStub; 
+  originalSelectedNote.value = JSON.parse(JSON.stringify(noteStub)); // Keep a copy of the stub initially
   statusMessage.value = ''; // Clear any previous status
-  // Close sidebar on mobile after selection
+
+  if (typeof noteStub.content !== 'string') { // Content not loaded yet
+      loading.value = true;
+      statusMessage.value = 'Loading note content...';
+      try {
+          const { data: fullNote, error } = await client
+              .from('notes')
+              .select('*') // Fetch all columns for the selected note
+              .eq('id', noteStub.id!)
+              .single();
+
+          if (error) throw error;
+          if (!fullNote) throw new Error('Note not found');
+
+          // Update the selected note and its original copy with full data
+          selectedNote.value = fullNote;
+          originalSelectedNote.value = JSON.parse(JSON.stringify(fullNote));
+          statusMessage.value = ''; // Clear loading message
+
+          // Update the note in the main list as well so we don't fetch again
+          const index = notes.value.findIndex(n => n.id === fullNote.id);
+          if (index !== -1) {
+              notes.value[index] = fullNote;
+          }
+
+      } catch (error) {
+          console.error('Error fetching full note:', error);
+          statusMessage.value = 'Error loading note content.';
+          toast.add({ title: 'Error loading note', description: (error as Error).message, color: 'error', duration: 5000 }); // <-- MODIFIED color
+          selectedNote.value = null; // Deselect on error
+          originalSelectedNote.value = null;
+      } finally {
+          loading.value = false;
+      }
+  }
+
+  // Close sidebar on mobile after selection or load attempt
   if (isMobile.value) {
     sidebarOpen.value = false;
   }
