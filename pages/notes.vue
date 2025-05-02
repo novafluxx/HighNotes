@@ -169,6 +169,7 @@ import { useRouter } from 'vue-router';
 import { type Note } from '~/types'; // Import the Note type
 // AppHeader auto-imported by Nuxt
 import type { Database } from '~/database.types'; // Import generated DB types
+import { useToast } from '#imports' // Added import
 
 // --- Responsive Sidebar State --- (Unchanged)
 const sidebarOpen = ref(false);
@@ -196,6 +197,7 @@ const originalSelectedNote = ref<Note | null>(null); // For dirty checking
 const loading = ref(false);
 const statusMessage = ref('');
 const isDeleteModalOpen = ref(false); // State for delete confirmation modal
+const toast = useToast() // Initialize toast
 
 // --- Computed Properties for Validation/State --- (Modified)
 const isNoteDirty = computed(() => {
@@ -413,9 +415,9 @@ const saveNote = async () => {
         notes.value.unshift(savedNoteData);
       }
 
-      // TASK 2: Reset selection to show placeholder
-      selectNote(null);
-      statusMessage.value = 'Note saved!';
+      // TASK 2: Update selection with saved data to keep editor open
+      selectNote(savedNoteData); // New behavior: Keep editor open with updated data
+      toast.add({ title: 'Note saved!', icon: 'i-heroicons-check-circle', color: 'success', duration: 3000 }) // Corrected color to 'success'
 
     } else {
       throw new Error('Failed to retrieve saved note data.');
@@ -442,7 +444,7 @@ const deleteNote = () => {
 const confirmDeleteNote = async () => {
   if (!selectedNote.value?.id || !isLoggedIn.value) return;
 
-  isDeleteModalOpen.value = false; // Close modal immediately
+  isDeleteModalOpen.value = false // Close the modal
   loading.value = true;
   statusMessage.value = 'Deleting...';
   const noteIdToDelete = selectedNote.value.id;
@@ -467,6 +469,7 @@ const confirmDeleteNote = async () => {
         notes.value.splice(index, 1);
     }
     // No need to fetch notes again, already removed locally
+    toast.add({ title: 'Note deleted', icon: 'i-heroicons-trash', color: 'warning', duration: 3000 }) // Moved deletion toast here
 
   } catch (error) {
     console.error('Error deleting note:', error);
