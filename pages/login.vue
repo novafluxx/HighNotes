@@ -32,7 +32,16 @@
             @close="errorMsg = null"
           />
 
-          <UButton type="submit" block label="Login" :loading="loading" />
+          <UAlert
+            v-if="isLocked"
+            icon="i-heroicons-clock"
+            color="warning"
+            variant="soft"
+            title="Too Many Attempts"
+            :description="`Please wait ${remainingLockSeconds} seconds before retrying.`"
+          />
+
+          <UButton type="submit" block label="Login" :loading="loading" :disabled="isLocked" />
         </UForm>
 
         <template #footer>
@@ -53,7 +62,8 @@
 </template>
 
 <script setup lang="ts">
-import { ref } from 'vue';
+import { ref, computed, onMounted, watch } from 'vue';
+
 const supabase = useSupabaseClient();
 const router = useRouter();
 
@@ -61,8 +71,40 @@ const email = ref('');
 const password = ref('');
 const errorMsg = ref<string | null>(null);
 const loading = ref(false); // Added loading state for button
+const failedAttempts = ref(0);
+const lockoutUntil = ref<number | null>(null);
+const LOCKOUT_THRESHOLD = 5;
+const LOCKOUT_DURATION = 60 * 1000; // 1 minute
+
+const isLocked = computed(() => lockoutUntil.value !== null && Date.now() < lockoutUntil.value);
+const remainingLockSeconds = computed(() =>
+  lockoutUntil.value ? Math.ceil((lockoutUntil.value - Date.now()) / 1000) : 0
+);
+
+// Persist lockout state across refresh via localStorage
+onMounted(() => {
+  const fa = localStorage.getItem('loginFailedAttempts');
+  if (fa) failedAttempts.value = parseInt(fa);
+  const lu = localStorage.getItem('loginLockoutUntil');
+  if (lu) lockoutUntil.value = parseInt(lu);
+});
+watch(failedAttempts, val => {
+  localStorage.setItem('loginFailedAttempts', val.toString());
+});
+watch(lockoutUntil, val => {
+  if (val) {
+    localStorage.setItem('loginLockoutUntil', val.toString());
+  } else {
+    localStorage.removeItem('loginLockoutUntil');
+    localStorage.removeItem('loginFailedAttempts');
+  }
+});
 
 const login = async () => {
+  if (isLocked.value) {
+    errorMsg.value = `Too many failed login attempts. Try again in ${remainingLockSeconds.value} seconds.`;
+    return;
+  }
   loading.value = true; // Start loading
   errorMsg.value = null; // Clear previous errors
   try {
@@ -75,10 +117,14 @@ const login = async () => {
   } catch (error: any) {
     console.error('Login failed:', error);
     errorMsg.value = error.message || 'An unexpected error occurred.';
-    // Removed the automatic timeout for error message, using UAlert close button instead
-    // setTimeout(() => {
-    //     errorMsg.value = null; 
-    // }, 5000)
+    failedAttempts.value++;
+    if (failedAttempts.value >= LOCKOUT_THRESHOLD) {
+      lockoutUntil.value = Date.now() + LOCKOUT_DURATION;
+      setTimeout(() => {
+        failedAttempts.value = 0;
+        lockoutUntil.value = null;
+      }, LOCKOUT_DURATION);
+    }
   } finally {
     loading.value = false; // Stop loading regardless of outcome
   }
