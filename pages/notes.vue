@@ -121,7 +121,7 @@
             <!-- Action Buttons -->
             <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
                <!-- Status Message -->
-               <p v-if="statusMessage" class="text-sm text-gray-600 dark:text-gray-300 mr-auto self-center">{{ statusMessage }}</p>
+               <!-- Removed statusMessage paragraph -->
                
               <UButton 
                 type="button" 
@@ -214,7 +214,7 @@ const selectedNote = ref<Note | null>(null);
 const originalSelectedNote = ref<Note | null>(null); // For dirty checking
 const loading = ref(false); // For initial load or major actions (save/delete/select)
 const loadingMore = ref(false); // Specifically for loading more notes
-const statusMessage = ref('');
+// Removed statusMessage ref
 const isDeleteModalOpen = ref(false); // State for delete confirmation modal
 const toast = useToast() // Initialize toast
 const currentPage = ref(1);
@@ -291,7 +291,6 @@ const fetchNotes = async (loadMore = false) => {
     selectedNote.value = null; // Deselect note on refresh
     originalSelectedNote.value = null;
   }
-  statusMessage.value = loadMore ? 'Loading more notes...' : 'Loading notes...';
 
   const from = (currentPage.value - 1) * notesPerPage;
   const to = from + notesPerPage - 1;
@@ -316,7 +315,7 @@ const fetchNotes = async (loadMore = false) => {
     // Update hasMoreNotes flag
     hasMoreNotes.value = fetchedNotes.length === notesPerPage;
 
-    statusMessage.value = ''; // Clear loading message
+    // No need to clear status message anymore
 
     // If a note was selected previously, check if its stub still exists after refresh (not loadMore)
     if (!loadMore && selectedNote.value?.id) {
@@ -329,7 +328,7 @@ const fetchNotes = async (loadMore = false) => {
 
   } catch (error) {
     console.error('Error fetching notes:', error);
-    statusMessage.value = 'Error fetching notes.';
+    // Toast is already added on the next line for errors
     toast.add({ title: 'Error fetching notes', description: (error as Error).message, color: 'error', duration: 5000 });
     if (!loadMore) notes.value = []; // Clear notes on initial load error
     hasMoreNotes.value = false; // Stop trying to load more on error
@@ -374,7 +373,7 @@ const selectNote = async (noteStub: Note | null) => { // Allow null to deselect
   if (!noteStub) {
     selectedNote.value = null;
     originalSelectedNote.value = null;
-    statusMessage.value = '';
+    // No status message to clear
     return;
   }
 
@@ -388,11 +387,10 @@ const selectNote = async (noteStub: Note | null) => { // Allow null to deselect
   // We use the stub from the list first
   selectedNote.value = noteStub; 
   originalSelectedNote.value = JSON.parse(JSON.stringify(noteStub)); // Keep a copy of the stub initially
-  statusMessage.value = ''; // Clear any previous status
+  // No status message to clear
 
   if (typeof noteStub.content !== 'string') { // Content not loaded yet
       loading.value = true;
-      statusMessage.value = 'Loading note content...';
       try {
           const { data: fullNote, error } = await client
               .from('notes')
@@ -406,7 +404,7 @@ const selectNote = async (noteStub: Note | null) => { // Allow null to deselect
           // Update the selected note and its original copy with full data
           selectedNote.value = fullNote;
           originalSelectedNote.value = JSON.parse(JSON.stringify(fullNote));
-          statusMessage.value = ''; // Clear loading message
+          // No status message to clear
 
           // Update the note in the main list as well so we don't fetch again
           const index = notes.value.findIndex(n => n.id === fullNote.id);
@@ -416,7 +414,7 @@ const selectNote = async (noteStub: Note | null) => { // Allow null to deselect
 
       } catch (error) {
           console.error('Error fetching full note:', error);
-          statusMessage.value = 'Error loading note content.';
+          // Toast is already added on the next line for errors
           toast.add({ title: 'Error loading note', description: (error as Error).message, color: 'error', duration: 5000 }); // <-- MODIFIED color
           selectedNote.value = null; // Deselect on error
           originalSelectedNote.value = null;
@@ -450,7 +448,7 @@ const createNewNote = () => {
   selectedNote.value = tempNewNote;
   // Set original to a copy for dirty checking (representing the initial empty state)
   originalSelectedNote.value = JSON.parse(JSON.stringify(tempNewNote));
-  statusMessage.value = ''; // Clear status
+  // No status message to clear
 
   // Close sidebar on mobile if open
   if (isMobile.value) sidebarOpen.value = false;
@@ -461,7 +459,6 @@ const saveNote = async () => {
   if (!selectedNote.value || !isLoggedIn.value || isSaveDisabled.value) return; // Use isSaveDisabled computed
 
   loading.value = true;
-  statusMessage.value = 'Saving...';
 
   const noteToUpdate = {
     title: selectedNote.value.title,
@@ -520,7 +517,7 @@ const saveNote = async () => {
 
       // TASK 2: Update selection with saved data to keep editor open
       selectNote(savedNoteData); // New behavior: Keep editor open with updated data
-      toast.add({ title: 'Note saved!', icon: 'i-heroicons-check-circle', color: 'success', duration: 3000 })
+      toast.add({ title: 'Note saved!', icon: 'i-heroicons-check-circle', color: 'success', duration: 2000 })
 
     } else {
       throw new Error('Failed to retrieve saved note data.');
@@ -546,7 +543,6 @@ const confirmDeleteNote = async () => {
   if (!selectedNote.value?.id || !isLoggedIn.value) return;
 
   loading.value = true; // Use main loading indicator
-  statusMessage.value = 'Deleting note...';
   const noteIdToDelete = selectedNote.value.id; // Store ID before potentially clearing selection
 
   try {
@@ -564,15 +560,15 @@ const confirmDeleteNote = async () => {
     selectedNote.value = null;
     originalSelectedNote.value = null;
     isDeleteModalOpen.value = false; // Close modal
-    statusMessage.value = '';
-    toast.add({ title: 'Note deleted', icon: 'i-heroicons-trash', color: 'info', duration: 3000 }); // Use info color
+    // Toast is added on the next line for success
+    toast.add({ title: 'Note deleted', icon: 'i-heroicons-trash', color: 'info', duration: 2000 }); // Use info color
 
     // Optionally: Check if we need to load more notes if the list becomes too short
     // This might be complex, could be simpler to let the user click "Load More" if needed.
 
   } catch (error) {
     console.error('Error deleting note:', error);
-    statusMessage.value = 'Error deleting note.';
+    // Toast is added on the next line for errors
     toast.add({ title: 'Error deleting note', description: (error as Error).message, color: 'error', duration: 5000 });
   } finally {
     loading.value = false;
