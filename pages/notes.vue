@@ -406,6 +406,7 @@ const selectNote = async (noteStub: Note | null) => { // Allow null to deselect
               .from('notes')
               .select('*') // Fetch all columns for the selected note
               .eq('id', noteStub.id!)
+              .eq('user_id', user.value.id) // Add explicit user_id filter for performance
               .single();
 
           if (error) throw error;
