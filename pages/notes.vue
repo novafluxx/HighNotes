@@ -62,6 +62,18 @@
               <USkeleton class="h-10 w-full" />
               <USkeleton class="h-10 w-full" />
             </div>
+<!-- Load More Button -->
+            <div v-if="hasMoreNotes && notes.length > 0" class="p-2 text-center">
+              <UButton
+                variant="soft"
+                @click="fetchNotes(true)"
+                :loading="loadingMore"
+                :disabled="loadingMore"
+                label="Load More Notes"
+                block
+                icon="i-heroicons-arrow-down-circle"
+              />
+            </div>
           </div>
         </aside>
         </transition>
@@ -200,10 +212,14 @@ const isLoggedIn = computed(() => !!user.value);
 const notes = ref<Note[]>([]);
 const selectedNote = ref<Note | null>(null);
 const originalSelectedNote = ref<Note | null>(null); // For dirty checking
-const loading = ref(false);
+const loading = ref(false); // For initial load or major actions (save/delete/select)
+const loadingMore = ref(false); // Specifically for loading more notes
 const statusMessage = ref('');
 const isDeleteModalOpen = ref(false); // State for delete confirmation modal
 const toast = useToast() // Initialize toast
+const currentPage = ref(1);
+const notesPerPage = 30; // Number of notes to fetch per page
+const hasMoreNotes = ref(true); // Assume there might be more notes initially
 
 // --- Computed Properties for Validation/State --- (Modified)
 const isNoteDirty = computed(() => {
@@ -260,52 +276,76 @@ const formatDate = (dateString: string | undefined): string => {
 
 // --- Core Logic Functions (CRUD, Select, Toggle) --- (Unchanged)
 
-// Fetch notes function
-const fetchNotes = async () => {
-  if (!isLoggedIn.value || !user.value) return; // Check if user is logged in
-  loading.value = true;
-  statusMessage.value = 'Loading notes...';
+// Fetch notes function with pagination
+const fetchNotes = async (loadMore = false) => {
+  if (!isLoggedIn.value || !user.value || (loadMore && !hasMoreNotes.value)) return; // Check login and if more notes exist
+
+  if (loadMore) {
+    loadingMore.value = true;
+    currentPage.value++;
+  } else {
+    loading.value = true; // Use main loading for initial fetch/refresh
+    currentPage.value = 1;
+    notes.value = []; // Clear existing notes for a fresh load
+    hasMoreNotes.value = true; // Reset assumption
+    selectedNote.value = null; // Deselect note on refresh
+    originalSelectedNote.value = null;
+  }
+  statusMessage.value = loadMore ? 'Loading more notes...' : 'Loading notes...';
+
+  const from = (currentPage.value - 1) * notesPerPage;
+  const to = from + notesPerPage - 1;
+
   try {
-    // OPTIMIZATION: Select only necessary fields for the list view
     const { data, error } = await client
       .from('notes')
-      .select('id, user_id, title, updated_at') // <-- MODIFIED
-      .eq('user_id', user.value.id) // Fetch only notes for the current user
-      .order('updated_at', { ascending: false });
+      .select('id, user_id, title, updated_at') // Select only necessary fields
+      .eq('user_id', user.value.id)
+      .order('updated_at', { ascending: false })
+      .range(from, to); // Apply pagination range
 
     if (error) throw error;
 
-    notes.value = data || [];
+    const fetchedNotes = data || [];
+    if (loadMore) {
+      notes.value.push(...fetchedNotes); // Append new notes
+    } else {
+      notes.value = fetchedNotes; // Replace notes for initial load
+    }
+
+    // Update hasMoreNotes flag
+    hasMoreNotes.value = fetchedNotes.length === notesPerPage;
+
     statusMessage.value = ''; // Clear loading message
 
-    // If a note was selected previously, try to find its stub in the new list
-    // NOTE: We don't re-select here because the full content might not be loaded yet
-    if (selectedNote.value?.id) {
+    // If a note was selected previously, check if its stub still exists after refresh (not loadMore)
+    if (!loadMore && selectedNote.value?.id) {
         const stillExists = notes.value.some(n => n.id === selectedNote.value?.id);
         if (!stillExists) {
-            selectedNote.value = null; // Deselect if it no longer exists in the list
+            selectedNote.value = null;
             originalSelectedNote.value = null;
         }
     }
-    // Remove auto-selection of first note if desired
-    // else if (notes.value.length > 0) {
-       // Optionally select the first note if none was selected
-       // selectNote(notes.value[0]); 
-    // }
 
   } catch (error) {
     console.error('Error fetching notes:', error);
     statusMessage.value = 'Error fetching notes.';
-    notes.value = []; // Clear notes on error
+    toast.add({ title: 'Error fetching notes', description: (error as Error).message, color: 'error', duration: 5000 });
+    if (!loadMore) notes.value = []; // Clear notes on initial load error
+    hasMoreNotes.value = false; // Stop trying to load more on error
   } finally {
-    loading.value = false;
+    if (loadMore) {
+      loadingMore.value = false;
+    } else {
+      loading.value = false;
+    }
   }
 };
 
 // Watcher for User State
 watch(user, (currentUser, previousUser) => {
   if (currentUser && !previousUser) { // User logged in
-    fetchNotes();
+    fetchNotes(false); // Fetch initial page
   } else if (!currentUser && previousUser) { // User logged out
     notes.value = [];
     selectedNote.value = null;
@@ -464,13 +504,18 @@ const saveNote = async () => {
     if (savedNoteData) {
       if (selectedNote.value.id) {
         // Update existing note in the list
+        // Update existing note in the list (or add if somehow missing)
         const index = notes.value.findIndex(n => n.id === savedNoteData!.id);
         if (index !== -1) {
           notes.value[index] = savedNoteData;
+        } else {
+          // If the updated note wasn't in the currently loaded pages, add it to the top
+          notes.value.unshift(savedNoteData);
         }
       } else {
         // Add new note to the beginning of the list
         notes.value.unshift(savedNoteData);
+        // Potentially reset pagination if desired, or just let it be at the top
       }
 
       // TASK 2: Update selection with saved data to keep editor open
@@ -500,14 +545,9 @@ const deleteNote = () => {
 const confirmDeleteNote = async () => {
   if (!selectedNote.value?.id || !isLoggedIn.value) return;
 
-  isDeleteModalOpen.value = false // Close the modal
-  loading.value = true;
-  const noteIdToDelete = selectedNote.value.id;
-  const noteTitleToDelete = selectedNote.value.title || 'Untitled Note'; // Store title for status message
-
-  // Deselect note optimistically before deletion
-  selectedNote.value = null;
-  originalSelectedNote.value = null;
+  loading.value = true; // Use main loading indicator
+  statusMessage.value = 'Deleting note...';
+  const noteIdToDelete = selectedNote.value.id; // Store ID before potentially clearing selection
 
   try {
     const { error } = await client
@@ -517,24 +557,39 @@ const confirmDeleteNote = async () => {
 
     if (error) throw error;
 
-    toast.add({ title: 'Note deleted', icon: 'i-heroicons-trash', color: 'warning', duration: 3000 })
-    // Find index and remove from local array
-    const index = notes.value.findIndex(n => n.id === noteIdToDelete);
-    if (index !== -1) {
-        notes.value.splice(index, 1);
-    }
-    // No need to fetch notes again, already removed locally
+    // Remove the note from the local list
+    notes.value = notes.value.filter(note => note.id !== noteIdToDelete);
+
+    // Clear selection
+    selectedNote.value = null;
+    originalSelectedNote.value = null;
+    isDeleteModalOpen.value = false; // Close modal
+    statusMessage.value = '';
+    toast.add({ title: 'Note deleted', icon: 'i-heroicons-trash', color: 'info', duration: 3000 }); // Use info color
+
+    // Optionally: Check if we need to load more notes if the list becomes too short
+    // This might be complex, could be simpler to let the user click "Load More" if needed.
 
   } catch (error) {
     console.error('Error deleting note:', error);
+    statusMessage.value = 'Error deleting note.';
     toast.add({ title: 'Error deleting note', description: (error as Error).message, color: 'error', duration: 5000 });
   } finally {
     loading.value = false;
   }
 };
 
-// --- Toggle Sidebar --- (Unchanged)
+// --- Sidebar Toggle ---
 const toggleSidebar = () => {
   sidebarOpen.value = !sidebarOpen.value;
-}
+};
+
 </script>
+
+<style scoped>
+/* Add any component-specific styles here */
+/* Ensure sidebar has a max-height or similar if content might overflow */
+aside {
+  max-height: calc(100vh - 4rem); /* Adjust based on header height */
+}
+</style>
