@@ -36,7 +36,9 @@
       <!-- User Menu Dropdown (if logged in) -->
       <div v-if="isLoggedIn">
          <UDropdownMenu :items="userMenuItems" :popper="{ placement: 'bottom-end' }">
-           <UAvatar :alt="user?.email?.charAt(0).toUpperCase() || 'U'" size="sm" />
+           <UButton variant="ghost" square class="rounded-full w-10 h-10 flex items-center justify-center" aria-label="User menu">
+             <UAvatar :alt="user?.email?.charAt(0).toUpperCase() || 'U'" size="sm" />
+           </UButton>
 
            <template #account="{ item }">
              <div class="text-left">
@@ -52,7 +54,7 @@
              <UIcon v-if="item.icon" :name="item.icon" class="flex-shrink-0 h-4 w-4 text-gray-400 dark:text-gray-500 ms-auto" />
            </template>
          </UDropdownMenu>
-      </div>
+       </div>
 
       <!-- Login Link (if logged out) -->
       <NuxtLink v-else to="/login" class="text-sm font-medium text-gray-700 dark:text-gray-200 hover:text-primary dark:hover:text-primary">
