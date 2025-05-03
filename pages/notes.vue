@@ -120,25 +120,31 @@
 
             <!-- Action Buttons -->
             <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-               <!-- Status Message -->
-               <!-- Removed statusMessage paragraph -->
-               
-              <UButton 
-                type="button" 
-                label="Delete" 
-                color="error" 
-                variant="soft" 
-                @click="deleteNote" 
-                :disabled="!selectedNote.id || loading" 
-                :loading="loading && selectedNote?.id === originalSelectedNote?.id" 
-                icon="i-heroicons-trash" 
+              <UButton
+                type="button"
+                label="Close"
+                color="neutral"
+                variant="outline"
+                @click="selectedNote = null"
+                :disabled="loading"
+                icon="i-heroicons-x-circle"
               />
-              <UButton 
-                type="submit" 
-                label="Save" 
-                :disabled="isSaveDisabled" 
-                :loading="loading && selectedNote?.id === originalSelectedNote?.id" 
-                icon="i-heroicons-check-circle" 
+              <UButton
+                type="button"
+                label="Delete"
+                color="error"
+                variant="soft"
+                @click="deleteNote"
+                :disabled="!selectedNote.id || loading"
+                :loading="loading && selectedNote?.id === originalSelectedNote?.id"
+                icon="i-heroicons-trash"
+              />
+              <UButton
+                type="submit"
+                label="Save"
+                :disabled="isSaveDisabled"
+                :loading="loading && selectedNote?.id === originalSelectedNote?.id"
+                icon="i-heroicons-check-circle"
               />
             </div>
           </UForm>
@@ -219,7 +225,6 @@ const selectedNote = ref<Note | null>(null);
 const originalSelectedNote = ref<Note | null>(null); // For dirty checking
 const loading = ref(false); // For initial load or major actions (save/delete/select)
 const loadingMore = ref(false); // Specifically for loading more notes
-// Removed statusMessage ref
 const isDeleteModalOpen = ref(false); // State for delete confirmation modal
 const toast = useToast() // Initialize toast
 const currentPage = ref(1);
