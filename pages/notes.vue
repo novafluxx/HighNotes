@@ -125,7 +125,7 @@
                
               <UButton 
                 type="button" 
-                label="Delete Note" 
+                label="Delete" 
                 color="error" 
                 variant="soft" 
                 @click="deleteNote" 
@@ -135,7 +135,7 @@
               />
               <UButton 
                 type="submit" 
-                label="Save Note" 
+                label="Save" 
                 :disabled="isSaveDisabled" 
                 :loading="loading && selectedNote?.id === originalSelectedNote?.id" 
                 icon="i-heroicons-check-circle" 
@@ -145,7 +145,12 @@
         </template>
         <!-- Placeholder when no note is selected -->
         <div v-else class="flex items-center justify-center h-full">
-          <p class="text-lg text-gray-500 dark:text-gray-400 italic">Select a note or create a new one.</p>
+          <p class="text-lg text-gray-500 dark:text-gray-400 italic">
+            Select a note or
+            <button @click="createNewNote" class="text-primary-500 hover:underline focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500">
+              create a new one.
+            </button>
+          </p>
         </div>
       </main>
 
