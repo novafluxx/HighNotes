@@ -37,7 +37,7 @@
       <div v-if="isLoggedIn">
          <UDropdownMenu :items="userMenuItems" :popper="{ placement: 'bottom-end' }">
            <UButton variant="ghost" square class="rounded-full w-10 h-10 flex items-center justify-center" aria-label="User menu">
-             <UAvatar :alt="user?.email?.charAt(0).toUpperCase() || 'U'" size="sm" />
+             <UAvatar :alt="user?.email?.charAt(0).toUpperCase() || 'U'" />
            </UButton>
 
            <template #account="{ item }">
