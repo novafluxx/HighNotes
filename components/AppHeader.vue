@@ -109,6 +109,11 @@ const userMenuItems = [
     }
   ], [
     {
+      label: 'Notes',
+      icon: 'i-heroicons-pencil-square', // Example icon, adjust if needed
+      to: '/notes' // Use 'to' for NuxtLink navigation within UDropdown
+    },
+    {
       label: 'Logout',
       icon: 'i-heroicons-arrow-left-on-rectangle',
       onSelect: () => {
