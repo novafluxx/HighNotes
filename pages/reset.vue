@@ -20,7 +20,7 @@
           <UAlert
             v-if="successMsg"
             icon="i-heroicons-check-circle"
-            color="green"
+            color="primary"
             variant="soft"
             title="Email Sent"
             :description="successMsg"
@@ -30,7 +30,7 @@
           <UAlert
             v-if="errorMsg"
             icon="i-heroicons-exclamation-triangle"
-            color="red"
+            color="error"
             variant="soft"
             title="Reset Error"
             :description="errorMsg"

@@ -24,7 +24,7 @@
           <UAlert
             v-if="errorMsg"
             icon="i-heroicons-exclamation-triangle"
-            color="red"
+            color="error"
             variant="soft"
             title="Login Error"
             :description="errorMsg"

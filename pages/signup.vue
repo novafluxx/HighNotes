@@ -26,7 +26,7 @@
            <UAlert
             v-if="successMsg"
             icon="i-heroicons-check-circle"
-            color="green"
+            color="primary"
             variant="soft"
             title="Account Created"
             :description="successMsg"
@@ -36,7 +36,7 @@
           <UAlert
             v-if="errorMsg"
             icon="i-heroicons-exclamation-triangle"
-            color="red"
+            color="warning"
             variant="soft"
             title="Signup Error"
             :description="errorMsg"

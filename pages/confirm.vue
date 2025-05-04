@@ -19,7 +19,7 @@
           <UAlert
             v-if="successMsg"
             icon="i-heroicons-check-circle"
-            color="green"
+            color="primary"
             variant="soft"
             title="Password Updated"
             :description="successMsg"
@@ -28,7 +28,7 @@
           <UAlert
             v-if="errorMsg"
             icon="i-heroicons-exclamation-triangle"
-            color="red"
+            color="error"
             variant="soft"
             title="Update Error"
             :description="errorMsg"
