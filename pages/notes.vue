@@ -251,13 +251,13 @@ const TITLE_MAX_LENGTH = 255;
 const CONTENT_MAX_LENGTH = 10000;
 
 const isTitleTooLong = computed(() => {
-  const titleLength = selectedNote.value?.title?.length;
-  return typeof titleLength === 'number' && titleLength > TITLE_MAX_LENGTH -1;
+  // Use nullish coalescing and >= for clarity
+  return (selectedNote.value?.title?.length ?? 0) >= TITLE_MAX_LENGTH;
 });
 
 const isContentTooLong = computed(() => {
-  const contentLength = selectedNote.value?.content?.length;
-  return typeof contentLength === 'number' && contentLength > CONTENT_MAX_LENGTH -1;
+  // Use nullish coalescing and >= for clarity
+  return (selectedNote.value?.content?.length ?? 0) >= CONTENT_MAX_LENGTH;
 });
 
 const isSaveDisabled = computed(() => {
@@ -380,6 +380,9 @@ onMounted(() => {
 
 // --- Select Note --- (MODIFIED: Fetch full content on demand)
 const selectNote = async (noteStub: Note | null) => { // Allow null to deselect
+  // Add guard clause to ensure user is logged in before proceeding
+  if (!isLoggedIn.value || !user.value) return;
+
   if (!noteStub) {
     selectedNote.value = null;
     originalSelectedNote.value = null;
