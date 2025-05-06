@@ -6,6 +6,9 @@ export default defineNuxtConfig({
     '@nuxtjs/supabase',
     '@nuxt/ui'
   ],
+  ui: {
+    fonts: false // Disable default Nuxt UI font handling
+  },
   supabase: {
     // Options https://supabase.nuxtjs.org/get-started/options
     redirectOptions: {
