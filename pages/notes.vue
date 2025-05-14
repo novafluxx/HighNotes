@@ -324,11 +324,15 @@ const fetchNotes = async (loadMore = false, query: string | null = null) => {
     // Apply search filter if query is provided
     // Apply search filter if query is provided
     if (query && query.trim() !== '') {
-      // Format query for prefix matching (e.g., "librari" becomes "librari:*")
-      const formattedQuery = query.trim().split(/\s+/).map(term => `${term}:*`).join(' & ');
+      // Format query for prefix matching and escape special characters
+      const escapedQuery = query.trim()
+        .replace(/[!&|:()']/g, '\\$&') // Escape special tsquery characters
+        .split(/\s+/)
+        .map(term => `${term}:*`)
+        .join(' & ');
       
-      // Use 'english' configuration for case-insensitive search with prefix matching
-      supabaseQuery = supabaseQuery.textSearch('search_vector', formattedQuery, {
+      // Use 'simple' configuration for case-insensitive search with prefix matching
+      supabaseQuery = supabaseQuery.textSearch('search_vector', escapedQuery, {
         config: 'english'
       });
       // When searching, we don't support loading more for simplicity in this plan
