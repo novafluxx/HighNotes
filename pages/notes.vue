@@ -26,6 +26,13 @@
           <!-- Sidebar Header -->
           <div class="flex flex-col p-4 border-b border-gray-200 dark:border-gray-700">
             <h3 class="text-lg font-semibold mb-2 text-gray-900 dark:text-white">My Notes</h3>
+            <!-- Search Input -->
+            <UInput
+              v-model="searchQuery"
+              placeholder="Search notes..."
+              icon="i-heroicons-magnifying-glass"
+              class="mb-4"
+            />
             <ClientOnly>
               <UButton label="New Note" @click.prevent="createNewNote" :loading="loading" block icon="i-heroicons-plus-circle"/>
               <template #fallback>
@@ -198,6 +205,7 @@ import { type Note } from '~/types'; // Import the Note type
 // AppHeader auto-imported by Nuxt
 import type { Database } from '~/types/database.types'; // Import generated DB types
 import { useToast } from '#imports' // Added import
+import { debounce } from 'lodash-es'; // Import debounce
 
 // --- Responsive Sidebar State ---
 // Initialize with SSR-safe defaults that prevent flash
@@ -230,6 +238,7 @@ const toast = useToast() // Initialize toast
 const currentPage = ref(1);
 const notesPerPage = 30; // Number of notes to fetch per page
 const hasMoreNotes = ref(true); // Assume there might be more notes initially
+const searchQuery = ref(''); // Reactive variable for search input
 
 // --- Computed Properties for Validation/State --- (Modified)
 const isNoteDirty = computed(() => {
@@ -287,7 +296,7 @@ const formatDate = (dateString: string | undefined): string => {
 // --- Core Logic Functions (CRUD, Select, Toggle) --- (Unchanged)
 
 // Fetch notes function with pagination
-const fetchNotes = async (loadMore = false) => {
+const fetchNotes = async (loadMore = false, query: string | null = null) => {
   if (!isLoggedIn.value || !user.value || (loadMore && !hasMoreNotes.value)) return; // Check login and if more notes exist
 
   if (loadMore) {
@@ -306,24 +315,47 @@ const fetchNotes = async (loadMore = false) => {
   const to = from + notesPerPage - 1;
 
   try {
-    const { data, error } = await client
+    let supabaseQuery = client
       .from('notes')
       .select('id, user_id, title, updated_at') // Select only necessary fields
       .eq('user_id', user.value.id)
-      .order('updated_at', { ascending: false })
-      .range(from, to); // Apply pagination range
+      .order('updated_at', { ascending: false });
+
+    // Apply search filter if query is provided
+    // Apply search filter if query is provided
+    if (query && query.trim() !== '') {
+      // Format query for prefix matching (e.g., "librari" becomes "librari:*")
+      const formattedQuery = query.trim().split(/\s+/).map(term => `${term}:*`).join(' & ');
+      
+      // Use 'english' configuration for case-insensitive search with prefix matching
+      supabaseQuery = supabaseQuery.textSearch('search_vector', formattedQuery, {
+        config: 'english'
+      });
+      // When searching, we don't support loading more for simplicity in this plan
+      // A more advanced implementation might handle pagination differently for search results
+      hasMoreNotes.value = false;
+    } else {
+       // Only apply range if not searching or if loading more
+       supabaseQuery = supabaseQuery.range(from, to); // Apply pagination range
+    }
+
+
+    const { data, error } = await supabaseQuery;
 
     if (error) throw error;
 
     const fetchedNotes = data || [];
-    if (loadMore) {
+    if (loadMore && (!query || query.trim() === '')) { // Only append if loading more and not searching
       notes.value.push(...fetchedNotes); // Append new notes
     } else {
-      notes.value = fetchedNotes; // Replace notes for initial load
+      notes.value = fetchedNotes; // Replace notes for initial load or search
     }
 
-    // Update hasMoreNotes flag
-    hasMoreNotes.value = fetchedNotes.length === notesPerPage;
+    // Update hasMoreNotes flag only if not searching
+    if (!query || query.trim() === '') {
+      hasMoreNotes.value = fetchedNotes.length === notesPerPage;
+    }
+
 
     // No need to clear status message anymore
 
@@ -376,6 +408,29 @@ onMounted(() => {
     window.addEventListener('resize', checkMobile);
   }
   // Initial fetch is handled by the user watcher
+});
+
+// --- Watcher for Search Query ---
+// Debounce the fetchNotes call
+const debouncedFetchNotes = debounce((query: string | null) => {
+  fetchNotes(false, query); // Always reset pagination on search
+}, 500); // Increased debounce delay to 500ms
+
+watch(searchQuery, (newQuery, oldQuery) => {
+  const trimmedQuery = newQuery ? newQuery.trim() : '';
+  const trimmedOldQuery = oldQuery ? oldQuery.trim() : '';
+
+  // Only trigger search if query length is 3 or more, or if clearing the search
+  if (trimmedQuery.length >= 3) {
+    debouncedFetchNotes(trimmedQuery);
+  } else if (trimmedOldQuery.length >= 3 && trimmedQuery.length < 3) {
+    // If the query was previously 3+ characters and is now less, clear search
+    debouncedFetchNotes(null);
+  } else if (trimmedQuery === '' && trimmedOldQuery !== '') {
+     // If search query is explicitly cleared, fetch initial notes list
+     debouncedFetchNotes(null);
+  }
+  // If query is less than 3 and was already less than 3 or empty, do nothing (wait for more input)
 });
 
 // --- Select Note --- (MODIFIED: Fetch full content on demand)
