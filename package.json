@@ -10,18 +10,18 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@nuxt/ui": "^3.1.1",
+    "@nuxt/ui": "^3.1.2",
     "@nuxtjs/supabase": "^1.5.1",
     "@supabase/supabase-js": "^2.49.4",
     "@vueuse/core": "^13.2.0",
     "nuxt": "^3.17.3",
-    "vue": "^3.5.13",
+    "vue": "^3.5.14",
     "vue-router": "^4.5.1"
   },
   "devDependencies": {
     "@iconify-json/heroicons": "^1.2.2",
     "supabase": "^2.22.12",
-    "tailwindcss": "^4.1.6"
+    "tailwindcss": "^4.1.7"
   },
   "packageManager": "pnpm@10.10.0+sha512.d615db246fe70f25dcfea6d8d73dee782ce23e2245e3c4f6f888249fb568149318637dca73c2c5c8ef2a4ca0d5657fb9567188bfab47f566d1ee6ce987815c39"
 }
