@@ -4,7 +4,8 @@ export default defineNuxtConfig({
   devtools: { enabled: true },
   modules: [
     '@nuxtjs/supabase',
-    '@nuxt/ui'
+    '@nuxt/ui',
+    '@vite-pwa/nuxt'
   ],
   ui: {
     fonts: false // Disable default Nuxt UI font handling
@@ -27,13 +28,9 @@ export default defineNuxtConfig({
     head: {
       title: 'High Notes',
       link: [
-        //{ rel: 'stylesheet', href: 'https://cdn.jsdelivr.net/npm/@picocss/pico@latest/css/pico.min.css' } // Removed PicoCSS
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
-        // PWA / Manifest icons (uncomment and ensure files exist if needed)
-        // { rel: 'icon', type: 'image/png', sizes: '192x192', href: '/icon-192x192.png' },
-        // { rel: 'icon', type: 'image/png', sizes: '512x512', href: '/icon-512x512.png' },
-        // { rel: 'manifest', href: '/manifest.webmanifest' }
+        { rel: 'manifest', href: '/manifest.webmanifest' }
       ]
     }
   },
@@ -43,6 +40,40 @@ export default defineNuxtConfig({
   nitro: {
     externals: {
       inline: ['@vueuse/core', '@vueuse/shared']
+    }
+  },
+  pwa: {
+    registerType: 'autoUpdate',
+    manifest: {
+      name: 'High Notes',
+      short_name: 'HighNotes',
+      description: 'A modern note-taking app.',
+      theme_color: '#000000',
+      background_color: '#000000',
+      display: 'standalone',
+      display_override: ["window-controls-overlay", "standalone"],
+      start_url: '/notes',
+      icons: [
+        {
+          src: '/android-chrome-192x192.png',
+          sizes: '192x192',
+          type: 'image/png'
+        },
+        {
+          src: '/android-chrome-512x512.png',
+          sizes: '512x512',
+          type: 'image/png'
+        },
+        {
+          src: '/apple-touch-icon.png',
+          sizes: '180x180',
+          type: 'image/png',
+          purpose: 'any maskable'
+        }
+      ]
+    },
+    workbox: {
+      cleanupOutdatedCaches: true
     }
   }
 })
