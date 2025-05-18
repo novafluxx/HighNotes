@@ -21,6 +21,7 @@
   },
   "devDependencies": {
     "@iconify-json/heroicons": "^1.2.2",
+    "@types/lodash-es": "^4.17.12",
     "supabase": "^2.22.12",
     "tailwindcss": "^4.1.7"
   },

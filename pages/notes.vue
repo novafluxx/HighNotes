@@ -32,7 +32,18 @@
               placeholder="Search notes..."
               icon="i-heroicons-magnifying-glass"
               class="mb-4"
-            />
+            >
+              <template #trailing>
+                <UButton
+                  v-show="searchQuery !== ''"
+                  color="neutral"
+                  variant="link"
+                  icon="i-heroicons-x-mark-20-solid"
+                  :padded="false"
+                  @click="searchQuery = ''"
+                />
+              </template>
+            </UInput>
             <ClientOnly>
               <UButton label="New Note" @click.prevent="createNewNote" :loading="loading" block icon="i-heroicons-plus-circle"/>
               <template #fallback>
