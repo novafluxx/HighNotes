@@ -46,7 +46,7 @@ export default defineNuxtConfig({
     registerType: 'autoUpdate',
     manifest: {
       name: 'High Notes',
-      short_name: 'HighNotes',
+      short_name: 'High Notes',
       description: 'A modern note-taking app.',
       theme_color: '#000000',
       background_color: '#000000',
