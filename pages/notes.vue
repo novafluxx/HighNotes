@@ -210,458 +210,50 @@
 
 <script setup lang="ts">
 // --- Imports and Setup --- (Largely unchanged)
-import { ref, computed, onMounted, watch } from 'vue';
-import { useRouter } from 'vue-router';
-import { type Note } from '~/types'; // Import the Note type
-// AppHeader auto-imported by Nuxt
-import type { Database } from '~/types/database.types'; // Import generated DB types
-import { useToast } from '#imports' // Added import
-import { debounce } from 'lodash-es'; // Import debounce
+import { useNotes } from '~/composables/useNotes';
+import { useLayout } from '~/composables/useLayout';
 
-// --- Responsive Sidebar State ---
-// Initialize with SSR-safe defaults that prevent flash
-const sidebarOpen = ref(false); // Always start closed to prevent flash
-const isMobile = ref(true); // Default to mobile for SSR to prevent flash
+// --- Use Layout Composable ---
+const { sidebarOpen, isMobile, toggleSidebar } = useLayout();
 
-const checkMobile = () => {
-  if (typeof window !== 'undefined') {
-    isMobile.value = window.innerWidth <= 768; // Use md breakpoint
-    // Default sidebar state based on mobile status
-    if (!isMobile.value) sidebarOpen.value = true; 
-    else sidebarOpen.value = false; // Closed by default on mobile
-  }
-};
+// --- Use Notes Composable ---
+const {
+  notes,
+  selectedNote,
+  originalSelectedNote,
+  loading,
+  loadingMore,
+  isDeleteModalOpen,
+  searchQuery,
+  hasMoreNotes,
+  isNoteDirty,
+  isTitleTooLong,
+  isContentTooLong,
+  isSaveDisabled,
+  TITLE_MAX_LENGTH,
+  CONTENT_MAX_LENGTH,
+  formatDate,
+  fetchNotes,
+  selectNote,
+  createNewNote,
+  saveNote,
+  deleteNote,
+  confirmDeleteNote,
+} = useNotes();
 
-// --- Supabase Setup --- (Unchanged)
-const router = useRouter();
-const client = useSupabaseClient<Database>();
-const user = useSupabaseUser();
-const isLoggedIn = computed(() => !!user.value);
-
-// --- Reactive State --- (Unchanged)
-const notes = ref<Note[]>([]);
-const selectedNote = ref<Note | null>(null);
-const originalSelectedNote = ref<Note | null>(null); // For dirty checking
-const loading = ref(false); // For initial load or major actions (save/delete/select)
-const loadingMore = ref(false); // Specifically for loading more notes
-const isDeleteModalOpen = ref(false); // State for delete confirmation modal
-const toast = useToast() // Initialize toast
-const currentPage = ref(1);
-const notesPerPage = 30; // Number of notes to fetch per page
-const hasMoreNotes = ref(true); // Assume there might be more notes initially
-const searchQuery = ref(''); // Reactive variable for search input
-
-// --- Computed Properties for Validation/State --- (Modified)
-const isNoteDirty = computed(() => {
-  if (!selectedNote.value) {
-    return false;
-  }
-  // If it's a new note (no ID), it's dirty if title or content is not empty
-  if (!selectedNote.value.id) {
-    return !!selectedNote.value.title || !!selectedNote.value.content;
-  }
-  // If it's an existing note, compare with original
-  if (!originalSelectedNote.value) return false; // Should not happen if id exists, but safety check
-  return (
-    selectedNote.value.title !== originalSelectedNote.value.title ||
-    selectedNote.value.content !== originalSelectedNote.value.content
-  );
-});
-const TITLE_MAX_LENGTH = 255;
-const CONTENT_MAX_LENGTH = 10000;
-
-const isTitleTooLong = computed(() => {
-  // Use nullish coalescing and >= for clarity
-  return (selectedNote.value?.title?.length ?? 0) >= TITLE_MAX_LENGTH;
-});
-
-const isContentTooLong = computed(() => {
-  // Use nullish coalescing and >= for clarity
-  return (selectedNote.value?.content?.length ?? 0) >= CONTENT_MAX_LENGTH;
-});
-
-const isSaveDisabled = computed(() => {
-  // Disable if loading, title/content too long, or (if it's an existing note) it's not dirty
-  return loading.value ||
-         isTitleTooLong.value ||
-         isContentTooLong.value ||
-         (!!selectedNote.value?.id && !isNoteDirty.value); // Only check dirty for existing notes
-});
-
-// --- Utility Functions --- (Unchanged)
-const formatDate = (dateString: string | undefined): string => {
-  if (!dateString) return '';
-  try {
-    return new Date(dateString).toLocaleDateString(undefined, {
-      year: 'numeric',
-      month: 'short',
-      day: 'numeric',
-      hour: '2-digit',
-      minute: '2-digit',
-    });
-  } catch (e) {
-    return 'Invalid date';
-  }
-};
-
-// --- Core Logic Functions (CRUD, Select, Toggle) --- (Unchanged)
-
-// Fetch notes function with pagination
-const fetchNotes = async (loadMore = false, query: string | null = null) => {
-  if (!isLoggedIn.value || !user.value || (loadMore && !hasMoreNotes.value)) return; // Check login and if more notes exist
-
-  if (loadMore) {
-    loadingMore.value = true;
-    currentPage.value++;
-  } else {
-    loading.value = true; // Use main loading for initial fetch/refresh
-    currentPage.value = 1;
-    notes.value = []; // Clear existing notes for a fresh load
-    hasMoreNotes.value = true; // Reset assumption
-    selectedNote.value = null; // Deselect note on refresh
-    originalSelectedNote.value = null;
-  }
-
-  const from = (currentPage.value - 1) * notesPerPage;
-  const to = from + notesPerPage - 1;
-
-  try {
-    let supabaseQuery = client
-      .from('notes')
-      .select('id, user_id, title, updated_at') // Select only necessary fields
-      .eq('user_id', user.value.id)
-      .order('updated_at', { ascending: false });
-
-    // Apply search filter if query is provided
-    // Apply search filter if query is provided
-    if (query && query.trim() !== '') {
-      // Format query for prefix matching and escape special characters
-      const escapedQuery = query.trim()
-        .replace(/[!&|:()']/g, '\\$&') // Escape special tsquery characters
-        .split(/\s+/)
-        .map(term => `${term}:*`)
-        .join(' & ');
-      
-      // Use 'simple' configuration for case-insensitive search with prefix matching
-      supabaseQuery = supabaseQuery.textSearch('search_vector', escapedQuery, {
-        config: 'english'
-      });
-      // When searching, we don't support loading more for simplicity in this plan
-      // A more advanced implementation might handle pagination differently for search results
-      hasMoreNotes.value = false;
-    } else {
-       // Only apply range if not searching or if loading more
-       supabaseQuery = supabaseQuery.range(from, to); // Apply pagination range
-    }
-
-
-    const { data, error } = await supabaseQuery;
-
-    if (error) throw error;
-
-    const fetchedNotes = data || [];
-    if (loadMore && (!query || query.trim() === '')) { // Only append if loading more and not searching
-      notes.value.push(...fetchedNotes); // Append new notes
-    } else {
-      notes.value = fetchedNotes; // Replace notes for initial load or search
-    }
-
-    // Update hasMoreNotes flag only if not searching
-    if (!query || query.trim() === '') {
-      hasMoreNotes.value = fetchedNotes.length === notesPerPage;
-    }
-
-
-    // No need to clear status message anymore
-
-    // If a note was selected previously, check if its stub still exists after refresh (not loadMore)
-    if (!loadMore && selectedNote.value?.id) {
-        const stillExists = notes.value.some(n => n.id === selectedNote.value?.id);
-        if (!stillExists) {
-            selectedNote.value = null;
-            originalSelectedNote.value = null;
-        }
-    }
-
-  } catch (error) {
-    console.error('Error fetching notes:', error);
-    // Toast is already added on the next line for errors
-    toast.add({ title: 'Error fetching notes', description: (error as Error).message, color: 'error', duration: 5000 });
-    if (!loadMore) notes.value = []; // Clear notes on initial load error
-    hasMoreNotes.value = false; // Stop trying to load more on error
-  } finally {
-    if (loadMore) {
-      loadingMore.value = false;
-    } else {
-      loading.value = false;
-    }
-  }
-};
-
-// Watcher for User State
-watch(user, (currentUser, previousUser) => {
-  if (currentUser && !previousUser) { // User logged in
-    fetchNotes(false); // Fetch initial page
-  } else if (!currentUser && previousUser) { // User logged out
-    notes.value = [];
-    selectedNote.value = null;
-    originalSelectedNote.value = null;
-    router.push('/login'); // Redirect to login on logout
-  }
-}, { immediate: true }); // Run immediately to fetch notes if already logged in
-
-// --- Lifecycle Hooks ---
-// Use immediate execution for client-side
-if (process.client) {
-  checkMobile();
-}
-
-onMounted(() => {
-  // Re-check in case it wasn't set properly
-  checkMobile();
-  if (typeof window !== 'undefined') {
-    window.addEventListener('resize', checkMobile);
-  }
-  // Initial fetch is handled by the user watcher
-});
-
-// --- Watcher for Search Query ---
-// Debounce the fetchNotes call
-const debouncedFetchNotes = debounce((query: string | null) => {
-  fetchNotes(false, query); // Always reset pagination on search
-}, 500); // Increased debounce delay to 500ms
-
-watch(searchQuery, (newQuery, oldQuery) => {
-  const trimmedQuery = newQuery ? newQuery.trim() : '';
-  const trimmedOldQuery = oldQuery ? oldQuery.trim() : '';
-
-  // Only trigger search if query length is 3 or more, or if clearing the search
-  if (trimmedQuery.length >= 3) {
-    debouncedFetchNotes(trimmedQuery);
-  } else if (trimmedOldQuery.length >= 3 && trimmedQuery.length < 3) {
-    // If the query was previously 3+ characters and is now less, clear search
-    debouncedFetchNotes(null);
-  } else if (trimmedQuery === '' && trimmedOldQuery !== '') {
-     // If search query is explicitly cleared, fetch initial notes list
-     debouncedFetchNotes(null);
-  }
-  // If query is less than 3 and was already less than 3 or empty, do nothing (wait for more input)
-});
-
-// --- Select Note --- (MODIFIED: Fetch full content on demand)
-const selectNote = async (noteStub: Note | null) => { // Allow null to deselect
-  // Add guard clause to ensure user is logged in before proceeding
-  if (!isLoggedIn.value || !user.value) return;
-
-  if (!noteStub) {
-    selectedNote.value = null;
-    originalSelectedNote.value = null;
-    // No status message to clear
-    return;
-  }
-
-  // If the note is already selected and fully loaded, do nothing
-  if (selectedNote.value?.id === noteStub.id && typeof selectedNote.value.content === 'string') {
-      if (isMobile.value) sidebarOpen.value = false; // Still close sidebar on mobile
-      return;
-  }
-
-  // Check if content is already loaded (simple check assumes content is string)
-  // We use the stub from the list first
-  selectedNote.value = noteStub; 
-  originalSelectedNote.value = JSON.parse(JSON.stringify(noteStub)); // Keep a copy of the stub initially
-  // No status message to clear
-
-  if (typeof noteStub.content !== 'string') { // Content not loaded yet
-      loading.value = true;
-      try {
-          const { data: fullNote, error } = await client
-              .from('notes')
-              .select('*') // Fetch all columns for the selected note
-              .eq('id', noteStub.id!)
-              .eq('user_id', user.value.id) // Add explicit user_id filter for performance
-              .single();
-
-          if (error) throw error;
-          if (!fullNote) throw new Error('Note not found');
-
-          // Update the selected note and its original copy with full data
-          selectedNote.value = fullNote;
-          originalSelectedNote.value = JSON.parse(JSON.stringify(fullNote));
-          // No status message to clear
-
-          // Update the note in the main list as well so we don't fetch again
-          const index = notes.value.findIndex(n => n.id === fullNote.id);
-          if (index !== -1) {
-              notes.value[index] = fullNote;
-          }
-
-      } catch (error) {
-          console.error('Error fetching full note:', error);
-          // Toast is already added on the next line for errors
-          toast.add({ title: 'Error loading note', description: (error as Error).message, color: 'error', duration: 5000 }); // <-- MODIFIED color
-          selectedNote.value = null; // Deselect on error
-          originalSelectedNote.value = null;
-      } finally {
-          loading.value = false;
-      }
-  }
-
-  // Close sidebar on mobile after selection or load attempt
+// Adjust selectNote and createNewNote to close sidebar on mobile
+const selectNoteAndCloseSidebar = async (noteStub: any) => {
+  await selectNote(noteStub);
   if (isMobile.value) {
     sidebarOpen.value = false;
   }
 };
 
-// --- Create New Note --- (MODIFIED: Creates temporary local note)
-const createNewNote = () => {
-  if (!isLoggedIn.value || !user.value) return;
-
-  // Create a temporary note object without an ID
-  const tempNewNote: Note = {
-    // No id, created_at, updated_at yet
-    id: null, // Explicitly null to signify it's new
-    user_id: user.value!.id, // Add non-null assertion
-    title: '', // Start with empty title
-    content: '', // Start with empty content
-    created_at: new Date().toISOString(), // Temporary, will be set by DB
-    updated_at: new Date().toISOString(), // Temporary, will be set by DB
-  };
-
-  // Set the selected note to this temporary object
-  selectedNote.value = tempNewNote;
-  // Set original to a copy for dirty checking (representing the initial empty state)
-  originalSelectedNote.value = JSON.parse(JSON.stringify(tempNewNote));
-  // No status message to clear
-
-  // Close sidebar on mobile if open
-  if (isMobile.value) sidebarOpen.value = false;
-};
-
-// --- Save Note (Insert or Update) --- (MODIFIED)
-const saveNote = async () => {
-  if (!selectedNote.value || !isLoggedIn.value || isSaveDisabled.value) return; // Use isSaveDisabled computed
-
-  loading.value = true;
-
-  const noteToUpdate = {
-    title: selectedNote.value.title,
-    content: selectedNote.value.content,
-    // updated_at will be set by the database trigger/default
-  };
-
-  try {
-    let savedNoteData: Note | null = null;
-    let operationError: Error | null = null;
-
-    if (selectedNote.value.id) {
-      // --- UPDATE existing note ---
-      const { data, error } = await client
-        .from('notes')
-        .update({ ...noteToUpdate, updated_at: new Date().toISOString() }) // Explicitly set updated_at on update
-        .eq('id', selectedNote.value.id)
-        .select()
-        .single();
-      savedNoteData = data;
-      operationError = error as Error | null; // Cast SupabaseError
-    } else {
-      // --- INSERT new note ---
-      const noteToInsert = {
-        user_id: user.value!.id, // Add non-null assertion
-        title: selectedNote.value.title || 'Untitled Note', // Use default if empty
-        content: selectedNote.value.content,
-      };
-      const { data, error } = await client
-        .from('notes')
-        .insert(noteToInsert)
-        .select()
-        .single();
-      savedNoteData = data;
-      operationError = error as Error | null; // Cast SupabaseError
-    }
-
-    if (operationError) throw operationError;
-
-    if (savedNoteData) {
-      if (selectedNote.value.id) {
-        // Update existing note in the list
-        // Update existing note in the list (or add if somehow missing)
-        const index = notes.value.findIndex(n => n.id === savedNoteData!.id);
-        if (index !== -1) {
-          notes.value[index] = savedNoteData;
-        } else {
-          // If the updated note wasn't in the currently loaded pages, add it to the top
-          notes.value.unshift(savedNoteData);
-        }
-      } else {
-        // Add new note to the beginning of the list
-        notes.value.unshift(savedNoteData);
-        // Potentially reset pagination if desired, or just let it be at the top
-      }
-
-      // TASK 2: Update selection with saved data to keep editor open
-      selectNote(savedNoteData); // New behavior: Keep editor open with updated data
-      toast.add({ title: 'Note saved!', icon: 'i-heroicons-check-circle', color: 'success', duration: 2000 })
-
-    } else {
-      throw new Error('Failed to retrieve saved note data.');
-    }
-
-  } catch (error) {
-    console.error('Error saving note:', error);
-    toast.add({ title: 'Error saving note', description: (error as Error).message, color: 'error', duration: 5000 });
-  } finally {
-    loading.value = false;
+const createNewNoteAndCloseSidebar = () => {
+  createNewNote();
+  if (isMobile.value) {
+    sidebarOpen.value = false;
   }
-};
-
-// --- Delete Note --- (Logic mostly unchanged, relies on selectedNote.id)
-const deleteNote = () => {
-  // Open the confirmation modal instead of using confirm()
-  if (!selectedNote.value?.id || !isLoggedIn.value) return;
-  isDeleteModalOpen.value = true;
-};
-
-// --- Confirm Delete Note --- (Logic unchanged)
-const confirmDeleteNote = async () => {
-  if (!selectedNote.value?.id || !isLoggedIn.value) return;
-
-  loading.value = true; // Use main loading indicator
-  const noteIdToDelete = selectedNote.value.id; // Store ID before potentially clearing selection
-
-  try {
-    const { error } = await client
-      .from('notes')
-      .delete()
-      .eq('id', noteIdToDelete);
-
-    if (error) throw error;
-
-    // Remove the note from the local list
-    notes.value = notes.value.filter(note => note.id !== noteIdToDelete);
-
-    // Clear selection
-    selectedNote.value = null;
-    originalSelectedNote.value = null;
-    isDeleteModalOpen.value = false; // Close modal
-    // Toast is added on the next line for success
-    toast.add({ title: 'Note deleted', icon: 'i-heroicons-trash', color: 'info', duration: 2000 }); // Use info color
-
-    // Optionally: Check if we need to load more notes if the list becomes too short
-    // This might be complex, could be simpler to let the user click "Load More" if needed.
-
-  } catch (error) {
-    console.error('Error deleting note:', error);
-    // Toast is added on the next line for errors
-    toast.add({ title: 'Error deleting note', description: (error as Error).message, color: 'error', duration: 5000 });
-  } finally {
-    loading.value = false;
-  }
-};
-
-// --- Sidebar Toggle ---
-const toggleSidebar = () => {
-  sidebarOpen.value = !sidebarOpen.value;
 };
 
 </script>
