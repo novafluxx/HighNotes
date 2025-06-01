@@ -1,8 +1,0 @@
-onlyBuiltDependencies:
-  - '@parcel/watcher'
-  - '@tailwindcss/oxide'
-  - esbuild
-  - supabase
-  - vue-demi
-overrides:
-  esbuild@<=0.24.2: '>=0.25.0'
