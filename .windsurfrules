@@ -1,5 +1,5 @@
 # Project Stack:
-- pnpm
+- npm
 - Nuxt 3
 - NuxtUI 3
 - Tailwind CSS
