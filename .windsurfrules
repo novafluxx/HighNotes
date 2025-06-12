@@ -1,6 +1,15 @@
 # Project Stack:
-- npm
+- pnpm
 - Nuxt 3
 - NuxtUI 3
 - Tailwind CSS
 - Supabase
+
+# Project Name:
+- HighNotes
+
+# Project Description:
+- HighNotes is a note-taking app that allows users to create and manage notes in a simple way.
+
+# Project URL:
+- https://high-notes-app.windsurf.build
