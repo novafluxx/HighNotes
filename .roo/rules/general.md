@@ -9,7 +9,7 @@
 - High Notes
 
 # Project Description:
-- High Notes is a note-taking app that allows users to create and manage notes in a simple way.
+- HighNotes is a note-taking app that allows users to create and manage notes in a simple way.
 
 # Project URL:
 - https://high-notes-app.windsurf.build
