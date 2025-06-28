@@ -1,18 +1,22 @@
 import { test, expect } from '@playwright/test';
 
+// Test that the main page has the correct title.
 test('has title', async ({ page }) => {
-  await page.goto('https://playwright.dev/');
+  await page.goto('/');
 
-  // Expect a title "to contain" a substring.
-  await expect(page).toHaveTitle(/Playwright/);
+  // Expect the title to be "High Notes".
+  await expect(page).toHaveTitle(/High Notes/);
 });
 
-test('get started link', async ({ page }) => {
-  await page.goto('https://playwright.dev/');
+// Test that the main page has a link to the login page.
+test('should have a login link', async ({ page }) => {
+  await page.goto('/');
 
-  // Click the get started link.
-  await page.getByRole('link', { name: 'Get started' }).click();
+  // Find the login link and click it.
+  const loginLink = page.getByRole('link', { name: /login/i });
+  await expect(loginLink).toBeVisible();
+  await loginLink.click();
 
-  // Expects page to have a heading with the name of Installation.
-  await expect(page.getByRole('heading', { name: 'Installation' })).toBeVisible();
+  // Expect the URL to be the login page.
+  await expect(page).toHaveURL(/.*login/);
 });
