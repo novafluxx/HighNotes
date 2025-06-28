@@ -30,6 +30,7 @@
             :description="errorMsg"
             :close-button="{ icon: 'i-heroicons-x-mark-20-solid', color: 'gray', variant: 'link', padded: false }"
             @close="errorMsg = null"
+            data-testid="login-error"
           />
 
           <UButton type="submit" block label="Login" :loading="loading" />
