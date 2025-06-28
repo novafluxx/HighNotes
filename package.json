@@ -23,7 +23,9 @@
   "devDependencies": {
     "@iconify-json/heroicons": "^1.2.2",
     "@iconify-json/lucide": "^1.2.53",
+    "@playwright/test": "^1.53.1",
     "@types/lodash-es": "^4.17.12",
+    "@types/node": "^24.0.6",
     "supabase": "^2.26.9",
     "tailwindcss": "^4.1.11"
   }
