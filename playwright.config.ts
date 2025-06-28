@@ -3,14 +3,17 @@ import { defineConfig, devices } from '@playwright/test';
 /**
  * Read environment variables from file.
  * https://github.com/motdotla/dotenv
+ * Note: Nuxt 3 automatically loads .env files, so we don't need to manually load them here.
+ * Environment variables will be available via process.env
  */
-// import dotenv from 'dotenv';
-// import path from 'path';
-// dotenv.config({ path: path.resolve(__dirname, '.env') });
 
 /**
  * See https://playwright.dev/docs/test-configuration.
  */
+// Define test user credentials from environment variables
+const TEST_USER = process.env.TEST_USER;
+const TEST_PASSWORD = process.env.TEST_PASSWORD;
+
 export default defineConfig({
   testDir: './e2e',
   /* Run tests in files in parallel */
@@ -30,7 +33,13 @@ export default defineConfig({
 
     /* Collect trace when retrying the failed test. See https://playwright.dev/docs/trace-viewer */
     trace: 'on-first-retry',
+    
+    /* Capture screenshot on test failure */
+    screenshot: 'only-on-failure',
   },
+  
+  /* Make environment variables available to tests */
+  globalSetup: './e2e/global-setup.ts',
 
   /* Configure projects for major browsers */
   projects: [
@@ -50,14 +59,14 @@ export default defineConfig({
     },
 
     /* Test against mobile viewports. */
-    // {
-    //   name: 'Mobile Chrome',
-    //   use: { ...devices['Pixel 5'] },
-    // },
-    // {
-    //   name: 'Mobile Safari',
-    //   use: { ...devices['iPhone 12'] },
-    // },
+    {
+      name: 'Mobile Chrome',
+      use: { ...devices['Pixel 5'] },
+    },
+    {
+      name: 'Mobile Safari',
+      use: { ...devices['iPhone 12'] },
+    },
 
     /* Test against branded browsers. */
     // {
@@ -71,9 +80,10 @@ export default defineConfig({
   ],
 
   /* Run your local dev server before starting the tests */
-  // webServer: {
-  //   command: 'npm run start',
-  //   url: 'http://localhost:3000',
-  //   reuseExistingServer: !process.env.CI,
-  // },
+  webServer: {
+    command: 'pnpm run dev',
+    url: 'http://localhost:3000',
+    reuseExistingServer: !process.env.CI,
+    timeout: 120 * 1000, // Allow 2 minutes for Nuxt to start
+  },
 });
