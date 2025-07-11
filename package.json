@@ -14,7 +14,7 @@
     "@nuxt/icon": "^1.15.0",
     "@nuxt/ui": "^3.2.0",
     "@nuxtjs/supabase": "^1.5.3",
-    "@supabase/supabase-js": "^2.50.4",
+    "@supabase/supabase-js": "^2.50.5",
     "@vite-pwa/nuxt": "^1.0.4",
     "@vueuse/core": "^13.5.0",
     "nuxt": "^3.17.6",
@@ -23,11 +23,11 @@
   },
   "devDependencies": {
     "@iconify-json/heroicons": "^1.2.2",
-    "@iconify-json/lucide": "^1.2.56",
+    "@iconify-json/lucide": "^1.2.57",
     "@nuxt/test-utils": "^3.19.2",
-    "@playwright/test": "^1.53.2",
+    "@playwright/test": "^1.54.0",
     "@types/lodash-es": "^4.17.12",
-    "@types/node": "^24.0.12",
+    "@types/node": "^24.0.13",
     "dotenv": "^17.2.0",
     "supabase": "^2.30.4",
     "tailwindcss": "^4.1.11"
