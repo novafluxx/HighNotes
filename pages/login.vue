@@ -55,33 +55,28 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
-const supabase = useSupabaseClient();
+import { useAuth } from '~/composables/useAuth';
+
+const { login: loginUser, loading } = useAuth();
 const router = useRouter();
 
 const email = ref('');
 const password = ref('');
 const errorMsg = ref<string | null>(null);
-const loading = ref(false); // Added loading state for button
 
 const login = async () => {
-  loading.value = true; // Start loading
-  errorMsg.value = null; // Clear previous errors
-  try {
-    const { error } = await supabase.auth.signInWithPassword({
-      email: email.value,
-      password: password.value,
-    });
-    if (error) throw error;
-    router.push('/notes');
-  } catch (error: any) {
-    console.error('Login failed:', error);
-    errorMsg.value = error.message || 'An unexpected error occurred.';
-    // Removed the automatic timeout for error message, using UAlert close button instead
-    // setTimeout(() => {
-    //     errorMsg.value = null; 
-    // }, 5000)
-  } finally {
-    loading.value = false; // Stop loading regardless of outcome
+  errorMsg.value = null;
+  const { error } = await loginUser(email.value, password.value);
+  if (error) {
+    errorMsg.value = error.message;
+  } else {
+    // Wait for the user to be set before redirecting
+    const user = useSupabaseUser();
+    watch(user, (newUser) => {
+      if (newUser) {
+        router.push('/notes');
+      }
+    }, { immediate: true });
   }
 };
 

@@ -56,6 +56,7 @@ export function useNotes() {
     return loading.value ||
            isTitleTooLong.value ||
            isContentTooLong.value ||
+           !selectedNote.value?.title?.trim() ||
            (!!selectedNote.value?.id && !isNoteDirty.value);
   });
 
@@ -274,7 +275,7 @@ export function useNotes() {
           .from('notes')
           .update({ ...noteToUpdate, updated_at: new Date().toISOString() })
           .eq('id', selectedNote.value.id)
-          .select()
+          .select('*')
           .single();
         savedNoteData = data;
         operationError = error as Error | null;
@@ -287,7 +288,7 @@ export function useNotes() {
         const { data, error } = await client
           .from('notes')
           .insert(noteToInsert)
-          .select()
+          .select('*')
           .single();
         savedNoteData = data;
         operationError = error as Error | null;

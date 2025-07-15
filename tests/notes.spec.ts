@@ -118,7 +118,6 @@ test.describe('Notes CRUD Operations', () => {
     const noteContent = 'This is the content of my new note.';
 
     await page.getByPlaceholder('Start writing your note...').fill(noteContent);
-    await page.getByRole('button', { name: 'Save' }).click();
 
     // Expect the save button to be disabled
     await expect(page.getByRole('button', { name: 'Save' })).toBeDisabled();
