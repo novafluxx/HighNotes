@@ -4,7 +4,6 @@
 - `nuxt.config.ts` - Main Nuxt configuration
 - `package.json` - Dependencies and scripts
 - `tsconfig.json` - TypeScript configuration
-- `playwright.config.ts` - E2E testing configuration
 - `netlify.toml` - Deployment configuration
 - `.env` - Environment variables (not committed)
 
@@ -40,10 +39,6 @@
 ### `/public/` - Static Files
 - PWA icons and manifest files
 - `robots.txt` and SEO assets
-
-### `/tests/` - E2E Testing
-- `*.spec.ts` - Playwright test files
-- Organized by feature (auth, notes, basic)
 
 ### `/supabase/` - Database Configuration
 - `config.toml` - Local Supabase configuration

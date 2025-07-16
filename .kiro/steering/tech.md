@@ -22,10 +22,6 @@
 - **@vite-pwa/nuxt** - Progressive Web App capabilities
 - **@vueuse/core** - Vue composition utilities
 
-## Testing & Quality
-- **Playwright** - End-to-end testing framework
-- **ESLint & TypeScript** - Code quality and type checking
-
 ## Deployment
 - **Netlify** - Static site hosting and deployment
 - **Supabase Cloud** - Database and backend services
