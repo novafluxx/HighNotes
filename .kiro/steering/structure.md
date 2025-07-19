@@ -1,68 +1,80 @@
-# Project Structure
+# Project Structure & Organization
 
-## Root Configuration
-- `nuxt.config.ts` - Main Nuxt configuration with modules and PWA settings
+## Root Level Files
+- `app.vue` - Main application entry point with UApp wrapper
+- `nuxt.config.ts` - Nuxt configuration with modules and runtime config
 - `package.json` - Dependencies and npm scripts
 - `tsconfig.json` - TypeScript configuration
 - `.env` - Environment variables (not committed)
-- `netlify.toml` - Netlify deployment configuration
 
-## Source Code Organization
+## Core Directories
 
-### `/pages/` - File-based routing
+### `/pages` - File-based Routing
 - `index.vue` - Landing/home page
-- `login.vue` - User authentication
+- `login.vue` - User authentication login
 - `signup.vue` - User registration
 - `reset.vue` - Password reset
 - `confirm.vue` - Email confirmation
 - `notes.vue` - Main notes application interface
 
-### `/components/` - Reusable Vue components
-- `AppHeader.vue` - Application header with navigation
+### `/components` - Reusable Vue Components
+- `AppHeader.vue` - Global navigation header with auth state
+- Follow PascalCase naming convention
+- Use composition API with `<script setup>`
 
-### `/composables/` - Vue composition functions
-- `useAuth.ts` - Authentication logic and state
-- `useSupabase.ts` - Supabase client initialization
-- `useNotes.ts` - Notes CRUD operations and state
-- `useLayout.ts` - Layout and responsive behavior
+### `/composables` - Vue Composition Functions
+- `useAuth.ts` - Authentication logic (login/logout actions)
+- `useSupabase.ts` - Supabase client singleton
+- `useNotes.ts` - Notes CRUD operations and state management
+- `useLayout.ts` - UI layout state (sidebar, mobile responsiveness)
+- Follow camelCase naming with `use` prefix
 
-### `/types/` - TypeScript definitions
+### `/types` - TypeScript Definitions
 - `database.types.ts` - Generated Supabase database types
-- `types.ts` - Custom application types
+- `types.ts` - Custom application types (Note interface)
+- Import database types in composables for type safety
 
-### `/assets/css/` - Styling
-- `main.css` - Global styles and Tailwind imports
+### `/assets` - Static Assets
+- `/css` - Global stylesheets and Tailwind imports
 
-### `/public/` - Static assets
+### `/public` - Static Files
 - PWA icons and manifest files
-- `favicon.ico` and related icons
-- `robots.txt`
+- `favicon.ico`, `robots.txt`
+- Served directly at root URL
 
-## Build & Deployment
+## Generated/Build Directories
+- `/.nuxt` - Nuxt build artifacts (auto-generated)
+- `/dist` - Production build output
+- `/node_modules` - Dependencies
 
-### `/.nuxt/` - Generated build files (auto-generated)
-### `/dist/` - Production build output
-### `/.netlify/` - Netlify deployment artifacts
+## Configuration Files
+- `/supabase/config.toml` - Supabase local development config
+- `netlify.toml` - Netlify deployment configuration
+- `pnpm-lock.yaml` - Package lock file
 
-## Database & Backend
+## Architectural Patterns
 
-### `/supabase/` - Supabase configuration
-- `config.toml` - Supabase project configuration
-- `.gitignore` - Supabase-specific ignore rules
+### Composables Pattern
+- Business logic extracted to composables
+- Reactive state management with Vue's reactivity system
+- Single responsibility principle per composable
 
-## Development Tools
+### Component Structure
+- Use `<script setup>` syntax for composition API
+- Props and emits defined with `defineProps()` and `defineEmits()`
+- Template-first approach with minimal script logic
 
-### `/.kiro/` - Kiro AI assistant configuration
-### `/.roo/` - Additional tooling configuration
+### Type Safety
+- Import and use generated Supabase types
+- Custom interfaces in `/types` for application-specific data
+- Strict TypeScript configuration
 
-## Naming Conventions
-- **Files**: kebab-case for components (`AppHeader.vue`)
-- **Composables**: camelCase with `use` prefix (`useAuth.ts`)
-- **Types**: PascalCase for interfaces and types
-- **Pages**: lowercase for routes (`notes.vue` → `/notes`)
+### Authentication Flow
+- Supabase Auth integration via `@nuxtjs/supabase`
+- Route protection configured in `nuxt.config.ts`
+- User state managed globally via `useSupabaseUser()`
 
-## Architecture Patterns
-- **Composition API**: All Vue components use `<script setup>` syntax
-- **Composables**: Business logic extracted into reusable composables
-- **Type Safety**: Full TypeScript integration with generated Supabase types
-- **Auto-imports**: Nuxt auto-imports for composables, components, and utilities
+### State Management
+- No external state management library
+- Composables provide reactive state
+- Local component state for UI-specific data
