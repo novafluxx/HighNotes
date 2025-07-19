@@ -13,11 +13,11 @@
         <!-- UForm for structure and potential validation -->
         <UForm :state="{ email, password }" class="space-y-6 mx-auto max-w-sm w-full flex flex-col items-center" @submit="login">
           <UFormField label="Email Address" name="email" required>
-            <UInput v-model="email" type="email" placeholder="you@example.com" icon="i-heroicons-envelope" autocomplete="email" />
+            <UInput v-model="email" type="email" placeholder="you@example.com" icon="i-heroicons-envelope" autocomplete="email" data-testid="email-input" />
           </UFormField>
 
           <UFormField label="Password" name="password" required>
-            <UInput v-model="password" type="password" placeholder="Password" icon="i-heroicons-lock-closed" autocomplete="current-password" />
+            <UInput v-model="password" type="password" placeholder="Password" icon="i-heroicons-lock-closed" autocomplete="current-password" data-testid="password-input" />
           </UFormField>
 
           <!-- Display error message using UAlert -->
@@ -33,7 +33,7 @@
             data-testid="login-error"
           />
 
-          <UButton type="submit" block label="Login" :loading="loading" />
+          <UButton type="submit" block label="Login" :loading="loading" data-testid="login-button" />
         </UForm>
 
         <template #footer>

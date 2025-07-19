@@ -32,6 +32,7 @@
               placeholder="Search notes..."
               icon="i-heroicons-magnifying-glass"
               class="mb-4"
+              data-testid="search-input"
             >
               <template #trailing>
                 <UButton
@@ -41,11 +42,19 @@
                   icon="i-heroicons-x-mark-20-solid"
                   :padded="false"
                   @click="searchQuery = ''"
+                  data-testid="clear-search-button"
                 />
               </template>
             </UInput>
             <ClientOnly>
-              <UButton label="New Note" @click.prevent="createNewNote" :loading="loading" block icon="i-heroicons-plus-circle"/>
+              <UButton 
+                label="New Note" 
+                @click.prevent="createNewNote" 
+                :loading="loading" 
+                block 
+                icon="i-heroicons-plus-circle"
+                data-testid="create-note-button"
+              />
               <template #fallback>
                 <!-- Optional: Add a placeholder skeleton or similar -->
                 <USkeleton class="h-8 w-full" /> 
@@ -68,9 +77,10 @@
                     ? 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-200 font-semibold' 
                     : 'text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-800'
                 ]"
+                data-testid="note-item"
               >
-                <span class="block text-sm font-medium truncate">{{ note.title || 'Untitled Note' }}</span>
-                <span class="block text-xs text-gray-500 dark:text-gray-400 mt-1">{{ formatDate(note.updated_at) }}</span>
+                <span class="block text-sm font-medium truncate" data-testid="note-item-title">{{ note.title || 'Untitled Note' }}</span>
+                <span class="block text-xs text-gray-500 dark:text-gray-400 mt-1" data-testid="note-item-content">{{ formatDate(note.updated_at) }}</span>
               </button>
             </template>
             <!-- Empty/Loading States -->
@@ -101,10 +111,10 @@
       </ClientOnly>
 
       <!-- Editor Area -->
-      <main class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-gray-50 dark:bg-gray-800">
+      <main class="flex-1 overflow-y-auto p-4 md:p-6 lg:p-8 bg-gray-50 dark:bg-gray-800" data-testid="notes-container">
         <!-- Show form only if a note is selected -->
         <template v-if="selectedNote">
-          <UForm :state="selectedNote" @submit.prevent="saveNote" class="space-y-4">
+          <UForm :state="selectedNote" @submit.prevent="saveNote" class="space-y-4" data-testid="edit-note-button">
             <!-- Title Input -->
             <UFormField label="Title" name="title">
               <UInput 
@@ -113,6 +123,7 @@
                 :disabled="loading" 
                 :maxlength="TITLE_MAX_LENGTH"
                 placeholder="Note Title"
+                data-testid="note-title-input"
               />
               <span class="text-xs text-gray-400 mt-1 block">{{ selectedNote.title?.length || 0 }} / {{ TITLE_MAX_LENGTH }}</span>
               <template #error>
@@ -129,6 +140,7 @@
                 :maxlength="CONTENT_MAX_LENGTH"
                 placeholder="Start writing your note..."
                 class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-primary-500"
+                data-testid="note-content-input"
               />
               <span class="text-xs text-gray-400 mt-1 block">{{ selectedNote.content?.length || 0 }} / {{ CONTENT_MAX_LENGTH }}</span>
               <template #error>
@@ -146,6 +158,7 @@
                 @click="selectedNote = null"
                 :disabled="loading"
                 icon="i-heroicons-x-circle"
+                data-testid="close-note-button"
               />
               <UButton
                 type="button"
@@ -156,6 +169,7 @@
                 :disabled="!selectedNote.id || loading"
                 :loading="loading && selectedNote?.id === originalSelectedNote?.id"
                 icon="i-heroicons-trash"
+                data-testid="delete-note-button"
               />
               <UButton
                 type="submit"
@@ -163,6 +177,7 @@
                 :disabled="isSaveDisabled"
                 :loading="loading && selectedNote?.id === originalSelectedNote?.id"
                 icon="i-heroicons-check-circle"
+                data-testid="save-note-button"
               />
             </div>
           </UForm>
@@ -187,7 +202,7 @@
 
     </div>
 <!-- Delete Confirmation Modal -->
-    <UModal v-model:open="isDeleteModalOpen" :ui="{ footer: 'justify-end' }">
+    <UModal v-model:open="isDeleteModalOpen" :ui="{ footer: 'justify-end' }" data-testid="confirm-dialog">
       <template #header>
         <h3 class="text-lg font-semibold text-gray-900 dark:text-white">Confirm Deletion</h3>
       </template>
@@ -201,8 +216,22 @@
       </template>
 
       <template #footer>
-        <UButton label="Cancel" color="neutral" variant="outline" @click="isDeleteModalOpen = false" :disabled="loading" />
-        <UButton label="Confirm Delete" color="error" @click="confirmDeleteNote" :loading="loading" icon="i-heroicons-trash" />
+        <UButton 
+          label="Cancel" 
+          color="neutral" 
+          variant="outline" 
+          @click="isDeleteModalOpen = false" 
+          :disabled="loading" 
+          data-testid="confirm-no-button"
+        />
+        <UButton 
+          label="Confirm Delete" 
+          color="error" 
+          @click="confirmDeleteNote" 
+          :loading="loading" 
+          icon="i-heroicons-trash" 
+          data-testid="confirm-yes-button"
+        />
       </template>
     </UModal>
   </div>
