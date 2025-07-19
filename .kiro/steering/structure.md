@@ -3,7 +3,7 @@
 ## Root Level Files
 - `app.vue` - Main application entry point with UApp wrapper
 - `nuxt.config.ts` - Nuxt configuration with modules and runtime config
-- `package.json` - Dependencies and npm scripts
+- `package.json` - Dependencies and pnpm scripts
 - `tsconfig.json` - TypeScript configuration
 - `.env` - Environment variables (not committed)
 
