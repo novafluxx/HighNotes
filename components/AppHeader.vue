@@ -34,17 +34,28 @@
       </ClientOnly>
 
       <!-- User Menu Dropdown (if logged in) -->
-      <div v-if="isLoggedIn" class="flex items-center gap-2" data-testid="user-menu-button">
-        <span class="text-sm text-gray-600 dark:text-gray-300">{{ user?.email }}</span>
-        <UButton 
-          variant="ghost" 
-          size="sm"
-          label="Logout"
-          icon="i-heroicons-arrow-left-on-rectangle"
-          @click="handleLogout"
-          :loading="logoutLoading"
-          data-testid="logout-button"
-        />
+      <div v-if="isLoggedIn">
+         <UDropdownMenu :items="userMenuItems" :popper="{ placement: 'bottom-end' }">
+           <UButton variant="ghost" square class="rounded-full w-10 h-10 flex items-center justify-center" aria-label="User menu">
+             <UAvatar :alt="user?.email?.charAt(0).toUpperCase() || 'U'" />
+           </UButton>
+
+           <template #account="{ item }">
+             <div class="text-left">
+               <p>Signed in as</p>
+               <p class="truncate font-medium text-gray-900 dark:text-white">
+                 {{ user?.email }}
+               </p>
+             </div>
+           </template>
+
+           <template #item="{ item }">
+             <span class="truncate">{{ item.label }}</span>
+             <template v-if="'icon' in item">
+               <UIcon :name="item.icon" class="flex-shrink-0 h-4 w-4 text-gray-400 dark:text-gray-500 ms-auto" />
+             </template>
+           </template>
+         </UDropdownMenu>
        </div>
 
       <!-- Login Link (if logged out) -->
@@ -109,7 +120,6 @@ const userMenuItems = [
     {
       label: 'Logout',
       icon: 'i-heroicons-arrow-left-on-rectangle',
-      'data-testid': 'logout-button',
       onSelect: () => {
         handleLogout();
       }

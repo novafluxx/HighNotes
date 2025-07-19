@@ -13,11 +13,11 @@
         <!-- UForm for structure and potential validation -->
         <UForm :state="{ email, password }" class="space-y-6" @submit="handleSignup">
           <UFormField label="Email Address" name="email" required>
-            <UInput v-model="email" type="email" placeholder="you@example.com" icon="i-heroicons-envelope" data-testid="email-input" />
+            <UInput v-model="email" type="email" placeholder="you@example.com" icon="i-heroicons-envelope" />
           </UFormField>
 
           <UFormField label="Password" name="password" required help="Minimum 8 characters">
-            <UInput v-model="password" type="password" placeholder="Password" icon="i-heroicons-lock-closed" data-testid="password-input" />
+            <UInput v-model="password" type="password" placeholder="Password" icon="i-heroicons-lock-closed" />
           </UFormField>
 
           <!-- Optional: Add Confirm Password using UFormField/UInput if needed -->
@@ -45,7 +45,7 @@
           />
 
           <!-- Disable button if success message is shown -->
-          <UButton type="submit" block label="Sign Up" :loading="loading" :disabled="!!successMsg" data-testid="signup-button" />
+          <UButton type="submit" block label="Sign Up" :loading="loading" :disabled="!!successMsg" />
         </UForm>
 
         <template #footer>

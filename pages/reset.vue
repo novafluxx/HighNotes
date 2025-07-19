@@ -13,7 +13,7 @@
         <!-- UForm for structure -->
         <UForm :state="{ email }" class="space-y-6" @submit="resetPassword">
           <UFormField label="Email Address" name="email" required>
-            <UInput v-model="email" type="email" placeholder="you@example.com" icon="i-heroicons-envelope" :disabled="!!successMsg" data-testid="email-input" />
+            <UInput v-model="email" type="email" placeholder="you@example.com" icon="i-heroicons-envelope" :disabled="!!successMsg" />
           </UFormField>
 
           <!-- Display success message -->
@@ -39,7 +39,7 @@
           />
 
           <!-- Disable button if success message is shown -->
-          <UButton type="submit" block label="Send Reset Link" :loading="loading" :disabled="!!successMsg" data-testid="reset-button" />
+          <UButton type="submit" block label="Send Reset Link" :loading="loading" :disabled="!!successMsg" />
         </UForm>
 
         <template #footer>
