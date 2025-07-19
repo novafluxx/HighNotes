@@ -1,0 +1,25 @@
+{
+  "extends": "../tsconfig.json",
+  "compilerOptions": {
+    "types": [
+      "vitest/globals",
+      "@testing-library/jest-dom",
+      "jsdom",
+      "node"
+    ],
+    "lib": ["ES2022", "DOM", "DOM.Iterable"],
+    "moduleResolution": "bundler",
+    "allowImportingTsExtensions": true,
+    "isolatedModules": true,
+    "noEmit": true,
+    "skipLibCheck": true
+  },
+  "include": [
+    "./**/*",
+    "../composables/**/*",
+    "../components/**/*",
+    "../pages/**/*",
+    "../types/**/*",
+    "../.nuxt/types/**/*"
+  ]
+}
