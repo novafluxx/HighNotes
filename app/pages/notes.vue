@@ -186,6 +186,9 @@
       ></div>
 
     </div>
+    
+    <!-- PWA Install Prompt -->
+    <PwaInstallPrompt />
 <!-- Delete Confirmation Modal -->
     <UModal v-model:open="isDeleteModalOpen" :ui="{ footer: 'justify-end' }">
       <template #header>
