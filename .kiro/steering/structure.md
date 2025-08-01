@@ -1,80 +1,53 @@
-# Project Structure & Organization
+---
+inclusion: always
+---
 
-## Root Level Files
-- `app.vue` - Main application entry point with UApp wrapper
-- `nuxt.config.ts` - Nuxt configuration with modules and runtime config
-- `package.json` - Dependencies and pnpm scripts
-- `tsconfig.json` - TypeScript configuration
-- `.env` - Environment variables (not committed)
+# Project Structure & Code Organization
 
-## Core Directories
+## File Structure Rules
 
-### `/pages` - File-based Routing
-- `index.vue` - Landing/home page
-- `login.vue` - User authentication login
-- `signup.vue` - User registration
-- `reset.vue` - Password reset
-- `confirm.vue` - Email confirmation
-- `notes.vue` - Main notes application interface
+### Core Directories
+- `/app/pages/` - File-based routing (index, login, signup, reset, confirm, notes)
+- `/app/components/` - Vue components using PascalCase (AppHeader.vue)
+- `/app/composables/` - Business logic with camelCase `use` prefix (useAuth.ts, useNotes.ts)
+- `/app/types/` - TypeScript definitions (database.types.ts from Supabase, custom types.ts)
+- `/app/assets/` - Stylesheets and static assets
+- `/public/` - Static files served at root (PWA icons, favicon, robots.txt)
 
-### `/components` - Reusable Vue Components
-- `AppHeader.vue` - Global navigation header with auth state
-- Follow PascalCase naming convention
-- Use composition API with `<script setup>`
+### Key Files
+- `app/app.vue` - Main entry point with UApp wrapper
+- `nuxt.config.ts` - Configuration with modules and runtime config
+- `types/database.types.ts` - Generated Supabase types (regenerate with `supabase gen types`)
 
-### `/composables` - Vue Composition Functions
-- `useAuth.ts` - Authentication logic (login/logout actions)
-- `useSupabase.ts` - Supabase client singleton
-- `useNotes.ts` - Notes CRUD operations and state management
-- `useLayout.ts` - UI layout state (sidebar, mobile responsiveness)
-- Follow camelCase naming with `use` prefix
+## Code Architecture Patterns
 
-### `/types` - TypeScript Definitions
-- `database.types.ts` - Generated Supabase database types
-- `types.ts` - Custom application types (Note interface)
-- Import database types in composables for type safety
-
-### `/assets` - Static Assets
-- `/css` - Global stylesheets and Tailwind imports
-
-### `/public` - Static Files
-- PWA icons and manifest files
-- `favicon.ico`, `robots.txt`
-- Served directly at root URL
-
-## Generated/Build Directories
-- `/.nuxt` - Nuxt build artifacts (auto-generated)
-- `/dist` - Production build output
-- `/node_modules` - Dependencies
-
-## Configuration Files
-- `/supabase/config.toml` - Supabase local development config
-- `netlify.toml` - Netlify deployment configuration
-- `pnpm-lock.yaml` - Package lock file
-
-## Architectural Patterns
+### Component Rules
+- **Always use** `<script setup>` syntax with Composition API
+- **PascalCase** for component names and files
+- Define props/emits with `defineProps()` and `defineEmits()`
+- Keep template logic minimal, extract complex logic to composables
 
 ### Composables Pattern
-- Business logic extracted to composables
-- Reactive state management with Vue's reactivity system
-- Single responsibility principle per composable
+- **camelCase** naming with `use` prefix (useAuth, useNotes, useLayout)
+- Extract all business logic from components
+- Use Vue's reactivity system for state management
+- Single responsibility per composable
+- Import Supabase types for type safety
 
-### Component Structure
-- Use `<script setup>` syntax for composition API
-- Props and emits defined with `defineProps()` and `defineEmits()`
-- Template-first approach with minimal script logic
+### Type Safety Requirements
+- Import generated `database.types.ts` in all composables
+- Use strict TypeScript configuration
+- Define custom interfaces in `/app/types/types.ts`
+- Type all Supabase operations with generated types
 
-### Type Safety
-- Import and use generated Supabase types
-- Custom interfaces in `/types` for application-specific data
-- Strict TypeScript configuration
-
-### Authentication Flow
-- Supabase Auth integration via `@nuxtjs/supabase`
+### Authentication Architecture
+- Use `@nuxtjs/supabase` module integration
+- Global user state via `useSupabaseUser()`
 - Route protection configured in `nuxt.config.ts`
-- User state managed globally via `useSupabaseUser()`
+- Auth logic centralized in `useAuth.ts` composable
 
 ### State Management
-- No external state management library
-- Composables provide reactive state
-- Local component state for UI-specific data
+- **No external state libraries** - use Vue reactivity
+- Composables provide reactive state across components
+- Local component state only for UI-specific data
+- Auto-save patterns for data persistence

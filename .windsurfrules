@@ -1,6 +1,6 @@
 # Project Stack:
 - pnpm
-- Nuxt 3
+- Nuxt 4
 - NuxtUI 3
 - Tailwind CSS
 - Supabase
