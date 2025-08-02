@@ -1,4 +1,4 @@
-# HighNotes
+# High Notes
 
 A modern note-taking Progressive Web App (PWA) built for seamless cross-platform usage with offline capabilities and secure cloud synchronization.
 
