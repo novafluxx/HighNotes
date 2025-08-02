@@ -1,74 +1,56 @@
-# Technology Stack
+---
+inclusion: always
+---
 
-## Framework & Runtime
-- **Nuxt 4** - Vue.js meta-framework with SSR/SSG capabilities
-- **Vue 3** - Progressive JavaScript framework with Composition API
-- **TypeScript** - Type-safe JavaScript development
-- **Node.js** - JavaScript runtime environment
+# Technical Guidelines & Stack Constraints
 
-## UI & Styling
-- **Nuxt UI** - Component library built on Tailwind CSS
-- **Tailwind CSS 4** - Utility-first CSS framework
-- **Nuxt Icon** - Icon system with Heroicons and Lucide icons
-- **VueUse** - Collection of Vue composition utilities
+## Core Stack Requirements
+- **Always use Nuxt 4** with Vue 3 Composition API - never suggest Options API
+- **TypeScript is mandatory** - all new files must use `.ts` or `.vue` with `<script setup lang="ts">`
+- **Nuxt UI components are preferred** - use these before creating custom components
+- **Tailwind CSS 4** for styling - avoid inline styles or CSS modules
+- **pnpm is the package manager** - never suggest npm or yarn commands
 
-## Backend & Database
-- **Supabase** - Backend-as-a-Service with PostgreSQL database
-- **Supabase Auth** - Authentication and user management
-- **Real-time subscriptions** - Live data updates via Supabase
+## Code Generation Rules
+- Use `<script setup lang="ts">` syntax in all Vue components
+- Import types with `import type { }` syntax for better tree-shaking
+- Auto-imports are available for: Vue composables, Nuxt utilities, app components
+- Manual imports required for: external libraries, specific utilities
+- Always use `~/` prefix for app directory imports
 
-## PWA & Performance
-- **Vite PWA** - Progressive Web App capabilities
-- **Service Worker** - Offline functionality and caching
-- **Web App Manifest** - Native app-like installation
+## Database & Backend Patterns
+- **Supabase is the only backend** - never suggest alternatives
+- All database queries must use generated TypeScript types from `types/database.types.ts`
+- User data isolation is critical - always filter by `user_id` in queries
+- Use Supabase real-time subscriptions for live data updates
+- Authentication state via `useAuth()` composable only
 
-## Package Management
-- **pnpm** - Fast, disk space efficient package manager (preferred)
-- Supports npm, yarn, and bun as alternatives
-
-## Development & Deployment
-- **Netlify** - Static site hosting and deployment
-- **Supabase CLI** - Local development and database management
-
-## Common Commands
-
-### Development
+## Development Workflow Commands
 ```bash
-# Install dependencies (preferred)
+# Always use pnpm (never npm/yarn)
 pnpm install
-
-# Start development server
 pnpm dev
 
-# Run Supabase locally
-supabase start
-```
-
-### Build & Deploy
-```bash
-# Build for production
-pnpm build
-
-# Preview production build
-pnpm preview
-
-# Generate static site
-pnpm generate
-```
-
-### Database Management
-```bash
-# Generate TypeScript types from Supabase schema
+# Database type generation (run after schema changes)
 supabase gen types typescript --project-id HighNotes > types/database.types.ts
 
-# Reset local database
+# Local Supabase development
+supabase start
 supabase db reset
-
-# Apply migrations
-supabase db push
 ```
 
-## Environment Setup
-- Requires `.env` file with `SUPABASE_URL` and `SUPABASE_KEY`
-- Local Supabase instance runs on port 54321 (API), 54322 (DB), 54323 (Studio)
-- Development server runs on `http://localhost:3000`
+## PWA & Performance Constraints
+- All features must work offline-first
+- Use service workers for caching strategies
+- Optimize for mobile-first responsive design
+- Lazy load components and pages where appropriate
+
+## Environment Configuration
+- `.env` file required with `SUPABASE_URL` and `SUPABASE_KEY`
+- Local development uses ports: 3000 (app), 54321 (Supabase API), 54323 (Studio)
+- Production deployment via Netlify with automatic builds
+
+## Icon and Asset Guidelines
+- Use `UIcon` component with Heroicons or Lucide icon sets
+- Place static assets in `public/` directory
+- Optimize images for web performance
