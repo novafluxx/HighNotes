@@ -87,5 +87,12 @@ export default defineNuxtConfig({
         }
       ]
     }
-  }
+  },
+  tailwindcss: {
+    config: {
+      plugins: [
+        require('@tailwindcss/typography'),
+      ],
+    },
+  },
 })

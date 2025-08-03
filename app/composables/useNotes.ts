@@ -24,38 +24,29 @@ export function useNotes() {
   const notesPerPage = 30; // Number of notes to fetch per page
   const hasMoreNotes = ref(true); // Assume there might be more notes initially
   const searchQuery = ref(''); // Reactive variable for search input
+  const currentEditorContent = ref<string>(''); // Live content from the editor
 
   // --- Computed Properties for Validation/State ---
   const isNoteDirty = computed(() => {
-    if (!selectedNote.value) {
+    if (!selectedNote.value || !originalSelectedNote.value) {
       return false;
     }
-    // If it's a new note (no ID), it's dirty if title or content is not empty
-    if (!selectedNote.value.id) {
-      return !!selectedNote.value.title || !!selectedNote.value.content;
-    }
-    // If it's an existing note, compare with original
-    if (!originalSelectedNote.value) return false; // Should not happen if id exists, but safety check
-    return (
-      selectedNote.value.title !== originalSelectedNote.value.title ||
-      selectedNote.value.content !== originalSelectedNote.value.content
-    );
+
+    const titleChanged = selectedNote.value.title !== originalSelectedNote.value.title;
+    const contentChanged = currentEditorContent.value !== originalSelectedNote.value.content;
+
+    return titleChanged || contentChanged;
   });
   const TITLE_MAX_LENGTH = 255;
-  const CONTENT_MAX_LENGTH = 10000;
+  const CONTENT_MAX_LENGTH = 10000; // Reverted to a more reasonable value for text content
 
   const isTitleTooLong = computed(() => {
     return (selectedNote.value?.title?.length ?? 0) >= TITLE_MAX_LENGTH;
   });
 
-  const isContentTooLong = computed(() => {
-    return (selectedNote.value?.content?.length ?? 0) >= CONTENT_MAX_LENGTH;
-  });
-
   const isSaveDisabled = computed(() => {
     return loading.value ||
            isTitleTooLong.value ||
-           isContentTooLong.value ||
            !selectedNote.value?.title?.trim() ||
            (!!selectedNote.value?.id && !isNoteDirty.value);
   });
@@ -92,6 +83,7 @@ export function useNotes() {
       hasMoreNotes.value = true;
       selectedNote.value = null;
       originalSelectedNote.value = null;
+      currentEditorContent.value = ''; // Reset editor content
     }
 
     const from = (currentPage.value - 1) * notesPerPage;
@@ -106,7 +98,7 @@ export function useNotes() {
 
       if (query && query.trim() !== '') {
         const escapedQuery = query.trim()
-          .replace(/[!&|:()']/g, '\\$&')
+          .replace(/[!&|:()']/g, '\$&')
           .split(/\s+/)
           .map(term => `${term}:*`)
           .join(' & ');
@@ -139,6 +131,7 @@ export function useNotes() {
           if (!stillExists) {
               selectedNote.value = null;
               originalSelectedNote.value = null;
+              currentEditorContent.value = ''; // Reset editor content
           }
       }
 
@@ -164,6 +157,7 @@ export function useNotes() {
       notes.value = [];
       selectedNote.value = null;
       originalSelectedNote.value = null;
+      currentEditorContent.value = ''; // Reset editor content
       router.push('/login');
     }
   }, { immediate: true });
@@ -188,53 +182,67 @@ export function useNotes() {
 
   // Select Note
   const selectNote = async (noteStub: Note | null) => {
+    // If switching to a different note and the current one is dirty, save it silently.
+    if (isNoteDirty.value && selectedNote.value?.id !== noteStub?.id) {
+      await saveNote(true);
+    }
+
     if (!isLoggedIn.value || !user.value) return;
 
     if (!noteStub) {
       selectedNote.value = null;
       originalSelectedNote.value = null;
+      currentEditorContent.value = ''; // Reset editor content
       return;
     }
 
+    // Avoid reloading the same note if it's already fully loaded.
     if (selectedNote.value?.id === noteStub.id && typeof selectedNote.value.content === 'string') {
-        // isMobile check will be handled by the component
-        return;
+      return;
     }
 
-    selectedNote.value = noteStub;
-    originalSelectedNote.value = JSON.parse(JSON.stringify(noteStub));
+    // Function to set the selected note state
+    const setSelection = (note: Note) => {
+      selectedNote.value = note;
+      originalSelectedNote.value = JSON.parse(JSON.stringify(note));
+      currentEditorContent.value = note.content; // Initialize live content
+    };
 
+    // If the passed note stub doesn't have full content, fetch it.
     if (typeof noteStub.content !== 'string') {
-        loading.value = true;
-        try {
-            const { data: fullNote, error } = await client
-                .from('notes')
-                .select('*')
-                .eq('id', noteStub.id!)
-                .eq('user_id', user.value.id)
-                .single();
+      loading.value = true;
+      try {
+        const { data: fullNote, error } = await client
+          .from('notes')
+          .select('*')
+          .eq('id', noteStub.id!)
+          .eq('user_id', user.value.id)
+          .single();
 
-            if (error) throw error;
-            if (!fullNote) throw new Error('Note not found');
+        if (error) throw error;
+        if (!fullNote) throw new Error('Note not found');
 
-            selectedNote.value = fullNote;
-            originalSelectedNote.value = JSON.parse(JSON.stringify(fullNote));
-
-            const index = notes.value.findIndex(n => n.id === fullNote.id);
-            if (index !== -1) {
-                notes.value[index] = fullNote;
-            }
-
-        } catch (error) {
-            console.error('Error fetching full note:', error);
-            toast.add({ title: 'Error loading note', description: (error as Error).message, color: 'error', duration: 5000 });
-            selectedNote.value = null;
-            originalSelectedNote.value = null;
-        } finally {
-            loading.value = false;
+        // Update the main notes list with the full content
+        const index = notes.value.findIndex(n => n.id === fullNote.id);
+        if (index !== -1) {
+          notes.value[index] = fullNote;
         }
+        
+        setSelection(fullNote);
+
+      } catch (error) {
+        console.error('Error fetching full note:', error);
+        toast.add({ title: 'Error loading note', description: (error as Error).message, color: 'error', duration: 5000 });
+        selectedNote.value = null;
+        originalSelectedNote.value = null;
+        currentEditorContent.value = ''; // Reset editor content
+      } finally {
+        loading.value = false;
+      }
+    } else {
+      // If the note stub already has full content (e.g., after creating a new note).
+      setSelection(noteStub);
     }
-    // isMobile check will be handled by the component
   };
 
   // Create New Note
@@ -245,71 +253,53 @@ export function useNotes() {
       id: null,
       user_id: user.value!.id,
       title: '',
-      content: '',
+      content: '', // Initialize as empty string
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
     };
 
     selectedNote.value = tempNewNote;
     originalSelectedNote.value = JSON.parse(JSON.stringify(tempNewNote));
+    currentEditorContent.value = ''; // Reset editor content
     // isMobile check will be handled by the component
   };
 
   // Save Note (Insert or Update)
-  const saveNote = async () => {
+  const saveNote = async (silent = false) => {
     if (!selectedNote.value || !isLoggedIn.value || isSaveDisabled.value) return;
 
     loading.value = true;
 
-    const noteToUpdate = {
-      title: selectedNote.value.title,
-      content: selectedNote.value.content,
-    };
-
     try {
-      let savedNoteData: Note | null = null;
-      let operationError: Error | null = null;
-
-      if (selectedNote.value.id) {
-        const { data, error } = await client
-          .from('notes')
-          .update({ ...noteToUpdate, updated_at: new Date().toISOString() })
-          .eq('id', selectedNote.value.id)
-          .select('*')
-          .single();
-        savedNoteData = data;
-        operationError = error as Error | null;
-      } else {
-        const noteToInsert = {
-          user_id: user.value!.id,
-          title: selectedNote.value.title || 'Untitled Note',
-          content: selectedNote.value.content,
-        };
-        const { data, error } = await client
-          .from('notes')
-          .insert(noteToInsert)
-          .select('*')
-          .single();
-        savedNoteData = data;
-        operationError = error as Error | null;
+      // Ensure selectedNote.value.content is updated with the latest from the editor
+      if (selectedNote.value) {
+        selectedNote.value.content = currentEditorContent.value;
       }
 
-      if (operationError) throw operationError;
+      const { data: savedNote, error } = await client.functions.invoke('save-note', {
+        body: { note: selectedNote.value },
+      });
 
-      if (savedNoteData) {
-        if (selectedNote.value.id) {
-          const index = notes.value.findIndex(n => n.id === savedNoteData!.id);
-          if (index !== -1) {
-            notes.value[index] = savedNoteData;
-          } else {
-            notes.value.unshift(savedNoteData);
-          }
+      if (error) {
+        console.error('Function error:', error);
+        throw new Error(error.message);
+      }
+
+      if (savedNote) {
+        const index = notes.value.findIndex(n => n.id === savedNote.id);
+        if (index !== -1) {
+          notes.value[index] = savedNote;
         } else {
-          notes.value.unshift(savedNoteData);
+          notes.value.unshift(savedNote);
         }
 
-        selectNote(savedNoteData);
-        toast.add({ title: 'Note saved!', icon: 'i-heroicons-check-circle', color: 'success', duration: 2000 });
+        selectedNote.value = savedNote;
+        originalSelectedNote.value = JSON.parse(JSON.stringify(savedNote));
+        currentEditorContent.value = savedNote.content; // Update live content after save
+
+        if (!silent) {
+          toast.add({ title: 'Note saved!', icon: 'i-heroicons-check-circle', color: 'success', duration: 2000 });
+        }
 
       } else {
         throw new Error('Failed to retrieve saved note data.');
@@ -348,6 +338,7 @@ export function useNotes() {
 
       selectedNote.value = null;
       originalSelectedNote.value = null;
+      currentEditorContent.value = ''; // Reset editor content
       isDeleteModalOpen.value = false;
       toast.add({ title: 'Note deleted', icon: 'i-heroicons-trash', color: 'info', duration: 2000 });
 
@@ -370,7 +361,6 @@ export function useNotes() {
     hasMoreNotes,
     isNoteDirty,
     isTitleTooLong,
-    isContentTooLong,
     isSaveDisabled,
     TITLE_MAX_LENGTH,
     CONTENT_MAX_LENGTH,
@@ -381,5 +371,6 @@ export function useNotes() {
     saveNote,
     deleteNote,
     confirmDeleteNote,
+    currentEditorContent, // Expose currentEditorContent
   };
 }

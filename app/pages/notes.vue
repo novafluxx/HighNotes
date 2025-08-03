@@ -102,7 +102,8 @@
 
       <!-- Editor Area -->
       <NoteEditor
-        v-model="selectedNote"
+        v-model:modelValue="selectedNote"
+        v-model:content="currentEditorContent"
         :loading="loading"
         :is-save-disabled="isSaveDisabled"
         :is-title-too-long="isTitleTooLong"
@@ -180,6 +181,7 @@ const {
   saveNote,
   deleteNote,
   confirmDeleteNote,
+  currentEditorContent, // Expose currentEditorContent
 } = useNotes();
 
 // Adjust selectNote and createNewNote to close sidebar on mobile

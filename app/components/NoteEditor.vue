@@ -18,20 +18,23 @@
           </template>
         </UFormField>
 
-        <!-- Content Textarea -->
+        <!-- Content Editor -->
         <UFormField label="Content" name="content">
-          <UTextarea
-            v-model="note.content"
-            :rows="10"
-            :disabled="loading"
-            :maxlength="CONTENT_MAX_LENGTH"
-            placeholder="Start writing your note..."
-            class="mt-1 block w-full rounded-md border-gray-300 shadow-sm focus:border-primary-300 focus:ring focus:ring-primary-200 focus:ring-opacity-50 dark:bg-gray-700 dark:border-gray-600 dark:text-white dark:focus:ring-primary-500"
-          />
-          <span class="text-xs text-gray-400 mt-1 block">{{ note.content?.length || 0 }} / {{ CONTENT_MAX_LENGTH }}</span>
-          <template #error>
-            <span v-if="isContentTooLong" class="text-red-500 text-xs">Content cannot exceed {{ CONTENT_MAX_LENGTH }} characters.</span>
-           </template>
+          <div v-if="editor" class="tiptap-editor form-input dark:bg-gray-700 dark:border-gray-600 dark:text-white">
+            <div class="tiptap-toolbar">
+              <UButton @click="editor.chain().focus().toggleBold().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('bold') }" icon="i-heroicons-bold" size="xs" />
+              <UButton @click="editor.chain().focus().toggleItalic().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('italic') }" icon="i-heroicons-italic" size="xs" />
+              <UButton @click="editor.chain().focus().toggleStrike().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('strike') }" icon="i-heroicons-strikethrough" size="xs" />
+              <UButton @click="editor.chain().focus().toggleCode().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('code') }" icon="i-heroicons-code-bracket" size="xs" />
+              <UButton @click="editor.chain().focus().setParagraph().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('paragraph') }" label="P" size="xs" />
+              <UButton @click="editor.chain().focus().toggleHeading({ level: 1 }).run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('heading', { level: 1 }) }" label="H1" size="xs" />
+              <UButton @click="editor.chain().focus().toggleHeading({ level: 2 }).run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('heading', { level: 2 }) }" label="H2" size="xs" />
+              <UButton @click="editor.chain().focus().toggleHeading({ level: 3 }).run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('heading', { level: 3 }) }" label="H3" size="xs" />
+              <UButton @click="editor.chain().focus().toggleBulletList().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('bulletList') }" icon="i-heroicons-list-bullet" size="xs" />
+              <UButton @click="editor.chain().focus().toggleOrderedList().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('orderedList') }" icon="i-heroicons-bars-3" size="xs" />
+            </div>
+            <editor-content :editor="editor" />
+          </div>
         </UFormField>
 
         <!-- Action Buttons -->
@@ -79,7 +82,9 @@
 
 <script setup lang="ts">
 import type { Note } from '~/types';
-import { computed } from 'vue';
+import { computed, watch } from 'vue';
+import { useEditor, EditorContent } from '@tiptap/vue-3';
+import StarterKit from '@tiptap/starter-kit';
 
 // --- Props ---
 const props = defineProps<{
@@ -87,9 +92,8 @@ const props = defineProps<{
   loading: boolean;
   isSaveDisabled: boolean;
   isTitleTooLong: boolean;
-  isContentTooLong: boolean;
-  TITLE_MAX_LENGTH: number;
   CONTENT_MAX_LENGTH: number;
+  TITLE_MAX_LENGTH: number;
 }>();
 
 // --- Emits ---
@@ -99,10 +103,108 @@ const emit = defineEmits<{
   (e: 'delete'): void;
   (e: 'close'): void;
   (e: 'create-new'): void;
+  (e: 'update:content', value: string): void; // New emit for content updates
 }>();
 
 const note = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value)
 });
+
+const editor = useEditor({
+  extensions: [
+    StarterKit,
+  ],
+  content: note.value?.content,
+  onUpdate: ({ editor }) => {
+    emit('update:content', editor.getHTML()); // Emit content changes
+  },
+  editorProps: {
+    attributes: {
+      class: 'prose dark:prose-invert max-w-none',
+    },
+  },
+});
+
+// Watch for changes to the modelValue (from parent component) and update the editor
+watch(() => props.modelValue?.content, (newContent) => {
+  if (editor.value && newContent !== editor.value.getHTML()) {
+    editor.value.commands.setContent(newContent || '', false);
+  }
+}, { immediate: true });
+
+// When the editor is destroyed, emit an update to clear the modelValue
+onBeforeUnmount(() => {
+  if (editor.value) {
+    editor.value.destroy();
+    emit('update:modelValue', null);
+  }
+});
+
+const isContentTooLong = computed(() => {
+  return (note.value?.content?.length ?? 0) >= props.CONTENT_MAX_LENGTH;
+});
 </script>
+
+<style>
+.tiptap-editor {
+  border: 1px solid #ccc;
+  border-radius: 5px;
+}
+
+.tiptap-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  padding: 0.5rem;
+  border-bottom: 1px solid #ccc;
+  gap: 0.5rem; /* Add gap for spacing */
+}
+
+.tiptap-toolbar button {
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
+  padding: 0.25rem 0.5rem;
+  border: 1px solid #ccc;
+  border-radius: 3px;
+  cursor: pointer;
+}
+
+.tiptap-toolbar button.is-active {
+  background-color: #333;
+  color: #fff;
+}
+
+.ProseMirror {
+  padding: 0.5rem;
+  min-height: 200px;
+}
+
+.ProseMirror:focus {
+  outline: none;
+}
+
+.ProseMirror h1 {
+  font-size: 2em;
+  font-weight: bold;
+}
+
+.ProseMirror h2 {
+  font-size: 1.5em;
+  font-weight: bold;
+}
+
+.ProseMirror h3 {
+  font-size: 1.17em;
+  font-weight: bold;
+}
+
+.ProseMirror ul {
+  list-style-type: disc;
+  padding-left: 2rem;
+}
+
+.ProseMirror ol {
+  list-style-type: decimal;
+  padding-left: 2rem;
+}
+</style>
