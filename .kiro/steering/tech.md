@@ -36,11 +36,11 @@ inclusion: always
 **Required commands for database work:**
 ```bash
 # Type generation after schema changes
-supabase gen types typescript --project-id HighNotes > types/database.types.ts
+pnpm supabase gen types typescript --project-id HighNotes > types/database.types.ts
 
 # Local development
-supabase start
-supabase db reset
+pnpm supabase start
+pnpm supabase db reset
 ```
 
 ## Development Workflow
