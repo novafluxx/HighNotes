@@ -1,6 +1,6 @@
 <template>
   <div>
-    <AppHeader /> <!-- Use the shared header component -->
+
     <!-- Replace main container and styles with Tailwind -->
     <main class="flex flex-col justify-center items-center min-h-[80vh] text-center px-4">
       <h1 class="text-4xl font-bold mb-2 text-gray-900 dark:text-white">Welcome to High Notes</h1>

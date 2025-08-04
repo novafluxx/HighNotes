@@ -44,9 +44,14 @@ export function useNotes() {
     return (selectedNote.value?.title?.length ?? 0) >= TITLE_MAX_LENGTH;
   });
 
+  const isContentTooLong = computed(() => {
+    return (currentEditorContent.value?.length ?? 0) >= CONTENT_MAX_LENGTH;
+  });
+
   const isSaveDisabled = computed(() => {
     return loading.value ||
            isTitleTooLong.value ||
+           isContentTooLong.value ||
            !selectedNote.value?.title?.trim() ||
            (!!selectedNote.value?.id && !isNoteDirty.value);
   });
@@ -205,7 +210,7 @@ export function useNotes() {
     const setSelection = (note: Note) => {
       selectedNote.value = note;
       originalSelectedNote.value = JSON.parse(JSON.stringify(note));
-      currentEditorContent.value = note.content; // Initialize live content
+      currentEditorContent.value = note.content || ''; // Initialize live content
     };
 
     // If the passed note stub doesn't have full content, fetch it.
@@ -361,6 +366,7 @@ export function useNotes() {
     hasMoreNotes,
     isNoteDirty,
     isTitleTooLong,
+    isContentTooLong,
     isSaveDisabled,
     TITLE_MAX_LENGTH,
     CONTENT_MAX_LENGTH,

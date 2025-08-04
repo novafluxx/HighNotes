@@ -1,10 +1,11 @@
-import { ref, onMounted } from 'vue';
+import { ref, onMounted, onUnmounted } from 'vue';
+import { useState } from '#app';
 
 export function useLayout() {
   // --- Responsive Sidebar State ---
-  // Initialize with SSR-safe defaults that prevent flash
-  const sidebarOpen = ref(false); // Always start closed to prevent flash
-  const isMobile = ref(true); // Default to mobile for SSR to prevent flash
+  // Use Nuxt's useState for a single, global state
+  const sidebarOpen = useState('sidebarOpen', () => false);
+  const isMobile = useState('isMobile', () => true);
 
   const checkMobile = () => {
     if (typeof window !== 'undefined') {
@@ -30,6 +31,12 @@ export function useLayout() {
     checkMobile();
     if (typeof window !== 'undefined') {
       window.addEventListener('resize', checkMobile);
+    }
+  });
+
+  onUnmounted(() => {
+    if (typeof window !== 'undefined') {
+      window.removeEventListener('resize', checkMobile);
     }
   });
 

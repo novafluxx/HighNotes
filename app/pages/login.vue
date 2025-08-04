@@ -1,6 +1,5 @@
 <template>
   <div>
-    <AppHeader />
     <!-- Use Tailwind for centering and padding -->
     <main class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <!-- UCard provides a container -->

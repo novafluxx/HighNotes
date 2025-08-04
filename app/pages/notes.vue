@@ -1,7 +1,7 @@
 <template>
   <!-- Main container with flex column layout -->
-  <div class="flex flex-col h-screen overflow-hidden">
-    <AppHeader :is-mobile="isMobile" @toggle-sidebar="toggleSidebar" />
+  <div class="flex flex-col h-full overflow-hidden">
+
 
     <!-- Main content area with flex row layout -->
     <div class="flex flex-1 overflow-hidden relative">
@@ -156,7 +156,7 @@ import { useLayout } from '~/composables/useLayout';
 import NoteEditor from '~/components/NoteEditor.vue';
 
 // --- Use Layout Composable ---
-const { sidebarOpen, isMobile, toggleSidebar } = useLayout();
+const { sidebarOpen, isMobile } = useLayout();
 
 // --- Use Notes Composable ---
 const {
@@ -201,10 +201,4 @@ const createNewNoteAndCloseSidebar = () => {
 
 </script>
 
-<style scoped>
-/* Add any component-specific styles here */
-/* Ensure sidebar has a max-height or similar if content might overflow */
-aside {
-  max-height: calc(100vh - 4rem); /* Adjust based on header height */
-}
-</style>
+

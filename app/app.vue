@@ -7,7 +7,9 @@ if (process.dev) {
 
 <template>
   <UApp>
-    <NuxtPage />
+    <NuxtLayout>
+      <NuxtPage />
+    </NuxtLayout>
     <VitePwaManifest />
   </UApp>
 </template>
