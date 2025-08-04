@@ -11,7 +11,7 @@
           <strong class="font-semibold">August 4, 2025</strong>
           <ul class="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-600 dark:text-gray-300">
             <li>Added a global header bar and a hamburger menu on the notes page for easier navigation.</li>
-            <li>Updated the project to use pnpm for consistency.</li>
+            <li>Added this Changelog!</li>
           </ul>
         </li>
         <li>
