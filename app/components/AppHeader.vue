@@ -105,11 +105,17 @@ const dropdownItems = computed<DropdownItem[][]>(() => {
       [{ label: user.value?.email || 'Account', slot: 'account', disabled: true }],
       [
         { label: 'Notes', icon: 'i-heroicons-pencil-square', to: '/notes' },
+        { label: 'Changelog', icon: 'i-heroicons-clipboard-document-list', to: '/changelog' },
         { label: 'Logout', icon: 'i-heroicons-arrow-left-on-rectangle', onSelect: handleLogout },
       ],
     ];
   } else {
-    return [[{ label: 'Login', icon: 'i-heroicons-arrow-right-on-rectangle', to: '/login' }]];
+    return [
+      [
+        { label: 'Login', icon: 'i-heroicons-arrow-right-on-rectangle', to: '/login' },
+        { label: 'Changelog', icon: 'i-heroicons-clipboard-document-list', to: '/changelog' },
+      ],
+    ];
   }
 });
 
