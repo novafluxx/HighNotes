@@ -26,7 +26,6 @@
               <UButton @click="editor.chain().focus().toggleItalic().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('italic') }" icon="i-heroicons-italic" size="xs" />
               <UButton @click="editor.chain().focus().toggleStrike().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('strike') }" icon="i-heroicons-strikethrough" size="xs" />
               <UButton @click="editor.chain().focus().toggleCode().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('code') }" icon="i-heroicons-code-bracket" size="xs" />
-              <UButton @click="editor.chain().focus().setParagraph().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('paragraph') }" label="P" size="xs" />
               <UButton @click="editor.chain().focus().toggleHeading({ level: 1 }).run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('heading', { level: 1 }) }" label="H1" size="xs" />
               <UButton @click="editor.chain().focus().toggleHeading({ level: 2 }).run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('heading', { level: 2 }) }" label="H2" size="xs" />
               <UButton @click="editor.chain().focus().toggleHeading({ level: 3 }).run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('heading', { level: 3 }) }" label="H3" size="xs" />
