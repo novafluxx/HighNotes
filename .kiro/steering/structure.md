@@ -4,92 +4,66 @@ inclusion: always
 
 # Project Structure & Development Patterns
 
-## File Organization Rules
-- **New pages**: Create in `app/pages/` using kebab-case (e.g., `user-profile.vue`)
-- **New components**: Create in `app/components/` using PascalCase (e.g., `NoteEditor.vue`)
-- **New composables**: Create in `app/composables/` with `use` prefix (e.g., `useNoteEditor.ts`)
-- **Types**: Add to `types/database.types.ts` (Supabase) or `types.ts` (global)
+## File Organization & Naming
+- **Pages**: `app/pages/kebab-case.vue` (matches URL structure)
+- **Components**: `app/components/PascalCase.vue` (e.g., `NoteEditor.vue`)
+- **Composables**: `app/composables/useFeatureName.ts` (camelCase with `use` prefix)
+- **Types**: Supabase types in `types/database.types.ts`, global types in `types.ts`
+- **Constants**: Use `SCREAMING_SNAKE_CASE` for constants
 
-## Code Architecture Patterns
+## Code Structure Patterns
 
-### Component Structure
+### Vue Component Template
 ```vue
 <template>
-  <!-- Use Nuxt UI components when possible -->
   <UCard>
-    <template #header>
-      <h2>{{ title }}</h2>
-    </template>
-    <!-- Content -->
+    <template #header><h2>{{ title }}</h2></template>
+    <!-- Always prefer Nuxt UI components -->
   </UCard>
 </template>
 
 <script setup lang="ts">
-// 1. Imports (composables auto-imported)
-// 2. Props/emits definitions
-// 3. Reactive state
-// 4. Computed properties
-// 5. Methods/functions
-// 6. Lifecycle hooks
+// Order: imports → props/emits → state → computed → methods → lifecycle
 </script>
 ```
 
 ### Composable Pattern
 ```typescript
-// app/composables/useFeature.ts
 export const useFeature = () => {
   const state = ref()
   const loading = ref(false)
   
-  const fetchData = async () => {
-    loading.value = true
-    // Implementation
-    loading.value = false
-  }
-  
   return {
     state: readonly(state),
     loading: readonly(loading),
-    fetchData
+    // methods
   }
 }
 ```
 
-## Import Conventions
-- **Auto-imported**: Composables, components, Nuxt utilities
+## Import & Type Conventions
+- **Auto-imported**: Vue composables, Nuxt utilities, app components
 - **Manual imports**: External libraries, specific utilities
 - **Database types**: `import type { Database } from '~/types/database.types'`
-- **App directory**: Use `~/` prefix for all imports
+- **App imports**: Always use `~/` prefix for app directory
+- **Type imports**: Use `import type { }` for better tree-shaking
 
-## Authentication Patterns
-- **Protected pages**: Use `definePageMeta({ middleware: 'auth' })`
-- **Public pages**: No middleware required
-- **Auth state**: Access via `useAuth()` composable
-- **User data**: Always scope queries to authenticated user ID
+## Authentication & Security
+- **Protected pages**: Add `definePageMeta({ middleware: 'auth' })`
+- **Auth state**: Access only via `useAuth()` composable
+- **User data isolation**: ALWAYS filter queries by authenticated `user_id`
+- **Database queries**: Use generated Supabase types for type safety
 
-## Database Integration
-- **Type safety**: Use generated Supabase types for all queries
-- **Real-time**: Implement via Supabase subscriptions in composables
-- **Error handling**: Always handle Supabase errors gracefully
-- **User isolation**: Filter all queries by `user_id` field
-
-## UI/UX Standards
-- **Components**: Prefer Nuxt UI components over custom implementations
+## UI Component Standards
+- **Priority**: Nuxt UI components > custom components
 - **Icons**: Use `UIcon` with Heroicons or Lucide icon sets
 - **Forms**: Use `UForm` with validation schemas
-- **Loading states**: Show loading indicators for async operations
-- **Error states**: Display user-friendly error messages
-
-## File Naming Rules
-- **Pages**: `kebab-case.vue` (matches URL structure)
-- **Components**: `PascalCase.vue` (e.g., `UserProfile.vue`)
-- **Composables**: `camelCase.ts` with `use` prefix
-- **Types**: `PascalCase` for interfaces, `camelCase` for type aliases
-- **Constants**: `SCREAMING_SNAKE_CASE`
+- **States**: Always show loading indicators and handle errors gracefully
 
 ## Development Workflow
-1. **New features**: Start with composable for business logic
-2. **UI components**: Build with Nuxt UI components first
-3. **Type safety**: Define types before implementation
-4. **Testing**: Test composables and critical user flows
-5. **PWA**: Ensure offline functionality for core features
+1. **Create composable** for business logic first
+2. **Define types** before implementation
+3. **Build UI** with Nuxt UI components
+4. **Add authentication** middleware if needed
+5. **Test offline functionality** for PWA compliance
+6. **Ensure user data isolation** in all database operations
