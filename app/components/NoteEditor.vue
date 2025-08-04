@@ -34,6 +34,9 @@
               <UButton @click="editor.chain().focus().toggleOrderedList().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('orderedList') }" icon="i-heroicons-bars-3" size="xs" />
             </div>
             <editor-content :editor="editor" />
+            <div v-if="editor" class="character-count text-xs text-gray-400 mt-1 flex justify-end pr-2 pb-1">
+              {{ editor.storage.characterCount.characters() }} / {{ CONTENT_MAX_LENGTH }}
+            </div>
           </div>
         </UFormField>
 
@@ -85,6 +88,7 @@ import type { Note } from '~/types';
 import { computed, watch } from 'vue';
 import { useEditor, EditorContent } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
+import CharacterCount from '@tiptap/extension-character-count';
 
 // --- Props ---
 const props = defineProps<{
@@ -114,6 +118,10 @@ const note = computed({
 const editor = useEditor({
   extensions: [
     StarterKit,
+    CharacterCount.configure({
+      limit: props.CONTENT_MAX_LENGTH,
+      mode: 'nodeSize',
+    }),
   ],
   content: note.value?.content,
   onUpdate: ({ editor }) => {
@@ -129,7 +137,7 @@ const editor = useEditor({
 // Watch for changes to the modelValue (from parent component) and update the editor
 watch(() => props.modelValue?.content, (newContent) => {
   if (editor.value && newContent !== editor.value.getHTML()) {
-    editor.value.commands.setContent(newContent || '', false);
+    editor.value.commands.setContent(newContent || '', { emitUpdate: false });
   }
 }, { immediate: true });
 
