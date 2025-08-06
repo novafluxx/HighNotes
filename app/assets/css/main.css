@@ -1,0 +1,11 @@
+@import "tailwindcss";
+@import "@nuxt/ui";
+/* Prevent input zoom on iOS Safari */
+@media (max-width: 600px) {
+  input,
+  textarea,
+  select,
+  button {
+    font-size: 16px !important;
+  }
+}

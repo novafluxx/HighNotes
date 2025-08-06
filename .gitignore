@@ -1,0 +1,38 @@
+# Nuxt dev/build outputs
+.output
+.data
+.nuxt
+.nitro
+.cache
+dist
+
+# Node dependencies
+node_modules
+
+# Logs
+logs
+*.log
+
+# Misc
+.DS_Store
+.fleet
+.idea
+.roo/mcp.json
+
+# Local env files
+.env
+.env.*
+!.env.example
+
+# Local Netlify folder
+.netlify
+
+# Kiro MCP
+/.kiro/settings/mcp.json
+/.kiro/specs
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/

@@ -1,0 +1,39 @@
+{
+  "name": "high-notes",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "nuxt build",
+    "dev": "nuxt dev",
+    "generate": "nuxt generate",
+    "preview": "nuxt preview",
+    "postinstall": "nuxt prepare"
+  },
+  "dependencies": {
+    "@nuxt/icon": "^1.15.0",
+    "@nuxt/ui": "^3.3.0",
+    "@nuxtjs/supabase": "^1.6.0",
+    "@supabase/supabase-js": "^2.53.0",
+    "@tiptap/extension-character-count": "^3.0.9",
+    "@tiptap/starter-kit": "^3.0.9",
+    "@tiptap/vue-3": "^3.0.9",
+    "@vite-pwa/nuxt": "^1.0.4",
+    "@vueuse/core": "^13.6.0",
+    "nuxt": "^4.0.3",
+    "vue": "^3.5.18",
+    "vue-router": "^4.5.1"
+  },
+  "devDependencies": {
+    "@iconify-json/heroicons": "^1.2.2",
+    "@iconify-json/lucide": "^1.2.60",
+    "@nuxt/test-utils": "^3.19.2",
+    "@tailwindcss/typography": "^0.5.16",
+    "@types/lodash-es": "^4.17.12",
+    "@types/node": "^24.2.0",
+    "dotenv": "^17.2.1",
+    "supabase": "^2.33.9",
+    "tailwindcss": "^4.1.11",
+    "vue-tsc": "^3.0.5"
+  },
+  "packageManager": "pnpm@10.14.0"
+}
