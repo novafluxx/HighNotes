@@ -1,4 +1,5 @@
 # High Notes
+[![Dependabot Updates](https://github.com/novafluxx/HighNotes/actions/workflows/dependabot/dependabot-updates/badge.svg?branch=main)](https://github.com/novafluxx/HighNotes/actions/workflows/dependabot/dependabot-updates)
 
 A modern note-taking Progressive Web App (PWA) built for seamless cross-platform usage with offline capabilities and secure cloud synchronization.
 
