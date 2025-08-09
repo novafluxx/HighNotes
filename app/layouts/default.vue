@@ -1,7 +1,7 @@
 <template>
   <div class="flex flex-col min-h-dvh">
     <AppHeader />
-    <main class="flex-1 overflow-auto overscroll-contain">
+    <main class="flex-1 overflow-hidden">
       <slot />
     </main>
   </div>

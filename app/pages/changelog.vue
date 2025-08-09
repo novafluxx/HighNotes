@@ -1,5 +1,5 @@
 <template>
-  <div class="flex justify-center py-8 px-4">
+  <div class="flex justify-center h-full overflow-auto ios-scroll py-8 px-4">
     <UCard class="w-full max-w-2xl text-center">
       <template #header>
         <h1 class="text-2xl font-bold">Changelog</h1>

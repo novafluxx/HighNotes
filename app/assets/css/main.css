@@ -10,3 +10,8 @@
     font-size: 16px !important;
   }
 }
+
+/* iOS momentum scrolling helper for scrollable containers */
+.ios-scroll {
+  -webkit-overflow-scrolling: touch;
+}

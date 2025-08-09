@@ -61,7 +61,7 @@
           </div>
 
           <!-- Notes List -->
-          <div class="flex-1 p-2 space-y-1 overflow-y-auto">
+          <div class="flex-1 p-2 space-y-1 overflow-y-auto ios-scroll">
             <template v-if="notes.length">
               <!-- Using button/div for list items for easier styling/event handling -->
               <button 
