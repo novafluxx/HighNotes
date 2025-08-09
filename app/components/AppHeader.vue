@@ -18,8 +18,15 @@
       </NuxtLink>
     </div>
 
-    <!-- Right side: Theme Toggle and User Menu -->
+    <!-- Right side: Prefetch Indicator, Theme Toggle and User Menu -->
     <div class="flex items-center gap-4">
+      <!-- Prefetch indicator -->
+      <ClientOnly>
+        <div v-if="prefetch.active" class="flex items-center gap-2 text-xs px-2 py-1 rounded bg-slate-50 dark:bg-slate-900/50 border border-slate-200 dark:border-slate-800 text-slate-700 dark:text-slate-300" aria-live="polite" aria-atomic="true">
+          <Icon name="lucide:cloud-download" class="w-4 h-4" />
+          <span>Preparing offline ({{ prefetch.done }}/{{ prefetch.total }})</span>
+        </div>
+      </ClientOnly>
       <ClientOnly>
         <UButton
           color="neutral"
@@ -82,6 +89,7 @@ import { useOnline } from '@vueuse/core';
 import { useRoute } from 'vue-router';
 import { useAuth } from '~/composables/useAuth';
 import { useLayout } from '~/composables/useLayout';
+import { useNotesPrefetch } from '~/composables/useNotesPrefetch';
 
 // Define a type for dropdown items to satisfy TypeScript
 type DropdownItem = {
@@ -100,6 +108,9 @@ const route = useRoute();
 const user = useSupabaseUser();
 const isLoggedIn = computed(() => !!user.value);
 const online = useOnline();
+// Prefetch status
+const { status } = useNotesPrefetch();
+const prefetch = computed(() => status.value);
 
 // --- Computed Properties ---
 const showMenuButton = computed(() => {

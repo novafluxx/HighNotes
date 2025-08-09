@@ -5,6 +5,7 @@ import type { Database } from '~/types/database.types';
 import { useToast } from '#imports';
 import { debounce } from 'lodash-es';
 import type { RealtimeChannel } from '@supabase/supabase-js';
+import { useOnline } from '@vueuse/core';
 
 export function useNotes() {
   // --- Supabase Setup ---
@@ -26,6 +27,24 @@ export function useNotes() {
   const hasMoreNotes = ref(true); // Assume there might be more notes initially
   const searchQuery = ref(''); // Reactive variable for search input
   const currentEditorContent = ref<string>(''); // Live content from the editor
+
+  // --- Offline Support ---
+  const isOnline = useOnline();
+  const {
+    getCachedNotes,
+    getCachedNoteById,
+    cacheNotesBulk,
+    cacheNote,
+    removeCachedNote,
+    enqueue,
+    readQueueFIFO,
+    clearQueueItems,
+    replaceLocalId,
+  } = useOfflineNotes();
+  // Background prefetcher for full note content
+  const { prefetchForUser } = useNotesPrefetch();
+  const syncing = ref(false);
+  const genLocalId = () => `local-${crypto.randomUUID?.() || Math.random().toString(36).slice(2)}`;
 
   // --- Computed Properties for Validation/State ---
   const isNoteDirty = computed(() => {
@@ -164,6 +183,22 @@ export function useNotes() {
       currentEditorContent.value = ''; // Reset editor content
     }
 
+    // Offline: serve from cache
+    if (!isOnline.value) {
+      try {
+        const cached = await getCachedNotes(user.value.id);
+        notes.value = query ? cached.filter(n => n.title?.toLowerCase().includes((query || '').toLowerCase())) : cached;
+        hasMoreNotes.value = false;
+      } finally {
+        if (loadMore) {
+          loadingMore.value = false;
+        } else {
+          loading.value = false;
+        }
+      }
+      return;
+    }
+
     const from = (currentPage.value - 1) * notesPerPage;
     const to = from + notesPerPage - 1;
 
@@ -200,6 +235,10 @@ export function useNotes() {
         notes.value = fetchedNotes;
       }
 
+      // Update cache with the latest list (partial: id/title/updated_at)
+      // We preserve any locally cached content entries; this bulk put keeps index up to date.
+      await cacheNotesBulk(fetchedNotes as unknown as Note[]);
+
       if (!query || query.trim() === '') {
         hasMoreNotes.value = fetchedNotes.length === notesPerPage;
       }
@@ -213,10 +252,22 @@ export function useNotes() {
           }
       }
 
+      // Kick off background prefetch of full note content (cap 100)
+      if (!loadMore && (!query || query.trim() === '')) {
+        try {
+          prefetchForUser(user.value.id, 100);
+        } catch {}
+      }
+
     } catch (error) {
       console.error('Error fetching notes:', error);
       toast.add({ title: 'Error fetching notes', description: (error as Error).message, color: 'error', duration: 5000 });
-      if (!loadMore) notes.value = [];
+      // Fallback to cache when online fetch fails
+      try {
+        const cached = await getCachedNotes(user.value!.id);
+        notes.value = cached;
+        hasMoreNotes.value = false;
+      } catch {}
       hasMoreNotes.value = false;
     } finally {
       if (loadMore) {
@@ -288,6 +339,17 @@ export function useNotes() {
 
     // If the passed note stub doesn't have full content, fetch it.
     if (typeof noteStub.content !== 'string') {
+      // Offline path: hydrate from cache
+      if (!isOnline.value) {
+        const cached = await getCachedNoteById(noteStub.id!);
+        if (cached) {
+          setSelection(cached);
+          return;
+        }
+        // Fallback: set minimal selection
+        setSelection({ ...noteStub, content: '' } as Note);
+        return;
+      }
       loading.value = true;
       try {
         const { data: fullNote, error } = await client
@@ -307,6 +369,7 @@ export function useNotes() {
         }
         
         setSelection(fullNote);
+        await cacheNote(fullNote as Note);
 
       } catch (error) {
         console.error('Error fetching full note:', error);
@@ -354,6 +417,40 @@ export function useNotes() {
         selectedNote.value.content = currentEditorContent.value;
       }
 
+      // If offline, cache and queue
+      if (!isOnline.value) {
+        const nowIso = new Date().toISOString();
+        // Assign a local id for new notes
+        if (!selectedNote.value.id) {
+          selectedNote.value.id = genLocalId();
+          selectedNote.value.created_at = nowIso;
+        }
+        selectedNote.value.updated_at = nowIso;
+
+        // Update in-memory list optimistically
+        const existingIdx = notes.value.findIndex(n => n.id === selectedNote.value!.id);
+        if (existingIdx !== -1) {
+          notes.value[existingIdx] = { ...(selectedNote.value as Note) };
+        } else {
+          notes.value.unshift({ ...(selectedNote.value as Note) });
+        }
+
+        await cacheNote(selectedNote.value as Note);
+        await enqueue({
+          id: genLocalId(),
+          user_id: user.value!.id,
+          type: (selectedNote.value as Note).id?.startsWith('local-') && originalSelectedNote.value?.id === null ? 'create' : 'update',
+          note: selectedNote.value as Note,
+          timestamp: Date.now(),
+        });
+
+        originalSelectedNote.value = JSON.parse(JSON.stringify(selectedNote.value));
+        if (!silent) {
+          toast.add({ title: 'Saved locally (offline)', icon: 'i-lucide-wifi-off', color: 'info', duration: 2500 });
+        }
+        return;
+      }
+
       const { data: savedNote, error } = await client.functions.invoke('save-note', {
         body: { note: selectedNote.value },
       });
@@ -375,8 +472,11 @@ export function useNotes() {
         originalSelectedNote.value = JSON.parse(JSON.stringify(savedNote));
         currentEditorContent.value = savedNote.content; // Update live content after save
 
+        // Update cache with saved note
+        await cacheNote(savedNote as Note);
+
         if (!silent) {
-          toast.add({ title: 'Note saved!', icon: 'i-heroicons-check-circle', color: 'success', duration: 2000 });
+          toast.add({ title: 'Note saved!', icon: 'i-lucide-check-circle', color: 'success', duration: 2000 });
         }
 
       } else {
@@ -385,7 +485,27 @@ export function useNotes() {
 
     } catch (error) {
       console.error('Error saving note:', error);
-      toast.add({ title: 'Error saving note', description: (error as Error).message, color: 'error', duration: 5000 });
+      // Fallback to offline on network/server error
+      try {
+        const nowIso = new Date().toISOString();
+        if (!selectedNote.value!.id) {
+          selectedNote.value!.id = genLocalId();
+          selectedNote.value!.created_at = nowIso;
+        }
+        selectedNote.value!.updated_at = nowIso;
+        await cacheNote(selectedNote.value as Note);
+        await enqueue({
+          id: genLocalId(),
+          user_id: user.value!.id,
+          type: (selectedNote.value as Note).id!.startsWith('local-') && originalSelectedNote.value?.id === null ? 'create' : 'update',
+          note: selectedNote.value as Note,
+          timestamp: Date.now(),
+        });
+        originalSelectedNote.value = JSON.parse(JSON.stringify(selectedNote.value));
+        toast.add({ title: 'Saved locally (will sync)', icon: 'i-lucide-wifi-off', color: 'info', duration: 2500 });
+      } catch (e) {
+        toast.add({ title: 'Error saving note', description: (error as Error).message, color: 'error', duration: 5000 });
+      }
     } finally {
       loading.value = false;
     }
@@ -412,6 +532,24 @@ export function useNotes() {
     }
 
     try {
+      // Offline delete: update state/cache/queue only
+      if (!isOnline.value) {
+        notes.value = notes.value.filter(note => note.id !== noteIdToDelete);
+        await removeCachedNote(noteIdToDelete);
+        // Remove any queued create/update for this note
+        const items = await readQueueFIFO(uid);
+        const idsToClear = items.filter(i => (i.note?.id === noteIdToDelete) || (i.note_id === noteIdToDelete)).map(i => i.id);
+        await clearQueueItems(idsToClear);
+        await enqueue({ id: genLocalId(), user_id: uid, type: 'delete', note_id: noteIdToDelete, timestamp: Date.now() });
+
+        selectedNote.value = null;
+        originalSelectedNote.value = null;
+        currentEditorContent.value = '';
+        isDeleteModalOpen.value = false;
+        toast.add({ title: 'Deleted locally (offline)', icon: 'i-lucide-wifi-off', color: 'info', duration: 2000 });
+        return;
+      }
+
       const { error } = await client
         .from('notes')
         .delete()
@@ -421,12 +559,13 @@ export function useNotes() {
       if (error) throw error;
 
       notes.value = notes.value.filter(note => note.id !== noteIdToDelete);
+      await removeCachedNote(noteIdToDelete);
 
       selectedNote.value = null;
       originalSelectedNote.value = null;
       currentEditorContent.value = ''; // Reset editor content
       isDeleteModalOpen.value = false;
-      toast.add({ title: 'Note deleted', icon: 'i-heroicons-trash', color: 'info', duration: 2000 });
+      toast.add({ title: 'Note deleted', icon: 'i-lucide-trash', color: 'info', duration: 2000 });
 
     } catch (error) {
       console.error('Error deleting note:', error);
@@ -435,6 +574,104 @@ export function useNotes() {
       loading.value = false;
     }
   };
+
+  // Sync queue when coming online
+  const syncPendingQueue = async () => {
+    if (!isOnline.value || !isLoggedIn.value || !user.value || syncing.value) return;
+    syncing.value = true;
+    try {
+      const uid = user.value.id;
+      const items = await readQueueFIFO(uid);
+      // Track id replacements within this run to avoid duplicate creates
+      const idMap = new Map<string, string>(); // localId -> serverId
+      const processed: string[] = [];
+      let skippedAny = false;
+      for (const item of items) {
+        try {
+          // Normalize any local ids using known mappings from earlier in this run
+          if (item.note?.id && idMap.has(item.note.id)) {
+            item.note.id = idMap.get(item.note.id)!;
+          }
+          if (item.note_id && idMap.has(item.note_id)) {
+            item.note_id = idMap.get(item.note_id)!;
+          }
+
+          if (item.type === 'create' && item.note) {
+            const localId = item.note.id as string;
+            const noteForServer = { ...item.note, id: null } as Note;
+            const { data: saved } = await client.functions.invoke('save-note', { body: { note: noteForServer } });
+            if (saved?.id) {
+              await replaceLocalId(localId, saved.id);
+              idMap.set(localId, saved.id);
+              // Update in-memory list
+              const idx = notes.value.findIndex(n => n.id === localId);
+              if (idx !== -1) notes.value[idx] = saved;
+              else notes.value.unshift(saved);
+              await cacheNote(saved as Note);
+              // Update selection if this was the currently selected note
+              if (selectedNote.value?.id === localId) {
+                selectedNote.value = saved as Note;
+                originalSelectedNote.value = JSON.parse(JSON.stringify(saved));
+                currentEditorContent.value = (saved as Note).content ?? '';
+              }
+            }
+          }
+          if (item.type === 'update' && item.note) {
+            // If it's still a local id and we don't yet know its server id, skip for now
+            if (item.note.id && item.note.id.startsWith('local-') && !idMap.has(item.note.id)) {
+              skippedAny = true;
+              continue;
+            } else {
+              const { data: saved } = await client.functions.invoke('save-note', { body: { note: item.note } });
+              if (saved) {
+                const idx = notes.value.findIndex(n => n.id === saved.id);
+                if (idx !== -1) notes.value[idx] = saved;
+                else notes.value.unshift(saved);
+                await cacheNote(saved as Note);
+                if (selectedNote.value?.id === saved.id) {
+                  selectedNote.value = saved as Note;
+                  originalSelectedNote.value = JSON.parse(JSON.stringify(saved));
+                  currentEditorContent.value = (saved as Note).content ?? '';
+                }
+              }
+            }
+          }
+          if (item.type === 'delete' && item.note_id) {
+            if (item.note_id.startsWith('local-') && !idMap.has(item.note_id)) {
+              // If never synced, just ensure removed locally
+              await removeCachedNote(item.note_id);
+            } else {
+              const idToDelete = idMap.get(item.note_id) || item.note_id;
+              await client.from('notes').delete().eq('id', idToDelete).eq('user_id', uid);
+              await removeCachedNote(item.note_id);
+            }
+          }
+          processed.push(item.id);
+        } catch (e) {
+          // Stop on first failure to preserve order
+          break;
+        }
+      }
+      if (processed.length) await clearQueueItems(processed);
+      // If we skipped any items (waiting for id mapping), run sync again once
+      if (skippedAny && processed.length) {
+        // Let the event loop breathe and then re-run
+        setTimeout(() => {
+          syncPendingQueue();
+        }, 0);
+      }
+    } finally {
+      syncing.value = false;
+    }
+  };
+
+  watch(isOnline, (online) => {
+    if (online) {
+      syncPendingQueue();
+      // Refresh list to ensure server truth wins
+      fetchNotes(false, searchQuery.value || null);
+    }
+  });
 
   return {
     notes,
