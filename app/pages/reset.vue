@@ -11,32 +11,42 @@
         </template>
 
         <!-- UForm for structure -->
-        <UForm :state="{ email }" class="space-y-6" @submit="resetPassword">
+        <UForm :state="{ email }" class="space-y-6 mx-auto max-w-sm w-full flex flex-col items-center" @submit="resetPassword">
           <UFormField label="Email Address" name="email" required>
-            <UInput v-model="email" type="email" placeholder="you@example.com" icon="i-heroicons-envelope" :disabled="!!successMsg" />
+            <UInput v-model="email" type="email" placeholder="you@example.com" :disabled="!!successMsg">
+              <template #leading>
+                <Icon name="lucide:mail" class="w-5 h-5" />
+              </template>
+            </UInput>
           </UFormField>
 
           <!-- Display success message -->
           <UAlert
             v-if="successMsg"
-            icon="i-heroicons-check-circle"
             color="primary"
             variant="soft"
             title="Email Sent"
             :description="successMsg"
-          />
+          >
+            <template #icon>
+              <Icon name="lucide:check-circle" class="w-5 h-5" />
+            </template>
+          </UAlert>
 
           <!-- Display error message -->
           <UAlert
             v-if="errorMsg"
-            icon="i-heroicons-exclamation-triangle"
             color="error"
             variant="soft"
             title="Reset Error"
             :description="errorMsg"
-            :close-button="{ icon: 'i-heroicons-x-mark-20-solid', color: 'gray', variant: 'link', padded: false }"
+            :close-button="{ icon: 'i-lucide-x', color: 'gray', variant: 'link', padded: false }"
             @close="errorMsg = null"
-          />
+          >
+            <template #icon>
+              <Icon name="lucide:alert-triangle" class="w-5 h-5" />
+            </template>
+          </UAlert>
 
           <!-- Disable button if success message is shown -->
           <UButton type="submit" block label="Send Reset Link" :loading="loading" :disabled="!!successMsg" />

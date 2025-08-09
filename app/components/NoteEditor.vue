@@ -22,15 +22,39 @@
         <UFormField label="Content" name="content">
           <div v-if="editor" class="tiptap-editor form-input dark:bg-gray-700 dark:border-gray-600 dark:text-white">
             <div class="tiptap-toolbar">
-              <UButton @click="editor.chain().focus().toggleBold().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('bold') }" icon="i-heroicons-bold" size="xs" />
-              <UButton @click="editor.chain().focus().toggleItalic().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('italic') }" icon="i-heroicons-italic" size="xs" />
-              <UButton @click="editor.chain().focus().toggleStrike().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('strike') }" icon="i-heroicons-strikethrough" size="xs" />
-              <UButton @click="editor.chain().focus().toggleCode().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('code') }" icon="i-heroicons-code-bracket" size="xs" />
+              <UButton @click="editor.chain().focus().toggleBold().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('bold') }" size="xs" aria-label="Bold">
+                <template #leading>
+                  <Icon name="lucide:bold" class="w-4 h-4" />
+                </template>
+              </UButton>
+              <UButton @click="editor.chain().focus().toggleItalic().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('italic') }" size="xs" aria-label="Italic">
+                <template #leading>
+                  <Icon name="lucide:italic" class="w-4 h-4" />
+                </template>
+              </UButton>
+              <UButton @click="editor.chain().focus().toggleStrike().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('strike') }" size="xs" aria-label="Strikethrough">
+                <template #leading>
+                  <Icon name="lucide:strikethrough" class="w-4 h-4" />
+                </template>
+              </UButton>
+              <UButton @click="editor.chain().focus().toggleCode().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('code') }" size="xs" aria-label="Code">
+                <template #leading>
+                  <Icon name="lucide:code" class="w-4 h-4" />
+                </template>
+              </UButton>
               <UButton @click="editor.chain().focus().toggleHeading({ level: 1 }).run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('heading', { level: 1 }) }" label="H1" size="xs" />
               <UButton @click="editor.chain().focus().toggleHeading({ level: 2 }).run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('heading', { level: 2 }) }" label="H2" size="xs" />
               <UButton @click="editor.chain().focus().toggleHeading({ level: 3 }).run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('heading', { level: 3 }) }" label="H3" size="xs" />
-              <UButton @click="editor.chain().focus().toggleBulletList().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('bulletList') }" icon="i-heroicons-list-bullet" size="xs" />
-              <UButton @click="editor.chain().focus().toggleOrderedList().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('orderedList') }" icon="i-heroicons-bars-3" size="xs" />
+              <UButton @click="editor.chain().focus().toggleBulletList().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('bulletList') }" size="xs" aria-label="Bullet List">
+                <template #leading>
+                  <Icon name="lucide:list" class="w-4 h-4" />
+                </template>
+              </UButton>
+              <UButton @click="editor.chain().focus().toggleOrderedList().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('orderedList') }" size="xs" aria-label="Ordered List">
+                <template #leading>
+                  <Icon name="lucide:list-ordered" class="w-4 h-4" />
+                </template>
+              </UButton>
             </div>
             <editor-content :editor="editor" />
             <div v-if="editor" class="character-count text-xs text-gray-400 mt-1 flex justify-end pr-2 pb-1">
@@ -48,8 +72,11 @@
             variant="outline"
             @click="emit('close')"
             :disabled="loading"
-            icon="i-heroicons-x-circle"
-          />
+          >
+            <template #leading>
+              <Icon name="lucide:x-circle" class="w-5 h-5" />
+            </template>
+          </UButton>
           <UButton
             type="button"
             label="Delete"
@@ -58,15 +85,21 @@
             @click="emit('delete')"
             :disabled="!note.id || loading"
             :loading="loading"
-            icon="i-heroicons-trash"
-          />
+          >
+            <template #leading>
+              <Icon name="lucide:trash" class="w-5 h-5" />
+            </template>
+          </UButton>
           <UButton
             type="submit"
             label="Save"
             :disabled="isSaveDisabled"
             :loading="loading"
-            icon="i-heroicons-check-circle"
-          />
+          >
+            <template #leading>
+              <Icon name="lucide:check-circle" class="w-5 h-5" />
+            </template>
+          </UButton>
         </div>
       </UForm>
     </template>

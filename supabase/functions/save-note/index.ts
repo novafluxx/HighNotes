@@ -56,17 +56,39 @@ serve(async (req) => {
       delete noteToSave.id;
     }
 
-    // 6. Use admin client to save the note, bypassing RLS
-    const adminClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('CUSTOM_SERVICE_ROLE_KEY') ?? ''
-    );
-
-    const { data: savedNote, error } = await adminClient
-      .from('notes')
-      .upsert(noteToSave)
-      .select()
-      .single();
+    // 6. Save using the user-scoped client (RLS enforced)
+    let savedNote;
+    let error;
+    if (noteToSave.id) {
+      // Update existing note owned by the user
+      const updateResult = await supabaseClient
+        .from('notes')
+        .update({
+          title: noteToSave.title,
+          content: noteToSave.content,
+          updated_at: noteToSave.updated_at,
+        })
+        .eq('id', noteToSave.id)
+        .eq('user_id', user.id)
+        .select()
+        .single();
+      savedNote = updateResult.data;
+      error = updateResult.error;
+    } else {
+      // Insert new note for the user
+      const insertResult = await supabaseClient
+        .from('notes')
+        .insert({
+          title: noteToSave.title,
+          content: noteToSave.content,
+          user_id: user.id,
+          updated_at: noteToSave.updated_at,
+        })
+        .select()
+        .single();
+      savedNote = insertResult.data;
+      error = insertResult.error;
+    }
 
     if (error) {
       throw new Error(error.message);

@@ -13,28 +13,38 @@
         <!-- Password Reset Form -->
         <UForm v-if="showReset" :state="{ newPassword }" class="space-y-6" @submit="submitNewPassword">
           <UFormField label="New Password" name="newPassword" required help="Minimum 8 characters">
-            <UInput v-model="newPassword" type="password" placeholder="Enter new password" icon="i-heroicons-lock-closed" :disabled="!!successMsg" />
+            <UInput v-model="newPassword" type="password" placeholder="Enter new password" :disabled="!!successMsg">
+              <template #leading>
+                <Icon name="lucide:lock" class="w-5 h-5" />
+              </template>
+            </UInput>
           </UFormField>
 
           <UAlert
             v-if="successMsg"
-            icon="i-heroicons-check-circle"
             color="primary"
             variant="soft"
             title="Password Updated"
             :description="successMsg"
-          />
+          >
+            <template #icon>
+              <Icon name="lucide:check-circle" class="w-5 h-5" />
+            </template>
+          </UAlert>
 
           <UAlert
             v-if="errorMsg"
-            icon="i-heroicons-exclamation-triangle"
             color="error"
             variant="soft"
             title="Update Error"
             :description="errorMsg"
-            :close-button="{ icon: 'i-heroicons-x-mark-20-solid', variant: 'link', padded: false }"
+            :close-button="{ icon: 'i-lucide-x', variant: 'link', padded: false }"
             @close="errorMsg = null"
-          />
+          >
+            <template #icon>
+              <Icon name="lucide:alert-triangle" class="w-5 h-5" />
+            </template>
+          </UAlert>
 
           <UButton type="submit" block label="Set New Password" :loading="loading" :disabled="!!successMsg" />
         </UForm>

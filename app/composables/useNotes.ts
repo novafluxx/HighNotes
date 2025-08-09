@@ -1,9 +1,10 @@
-import { ref, computed, watch } from 'vue';
+import { ref, computed, watch, onScopeDispose } from 'vue';
 import { useRouter } from 'vue-router';
 import { type Note } from '~/types';
 import type { Database } from '~/types/database.types';
 import { useToast } from '#imports';
 import { debounce } from 'lodash-es';
+import type { RealtimeChannel } from '@supabase/supabase-js';
 
 export function useNotes() {
   // --- Supabase Setup ---
@@ -54,6 +55,78 @@ export function useNotes() {
            isContentTooLong.value ||
            !selectedNote.value?.title?.trim() ||
            (!!selectedNote.value?.id && !isNoteDirty.value);
+  });
+
+  // --- Realtime Subscriptions ---
+  let channel: RealtimeChannel | null = null;
+
+  const subscribeToNotes = (uid: string) => {
+    // Clean up existing channel if any
+    if (channel) {
+      client.removeChannel(channel);
+      channel = null;
+    }
+
+    channel = client
+      .channel(`notes:${uid}`)
+      .on(
+        'postgres_changes',
+        { event: '*', schema: 'public', table: 'notes', filter: `user_id=eq.${uid}` },
+        (payload: any) => {
+          const eventType = payload.eventType as 'INSERT' | 'UPDATE' | 'DELETE';
+          const newRow = payload.new as Note | null;
+          const oldRow = payload.old as Note | null;
+
+          if (eventType === 'INSERT' && newRow) {
+            const exists = notes.value.some(n => n.id === newRow.id);
+            if (!exists) {
+              notes.value.unshift(newRow);
+            }
+          }
+
+          if (eventType === 'UPDATE' && newRow) {
+            const i = notes.value.findIndex(n => n.id === newRow.id);
+            if (i !== -1) {
+              notes.value[i] = { ...notes.value[i], ...newRow } as Note;
+            }
+            if (selectedNote.value?.id === newRow.id) {
+              selectedNote.value = { ...(selectedNote.value as Note), ...newRow } as Note;
+              currentEditorContent.value = selectedNote.value.content ?? '';
+            }
+          }
+
+          if (eventType === 'DELETE' && oldRow) {
+            const id = oldRow.id;
+            notes.value = notes.value.filter(n => n.id !== id);
+            if (selectedNote.value?.id === id) {
+              selectedNote.value = null;
+              originalSelectedNote.value = null;
+              currentEditorContent.value = '';
+            }
+          }
+        }
+      )
+      .subscribe();
+  };
+
+  watch(
+    () => user.value?.id,
+    (uid) => {
+      if (uid) {
+        subscribeToNotes(uid);
+      } else if (channel) {
+        client.removeChannel(channel);
+        channel = null;
+      }
+    },
+    { immediate: true }
+  );
+
+  onScopeDispose(() => {
+    if (channel) {
+      client.removeChannel(channel);
+      channel = null;
+    }
   });
 
   // --- Utility Functions ---
@@ -330,12 +403,20 @@ export function useNotes() {
 
     loading.value = true;
     const noteIdToDelete = selectedNote.value.id;
+    // Derive a non-null user id for type safety
+    const uid = user.value?.id;
+    if (!uid) {
+      // Should not happen due to guard above, but keeps TS and runtime safe
+      loading.value = false;
+      return;
+    }
 
     try {
       const { error } = await client
         .from('notes')
         .delete()
-        .eq('id', noteIdToDelete);
+        .eq('id', noteIdToDelete)
+        .eq('user_id', uid);
 
       if (error) throw error;
 

@@ -11,13 +11,21 @@
         </template>
 
         <!-- UForm for structure and potential validation -->
-        <UForm :state="{ email, password }" class="space-y-6" @submit="handleSignup">
+        <UForm :state="{ email, password }" class="space-y-6 mx-auto max-w-sm w-full flex flex-col items-center" @submit="handleSignup">
           <UFormField label="Email Address" name="email" required>
-            <UInput v-model="email" type="email" placeholder="you@example.com" icon="i-heroicons-envelope" />
+            <UInput v-model="email" type="email" placeholder="you@example.com">
+              <template #leading>
+                <Icon name="lucide:mail" class="w-5 h-5" />
+              </template>
+            </UInput>
           </UFormField>
 
           <UFormField label="Password" name="password" required help="Minimum 8 characters">
-            <UInput v-model="password" type="password" placeholder="Password" icon="i-heroicons-lock-closed" />
+            <UInput v-model="password" type="password" placeholder="Password">
+              <template #leading>
+                <Icon name="lucide:lock" class="w-5 h-5" />
+              </template>
+            </UInput>
           </UFormField>
 
           <!-- Optional: Add Confirm Password using UFormField/UInput if needed -->
@@ -25,24 +33,30 @@
           <!-- Display success message -->
            <UAlert
             v-if="successMsg"
-            icon="i-heroicons-check-circle"
             color="primary"
             variant="soft"
             title="Account Created"
             :description="successMsg"
-          />
+          >
+            <template #icon>
+              <Icon name="lucide:check-circle" class="w-5 h-5" />
+            </template>
+          </UAlert>
 
           <!-- Display error message -->
           <UAlert
             v-if="errorMsg"
-            icon="i-heroicons-exclamation-triangle"
             color="warning"
             variant="soft"
             title="Signup Error"
             :description="errorMsg"
-            :close-button="{ icon: 'i-heroicons-x-mark-20-solid', color: 'gray', variant: 'link', padded: false }"
+            :close-button="{ icon: 'i-lucide-x', color: 'gray', variant: 'link', padded: false }"
             @close="errorMsg = null"
-          />
+          >
+            <template #icon>
+              <Icon name="lucide:alert-triangle" class="w-5 h-5" />
+            </template>
+          </UAlert>
 
           <!-- Disable button if success message is shown -->
           <UButton type="submit" block label="Sign Up" :loading="loading" :disabled="!!successMsg" />

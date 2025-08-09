@@ -5,12 +5,13 @@
       <!-- Hamburger Menu Button (Mobile, Notes Page Only) -->
       <UButton
         v-if="showMenuButton"
-        icon="i-heroicons-bars-3"
         color="neutral"
         variant="ghost"
         aria-label="Open sidebar"
         @click="toggleSidebar"
-      />
+      >
+        <Icon name="lucide:menu" class="w-5 h-5" />
+      </UButton>
       <!-- Logo and Title -->
       <NuxtLink to="/" class="flex items-center gap-2 text-xl font-bold text-gray-900 dark:text-white">
         High Notes
@@ -21,22 +22,36 @@
     <div class="flex items-center gap-4">
       <ClientOnly>
         <UButton
-          :icon="isDark ? 'i-heroicons-moon-20-solid' : 'i-heroicons-sun-20-solid'"
           color="neutral"
           variant="ghost"
           aria-label="Theme"
           @click="isDark = !isDark"
-        />
+        >
+          <Icon :name="isDark ? 'lucide:moon' : 'lucide:sun'" class="w-5 h-5" />
+        </UButton>
         <template #fallback>
           <div class="w-8 h-8" />
         </template>
+      </ClientOnly>
+
+      <!-- Online/Offline indicator -->
+      <ClientOnly>
+        <div
+          v-if="!online"
+          class="flex items-center gap-1 text-amber-700 dark:text-amber-400 text-xs px-2 py-1 rounded bg-amber-50 dark:bg-amber-950/50 border border-amber-200 dark:border-amber-900"
+          aria-live="polite"
+          aria-atomic="true"
+        >
+          <Icon name="lucide:wifi-off" class="w-4 h-4" />
+          <span>Offline</span>
+        </div>
       </ClientOnly>
 
       <ClientOnly>
         <UDropdownMenu :items="dropdownItems" :popper="{ placement: 'bottom-end' }">
           <UButton variant="ghost" square class="rounded-full w-10 h-10 flex items-center justify-center" aria-label="User menu">
             <UAvatar v-if="isLoggedIn" :alt="user?.email?.charAt(0).toUpperCase() || 'U'" />
-            <UIcon v-else name="i-heroicons-user-circle" class="w-6 h-6" />
+            <Icon v-else name="lucide:user" class="w-6 h-6" />
           </UButton>
 
           <template #account="{ item }">
@@ -50,7 +65,7 @@
 
           <template #item="{ item }">
             <span class="truncate">{{ item.label }}</span>
-            <UIcon v-if="item.icon" :name="item.icon" class="flex-shrink-0 h-4 w-4 text-gray-400 dark:text-gray-500 ms-auto" />
+            <Icon v-if="item.icon" :name="item.icon" class="flex-shrink-0 h-4 w-4 text-gray-400 dark:text-gray-500 ms-auto" />
           </template>
         </UDropdownMenu>
         <template #fallback>
@@ -63,6 +78,7 @@
 
 <script setup lang="ts">
 import { computed } from 'vue';
+import { useOnline } from '@vueuse/core';
 import { useRoute } from 'vue-router';
 import { useAuth } from '~/composables/useAuth';
 import { useLayout } from '~/composables/useLayout';
@@ -83,6 +99,7 @@ const { isMobile, toggleSidebar } = useLayout();
 const route = useRoute();
 const user = useSupabaseUser();
 const isLoggedIn = computed(() => !!user.value);
+const online = useOnline();
 
 // --- Computed Properties ---
 const showMenuButton = computed(() => {
@@ -104,16 +121,16 @@ const dropdownItems = computed<DropdownItem[][]>(() => {
     return [
       [{ label: user.value?.email || 'Account', slot: 'account', disabled: true }],
       [
-        { label: 'Notes', icon: 'i-heroicons-pencil-square', to: '/notes' },
-        { label: 'Changelog', icon: 'i-heroicons-clipboard-document-list', to: '/changelog' },
-        { label: 'Logout', icon: 'i-heroicons-arrow-left-on-rectangle', onSelect: handleLogout },
+        { label: 'Notes', icon: 'lucide:pencil', to: '/notes' },
+        { label: 'Changelog', icon: 'lucide:clipboard-list', to: '/changelog' },
+        { label: 'Logout', icon: 'lucide:log-out', onSelect: handleLogout },
       ],
     ];
   } else {
     return [
       [
-        { label: 'Login', icon: 'i-heroicons-arrow-right-on-rectangle', to: '/login' },
-        { label: 'Changelog', icon: 'i-heroicons-clipboard-document-list', to: '/changelog' },
+        { label: 'Login', icon: 'lucide:log-in', to: '/login' },
+        { label: 'Changelog', icon: 'lucide:clipboard-list', to: '/changelog' },
       ],
     ];
   }

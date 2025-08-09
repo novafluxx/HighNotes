@@ -30,22 +30,29 @@
             <UInput
               v-model="searchQuery"
               placeholder="Search notes..."
-              icon="i-heroicons-magnifying-glass"
               class="mb-4"
             >
+              <template #leading>
+                <Icon name="lucide:search" class="size-5 text-gray-500 dark:text-gray-400" />
+              </template>
               <template #trailing>
                 <UButton
                   v-show="searchQuery !== ''"
                   color="neutral"
                   variant="link"
-                  icon="i-heroicons-x-mark-20-solid"
                   :padded="false"
                   @click="searchQuery = ''"
-                />
+                >
+                  <Icon name="lucide:x" class="size-5" />
+                </UButton>
               </template>
             </UInput>
             <ClientOnly>
-              <UButton label="New Note" @click.prevent="createNewNote" :loading="loading" block icon="i-heroicons-plus-circle"/>
+              <UButton label="New Note" @click.prevent="createNewNote" :loading="loading" block>
+                <template #leading>
+                  <Icon name="lucide:plus-circle" class="size-5" />
+                </template>
+              </UButton>
               <template #fallback>
                 <!-- Optional: Add a placeholder skeleton or similar -->
                 <USkeleton class="h-8 w-full" /> 
@@ -89,8 +96,11 @@
                 :disabled="loadingMore"
                 label="Load More Notes"
                 block
-                icon="i-heroicons-arrow-down-circle"
-              />
+              >
+                <template #leading>
+                  <Icon name="lucide:arrow-down-circle" class="size-5" />
+                </template>
+              </UButton>
             </div>
           </div>
         </aside>
@@ -143,7 +153,11 @@
 
       <template #footer>
         <UButton label="Cancel" color="neutral" variant="outline" @click="isDeleteModalOpen = false" :disabled="loading" />
-        <UButton label="Confirm Delete" color="error" @click="confirmDeleteNote" :loading="loading" icon="i-heroicons-trash" />
+        <UButton label="Confirm Delete" color="error" @click="confirmDeleteNote" :loading="loading">
+          <template #leading>
+            <Icon name="lucide:trash" class="size-5" />
+          </template>
+        </UButton>
       </template>
     </UModal>
   </div>
@@ -154,7 +168,8 @@
 import { useNotes } from '~/composables/useNotes';
 import { useLayout } from '~/composables/useLayout';
 import NoteEditor from '~/components/NoteEditor.vue';
-
+import auth from '~/middleware/auth';
+definePageMeta({ middleware: [auth] })
 // --- Use Layout Composable ---
 const { sidebarOpen, isMobile } = useLayout();
 

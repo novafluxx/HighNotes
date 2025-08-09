@@ -12,25 +12,36 @@
         <!-- UForm for structure and potential validation -->
         <UForm :state="{ email, password }" class="space-y-6 mx-auto max-w-sm w-full flex flex-col items-center" @submit="login">
           <UFormField label="Email Address" name="email" required>
-            <UInput v-model="email" type="email" placeholder="you@example.com" icon="i-heroicons-envelope" autocomplete="email" />
+            <UInput v-model="email" type="email" placeholder="you@example.com" autocomplete="email">
+              <template #leading>
+                <Icon name="lucide:mail" class="w-5 h-5" />
+              </template>
+            </UInput>
           </UFormField>
 
           <UFormField label="Password" name="password" required>
-            <UInput v-model="password" type="password" placeholder="Password" icon="i-heroicons-lock-closed" autocomplete="current-password" />
+            <UInput v-model="password" type="password" placeholder="Password" autocomplete="current-password">
+              <template #leading>
+                <Icon name="lucide:lock" class="w-5 h-5" />
+              </template>
+            </UInput>
           </UFormField>
 
           <!-- Display error message using UAlert -->
           <UAlert
             v-if="errorMsg"
-            icon="i-heroicons-exclamation-triangle"
             color="error"
             variant="soft"
             title="Login Error"
             :description="errorMsg"
-            :close-button="{ icon: 'i-heroicons-x-mark-20-solid', color: 'gray', variant: 'link', padded: false }"
+            :close-button="{ icon: 'i-lucide-x', color: 'gray', variant: 'link', padded: false }"
             @close="errorMsg = null"
             data-testid="login-error"
-          />
+          >
+            <template #icon>
+              <Icon name="lucide:alert-triangle" class="w-5 h-5" />
+            </template>
+          </UAlert>
 
           <UButton type="submit" block label="Login" :loading="loading" />
         </UForm>

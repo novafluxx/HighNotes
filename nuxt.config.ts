@@ -1,10 +1,13 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import tailwindcss from '@tailwindcss/vite'
+
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: true },
   // Use app directory as source (Nuxt 4 default)
   srcDir: 'app',
   modules: [
+    '@nuxt/icon',
     '@nuxtjs/supabase',
     '@nuxt/ui',
     '@vite-pwa/nuxt'
@@ -38,6 +41,11 @@ export default defineNuxtConfig({
   css: [
     '~/assets/css/main.css'
   ],
+  vite: {
+    plugins: [
+      tailwindcss(),
+    ],
+  },
   nitro: {
     externals: {
       inline: ['@vueuse/core', '@vueuse/shared']
@@ -88,11 +96,42 @@ export default defineNuxtConfig({
       ]
     }
   },
-  tailwindcss: {
-    config: {
-      plugins: [
-        require('@tailwindcss/typography'),
-      ],
-    },
+  // Pre-bundle critical icons so they render offline
+  icon: {
+    clientBundle: {
+      // Pre-bundle Lucide icon to work offline
+      icons: [
+        'lucide:wifi-off',
+        'lucide:sun',
+        'lucide:moon',
+        'lucide:menu',
+        'lucide:user',
+        'lucide:pencil',
+        'lucide:clipboard-list',
+        'lucide:log-in',
+        'lucide:log-out',
+        // Notes page icons
+        'lucide:search',
+        'lucide:x',
+        'lucide:plus-circle',
+        'lucide:arrow-down-circle',
+        'lucide:trash',
+        // Auth & alerts
+        'lucide:mail',
+        'lucide:lock',
+        'lucide:check-circle',
+        'lucide:alert-triangle',
+        // Editor toolbar
+        'lucide:bold',
+        'lucide:italic',
+        'lucide:strikethrough',
+        'lucide:code',
+        'lucide:list',
+        'lucide:list-ordered',
+        'lucide:x-circle',
+        // PWA prompt
+        'lucide:download',
+      ]
+    }
   },
 })
