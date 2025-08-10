@@ -6,7 +6,7 @@ This project is a modern note-taking Progressive Web App (PWA) called High Notes
 
 ### Prerequisites
 
-*   Node.js 18+
+*   Node.js 20+
 *   pnpm
 *   A Supabase account and project
 
