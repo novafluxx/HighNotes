@@ -10,7 +10,7 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@nuxt/icon": "^1.15.0",
+    "@nuxt/icon": "^2.0.0",
     "@nuxt/ui": "^3.3.0",
     "@nuxtjs/supabase": "^1.6.0",
     "@supabase/supabase-js": "^2.54.0",
