@@ -70,8 +70,8 @@ importers:
         specifier: ^17.2.1
         version: 17.2.1
       supabase:
-        specifier: ^2.33.9
-        version: 2.33.9
+        specifier: ^2.34.3
+        version: 2.34.3
       tailwindcss:
         specifier: ^4.1.11
         version: 4.1.11
@@ -5148,8 +5148,8 @@ packages:
     peerDependencies:
       postcss: ^8.4.32
 
-  supabase@2.33.9:
-    resolution: {integrity: sha512-bjCdzcAzbzmPn5B4FNjsAE32aHDgCHtHngj0eDZdZ1+tVbH1/4TwGeZWy41JeiraNx5VPMG+BUOG2VNBXXcXEA==}
+  supabase@2.34.3:
+    resolution: {integrity: sha512-nMO7MFkw3ze/ScRt8S7AssNuBDbFeEsu2MTF2hol5T8HoAz5WgoLhhwCL5NUh8G0Jigpg88QIaDEPhHdNvv9TQ==}
     engines: {npm: '>=8'}
     hasBin: true
 
@@ -11748,7 +11748,7 @@ snapshots:
       postcss: 8.5.6
       postcss-selector-parser: 7.1.0
 
-  supabase@2.33.9:
+  supabase@2.34.3:
     dependencies:
       bin-links: 5.0.0
       https-proxy-agent: 7.0.6
