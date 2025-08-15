@@ -30,7 +30,7 @@
     "@tailwindcss/typography": "^0.5.16",
     "@tailwindcss/vite": "^4.1.12",
     "@types/lodash-es": "^4.17.12",
-    "@types/node": "^24.2.1",
+    "@types/node": "^24.3.0",
     "dotenv": "^17.2.1",
     "supabase": "^2.34.3",
     "tailwindcss": "^4.1.12",
