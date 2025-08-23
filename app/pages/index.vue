@@ -19,6 +19,16 @@
 </template>
 
 <script setup lang="ts">
-// No script logic needed for the welcome page itself anymore
-// Login/auth checks might be handled by middleware or layout
+import { ref } from 'vue';
+// Redirect authenticated users to the notes page
+const user = useSupabaseUser();
+
+// Use a one-time watcher with a guard to prevent multiple redirects
+const hasRedirected = ref(false);
+watch(user, (newUser) => {
+  if (newUser && !hasRedirected.value) {
+    hasRedirected.value = true;
+    navigateTo('/notes');
+  }
+}, { immediate: true });
 </script>
