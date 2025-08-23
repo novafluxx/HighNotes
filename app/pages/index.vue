@@ -22,10 +22,12 @@
 // Redirect authenticated users to the notes page
 const user = useSupabaseUser();
 
-// Use watchEffect to redirect immediately when user state is available
-watchEffect(() => {
-  if (user.value) {
+// Use a one-time watcher with a guard to prevent multiple redirects
+let hasRedirected = false;
+watch(user, (newUser) => {
+  if (newUser && !hasRedirected) {
+    hasRedirected = true;
     navigateTo('/notes');
   }
-});
+}, { immediate: true });
 </script>
