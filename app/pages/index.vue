@@ -19,14 +19,15 @@
 </template>
 
 <script setup lang="ts">
+import { ref } from 'vue';
 // Redirect authenticated users to the notes page
 const user = useSupabaseUser();
 
 // Use a one-time watcher with a guard to prevent multiple redirects
-let hasRedirected = false;
+const hasRedirected = ref(false);
 watch(user, (newUser) => {
-  if (newUser && !hasRedirected) {
-    hasRedirected = true;
+  if (newUser && !hasRedirected.value) {
+    hasRedirected.value = true;
     navigateTo('/notes');
   }
 }, { immediate: true });
