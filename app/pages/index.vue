@@ -19,6 +19,13 @@
 </template>
 
 <script setup lang="ts">
-// No script logic needed for the welcome page itself anymore
-// Login/auth checks might be handled by middleware or layout
+// Redirect authenticated users to the notes page
+const user = useSupabaseUser();
+
+// Use watchEffect to redirect immediately when user state is available
+watchEffect(() => {
+  if (user.value) {
+    navigateTo('/notes');
+  }
+});
 </script>
