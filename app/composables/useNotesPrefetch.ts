@@ -92,15 +92,7 @@ export function useNotesPrefetch() {
           icon: 'i-lucide-alert-triangle',
           duration: 4000,
         })
-      } else if (total > 0) {
-        toast.add({
-          title: 'Offline cache ready',
-          description: `Cached ${done}/${total} notes`,
-          color: 'success',
-          icon: 'i-lucide-check-circle',
-          duration: 2500,
-        })
-      }
+  }
     }
   }
 

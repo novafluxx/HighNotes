@@ -1,9 +1,8 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
-import tailwindcss from '@tailwindcss/vite'
 
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
-  devtools: { enabled: true },
+  devtools: { enabled: false },
   // Use app directory as source (Nuxt 4 default)
   srcDir: 'app',
   modules: [
@@ -42,9 +41,7 @@ export default defineNuxtConfig({
     '~/assets/css/main.css'
   ],
   vite: {
-    plugins: [
-      tailwindcss(),
-    ],
+    // Remove the plugins array for tailwindcss, Vite will pick up tailwind via PostCSS config
   },
   nitro: {
     externals: {
@@ -62,7 +59,7 @@ export default defineNuxtConfig({
         : []
     },
     devOptions: {
-      enabled: true,
+      enabled: false,
       type: 'module'
     },
     manifest: {
@@ -134,4 +131,4 @@ export default defineNuxtConfig({
       ]
     }
   },
-})
+});
