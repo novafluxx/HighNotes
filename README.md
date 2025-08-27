@@ -13,6 +13,7 @@ A modern note-taking Progressive Web App (PWA) built for seamless cross-platform
 - 🌐 **Full-stack Type Safety** - End-to-end TypeScript with generated database types
 - ⚡ **Fast Performance** - Optimized with Nuxt 4's latest features and Vite bundling
 - 📱 **PWA Install Prompt** - Custom installation prompt for better user experience
+- 💾 **Offline-First** - Create, edit, and delete notes even when offline. Changes are synced automatically when you reconnect.
 
 ## 🛠️ Tech Stack
 
@@ -192,7 +193,6 @@ The project includes:
 
 ## 🐛 Known Issues / Roadmap
 
-- [ ] Add offline note syncing queue
 - [ ] Add note categories/tags
 - [ ] Enable note sharing capabilities
 
