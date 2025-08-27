@@ -32,7 +32,7 @@
     "@types/lodash-es": "^4.17.12",
     "@types/node": "^24.3.0",
     "dotenv": "^17.2.1",
-    "supabase": "^2.34.3",
+    "supabase": "^2.39.2",
     "tailwindcss": "^4.1.12",
     "vue-tsc": "^3.0.6"
   },
