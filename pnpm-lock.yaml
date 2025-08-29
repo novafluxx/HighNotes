@@ -49,8 +49,8 @@ importers:
         version: 4.5.1(vue@3.5.20(typescript@5.9.2))
     devDependencies:
       '@iconify-json/lucide':
-        specifier: ^1.2.64
-        version: 1.2.64
+        specifier: ^1.2.65
+        version: 1.2.65
       '@nuxt/test-utils':
         specifier: ^3.19.2
         version: 3.19.2(@playwright/test@1.54.1)(magicast@0.3.5)(playwright-core@1.54.1)(typescript@5.9.2)
@@ -972,8 +972,8 @@ packages:
   '@floating-ui/vue@1.1.9':
     resolution: {integrity: sha512-BfNqNW6KA83Nexspgb9DZuz578R7HT8MZw1CfK9I6Ah4QReNWEJsXWHN+SdmOVLNGmTPDi+fDT535Df5PzMLbQ==}
 
-  '@iconify-json/lucide@1.2.64':
-    resolution: {integrity: sha512-QpeOqBwKztm/KD9L7sjc9ttLLfktMrsLKRMgqJRH6A2Z0s4BB/0XnhKEHPhrQugA9d1ES5aMy33ztbAHXZhqjQ==}
+  '@iconify-json/lucide@1.2.65':
+    resolution: {integrity: sha512-Ur5I3dZyLW8bZLTEtsMKQ9lkl8u5HIiwO79pYxlvAzKQ0Mc4milB+G04CxnFqlB15x/lRq2rTPSi7ep1utDXrg==}
 
   '@iconify/collections@1.0.588':
     resolution: {integrity: sha512-K6jijh3aEZ937R+ES5Swd62NOCZ868PNCyHNg+R7c9Kn9yurtuiLM/zkpN8KxRwVvTX8w83EkBqhUjqo+wFgDw==}
@@ -6821,7 +6821,7 @@ snapshots:
       - '@vue/composition-api'
       - vue
 
-  '@iconify-json/lucide@1.2.64':
+  '@iconify-json/lucide@1.2.65':
     dependencies:
       '@iconify/types': 2.0.0
 
