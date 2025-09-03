@@ -18,8 +18,8 @@ importers:
         specifier: ^1.6.1
         version: 1.6.1
       '@supabase/supabase-js':
-        specifier: ^2.56.1
-        version: 2.56.1
+        specifier: ^2.57.0
+        version: 2.57.0
       '@tiptap/extension-character-count':
         specifier: ^3.3.0
         version: 3.3.0(@tiptap/extensions@3.3.0(@tiptap/core@3.3.0(@tiptap/pm@3.3.0))(@tiptap/pm@3.3.0))
@@ -1849,8 +1849,8 @@ packages:
   '@supabase/storage-js@2.11.0':
     resolution: {integrity: sha512-Y+kx/wDgd4oasAgoAq0bsbQojwQ+ejIif8uczZ9qufRHWFLMU5cODT+ApHsSrDufqUcVKt+eyxtOXSkeh2v9ww==}
 
-  '@supabase/supabase-js@2.56.1':
-    resolution: {integrity: sha512-cb/kS0d6G/qbcmUFItkqVrQbxQHWXzfRZuoiSDv/QiU6RbGNTn73XjjvmbBCZ4MMHs+5teihjhpEVluqbXISEg==}
+  '@supabase/supabase-js@2.57.0':
+    resolution: {integrity: sha512-h9ttcL0MY4h+cGqZl95F/RuqccuRBjHU9B7Qqvw0Da+pPK2sUlU1/UdvyqUGj37UsnSphr9pdGfeXjesYkBcyA==}
 
   '@surma/rollup-plugin-off-main-thread@2.2.3':
     resolution: {integrity: sha512-lR8q/9W7hZpMWweNiAKU7NQerBnzQQLvi8qnTDU/fxItPhtZVMbPV3lbCwjhIlNBe9Bbr5V+KHshvWmVSG9cxQ==}
@@ -7493,8 +7493,8 @@ snapshots:
 
   '@nuxtjs/supabase@1.6.1':
     dependencies:
-      '@supabase/ssr': 0.7.0(@supabase/supabase-js@2.56.1)
-      '@supabase/supabase-js': 2.56.1
+      '@supabase/ssr': 0.7.0(@supabase/supabase-js@2.57.0)
+      '@supabase/supabase-js': 2.57.0
       defu: 6.1.4
       pathe: 2.0.3
     transitivePeerDependencies:
@@ -7945,16 +7945,16 @@ snapshots:
       - bufferutil
       - utf-8-validate
 
-  '@supabase/ssr@0.7.0(@supabase/supabase-js@2.56.1)':
+  '@supabase/ssr@0.7.0(@supabase/supabase-js@2.57.0)':
     dependencies:
-      '@supabase/supabase-js': 2.56.1
+      '@supabase/supabase-js': 2.57.0
       cookie: 1.0.2
 
   '@supabase/storage-js@2.11.0':
     dependencies:
       '@supabase/node-fetch': 2.6.15
 
-  '@supabase/supabase-js@2.56.1':
+  '@supabase/supabase-js@2.57.0':
     dependencies:
       '@supabase/auth-js': 2.71.1
       '@supabase/functions-js': 2.4.5
