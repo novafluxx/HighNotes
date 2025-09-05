@@ -27,8 +27,7 @@ Developer workflows & quick commands
 - Install deps: `pnpm install` (pnpm@10.14.0+ required).
 - Dev server: `pnpm dev` (app served at http://localhost:3000).
 - Build / preview: `pnpm build`, `pnpm preview`. Static generation: `pnpm generate`.
-- Supabase local: use the Supabase CLI for local DB and functions: `supabase start`, `supabase gen types typescript --project-id <id> > types/database.types.ts`, `supabase db reset|push|pull`.
-- Environment: copy `.env.example` -> `.env` and set `SUPABASE_URL` and `SUPABASE_KEY` (these map to `runtimeConfig.public` via `nuxt.config.ts`).
+- Supabase MCP: All database and function access is via the Supabase MCP (Managed Cloud Platform). No local Supabase CLI or local DB is required. Use the provided `SUPABASE_URL` and `SUPABASE_KEY` in your `.env` file (see `.env.example`). These are mapped to `runtimeConfig.public` via `nuxt.config.ts`.
 
 Project-specific gotchas (examples and how to handle)
 - srcDir is `app` — don't move code to `src/` or change Nuxt entry paths without updating `nuxt.config.ts`.
