@@ -32,26 +32,51 @@ serve(async (req) => {
 
     // 3. Get note from request body
     const { note } = await req.json()
-    if (!note || !note.content || !note.title) {
+    if (!note) {
       throw new Error('Invalid note data provided.');
     }
 
-    // 4. Sanitize the content
-    const cleanHtml = sanitizeHtml(note.content, {
-      allowedTags: sanitizeHtml.defaults.allowedTags.concat(['h1', 'h2', 'h3', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'strong', 'em', 's']),
-      allowedAttributes: {},
-    });
-
-    // 5. Prepare data for saving
-    const noteToSave = {
-      id: note.id, // Pass the ID for upsert
-      title: note.title,
-      content: cleanHtml,
-      user_id: user.id,
-      updated_at: new Date().toISOString(),
-    };
+    // 4. Handle encrypted vs non-encrypted notes
+    let noteToSave;
     
-    // If it's a new note, don't include the null ID
+    if (note.is_encrypted) {
+      // For encrypted notes: validate encrypted_payload and clear plaintext fields
+      if (!note.encrypted_payload) {
+        throw new Error('Encrypted notes must include encrypted_payload.');
+      }
+      
+      noteToSave = {
+        id: note.id,
+        title: '', // Clear title for encrypted notes
+        content: '', // Clear content for encrypted notes  
+        is_encrypted: true,
+        encrypted_payload: note.encrypted_payload,
+        user_id: user.id,
+        updated_at: new Date().toISOString(),
+      };
+    } else {
+      // For non-encrypted notes: validate and sanitize content
+      if (!note.content || !note.title) {
+        throw new Error('Non-encrypted notes must include title and content.');
+      }
+      
+      // Sanitize the content
+      const cleanHtml = sanitizeHtml(note.content, {
+        allowedTags: sanitizeHtml.defaults.allowedTags.concat(['h1', 'h2', 'h3', 'ul', 'ol', 'li', 'blockquote', 'code', 'pre', 'strong', 'em', 's']),
+        allowedAttributes: {},
+      });
+
+      noteToSave = {
+        id: note.id,
+        title: note.title,
+        content: cleanHtml,
+        is_encrypted: false,
+        encrypted_payload: null, // Clear encrypted payload for non-encrypted notes
+        user_id: user.id,
+        updated_at: new Date().toISOString(),
+      };
+    }
+    // 5. If it's a new note, don't include the null ID
     if (!noteToSave.id) {
       delete noteToSave.id;
     }
@@ -66,6 +91,8 @@ serve(async (req) => {
         .update({
           title: noteToSave.title,
           content: noteToSave.content,
+          is_encrypted: noteToSave.is_encrypted,
+          encrypted_payload: noteToSave.encrypted_payload,
           updated_at: noteToSave.updated_at,
         })
         .eq('id', noteToSave.id)
@@ -81,6 +108,8 @@ serve(async (req) => {
         .insert({
           title: noteToSave.title,
           content: noteToSave.content,
+          is_encrypted: noteToSave.is_encrypted,
+          encrypted_payload: noteToSave.encrypted_payload,
           user_id: user.id,
           updated_at: noteToSave.updated_at,
         })
