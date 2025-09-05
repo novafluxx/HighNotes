@@ -7,13 +7,21 @@ export type Json =
   | Json[]
 
 export type Database = {
+  // Allows to automatically instantiate createClient with right options
+  // instead of createClient<Database, { PostgrestVersion: 'XX' }>(URL, KEY)
+  __InternalSupabase: {
+    PostgrestVersion: "13.0.4"
+  }
   public: {
     Tables: {
       notes: {
         Row: {
           content: string | null
           created_at: string
+          encrypted_payload: Json | null
           id: string
+          is_encrypted: boolean
+          search_vector: unknown | null
           title: string
           updated_at: string
           user_id: string
@@ -21,7 +29,10 @@ export type Database = {
         Insert: {
           content?: string | null
           created_at?: string
+          encrypted_payload?: Json | null
           id?: string
+          is_encrypted?: boolean
+          search_vector?: unknown | null
           title: string
           updated_at?: string
           user_id: string
@@ -29,8 +40,41 @@ export type Database = {
         Update: {
           content?: string | null
           created_at?: string
+          encrypted_payload?: Json | null
           id?: string
+          is_encrypted?: boolean
+          search_vector?: unknown | null
           title?: string
+          updated_at?: string
+          user_id?: string
+        }
+        Relationships: []
+      }
+      profiles: {
+        Row: {
+          created_at: string
+          encryption_salt: string | null
+          has_encryption: boolean
+          id: string
+          kdf_params: Json | null
+          updated_at: string
+          user_id: string
+        }
+        Insert: {
+          created_at?: string
+          encryption_salt?: string | null
+          has_encryption?: boolean
+          id?: string
+          kdf_params?: Json | null
+          updated_at?: string
+          user_id: string
+        }
+        Update: {
+          created_at?: string
+          encryption_salt?: string | null
+          has_encryption?: boolean
+          id?: string
+          kdf_params?: Json | null
           updated_at?: string
           user_id?: string
         }
