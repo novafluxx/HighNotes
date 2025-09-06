@@ -1,6 +1,6 @@
 // app/composables/useEncryption.ts
 import { ref, computed, watch, readonly } from 'vue';
-import type { Database } from '~/types/database.types';
+import type { Database } from '../../types/database.types';
 import { useCrypto } from './useCrypto';
 import { useToast } from '#imports';
 
@@ -34,7 +34,7 @@ export function useEncryption() {
     try {
       const { data: profile, error } = await client
         .from('profiles')
-        .select('has_encryption, encryption_salt, kdf_params')
+        .select('has_encryption, encryption_salt, kdf_params, key_verification_payload')
         .eq('user_id', user.value.id)
         .single();
 
@@ -98,7 +98,12 @@ export function useEncryption() {
         password: passphrase 
       });
 
-      // Store salt and KDF params in profile
+      // Create a verification payload to verify the key later
+      const verificationData = { title: 'verification', content: String(Date.now()) };
+      const verificationPayload = await crypto.encryptNote(verificationData, key);
+      const verificationPayloadSerialized = crypto.serializeEncryptedPayload(verificationPayload);
+
+      // Store salt, KDF params, and verification payload in profile
       const saltBase64 = btoa(String.fromCharCode(...salt));
       const kdfParams = {
         iterations,
@@ -111,7 +116,8 @@ export function useEncryption() {
         .update({
           has_encryption: true,
           encryption_salt: saltBase64,
-          kdf_params: kdfParams
+          kdf_params: kdfParams,
+          key_verification_payload: verificationPayloadSerialized
         })
         .eq('user_id', user.value.id);
 
@@ -156,14 +162,48 @@ export function useEncryption() {
     isUnlocking.value = true;
 
     try {
+      // First, fetch the verification payload from the database
+      const { data: profile, error: fetchError } = await client
+        .from('profiles')
+        .select('key_verification_payload')
+        .eq('user_id', user.value.id)
+        .single();
+
+      if (fetchError) {
+        throw new Error(`Failed to fetch verification data: ${fetchError.message}`);
+      }
+
+      if (!profile?.key_verification_payload) {
+        throw new Error('No verification payload found. Encryption may need to be set up again.');
+      }
+
       // Derive master key using stored salt
       const { key } = await crypto.deriveKey({ 
         password: passphrase, 
         salt: userSalt.value 
       });
 
-      // Test the key by attempting to decrypt a test payload (if available)
-      // For now, we'll assume the key is correct if derivation succeeds
+      // Verify the key by attempting to decrypt the verification payload
+      try {
+        const verificationPayload = crypto.parseEncryptedPayload(profile.key_verification_payload);
+        const decryptedVerification = await crypto.decryptNote(verificationPayload, key);
+        
+        // Check if the decrypted data has the expected structure
+        if (!decryptedVerification || decryptedVerification.title !== 'verification') {
+          throw new Error('Key verification failed');
+        }
+      } catch (verificationError) {
+        // If decryption fails, the passphrase is incorrect
+        toast.add({
+          title: 'Incorrect passphrase',
+          description: 'The passphrase you entered is incorrect. Please try again.',
+          color: 'error',
+          duration: 5000
+        });
+        return false;
+      }
+
+      // Key verification successful - set the master key
       masterKey.value = key;
       isEncryptionLocked.value = false;
 
@@ -179,7 +219,7 @@ export function useEncryption() {
       console.error('Error unlocking encryption:', error);
       toast.add({
         title: 'Failed to unlock encryption',
-        description: 'Please check your passphrase and try again',
+        description: error instanceof Error ? error.message : 'An unknown error occurred',
         color: 'error',
         duration: 5000
       });

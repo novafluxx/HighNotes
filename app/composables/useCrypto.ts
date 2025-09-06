@@ -7,7 +7,7 @@ import type {
   PlaintextData, 
   CryptoKeyMaterial,
   KeyDerivationParams 
-} from '~/app/types';
+} from '../types/index';
 
 // Constants for cryptographic parameters
 const CRYPTO_VERSION = 1;
@@ -21,6 +21,17 @@ const ARGON2_MEMORY = 65536; // 64MB in KB
 const ARGON2_PARALLELISM = 1; // Single thread
 
 export function useCrypto() {
+  /**
+   * Convert Uint8Array to proper ArrayBuffer for crypto operations
+   */
+  const toArrayBuffer = (data: Uint8Array): ArrayBuffer => {
+    // Create a new ArrayBuffer with the exact data
+    const buffer = new ArrayBuffer(data.length);
+    const view = new Uint8Array(buffer);
+    view.set(data);
+    return buffer;
+  };
+
   /**
    * Generate cryptographically secure random bytes
    */
@@ -38,7 +49,10 @@ export function useCrypto() {
     const bytes = new Uint8Array(buffer);
     let binary = '';
     for (let i = 0; i < bytes.byteLength; i++) {
-      binary += String.fromCharCode(bytes[i]);
+      const byte = bytes[i];
+      if (byte !== undefined) {
+        binary += String.fromCharCode(byte);
+      }
     }
     return btoa(binary);
   };
@@ -81,9 +95,10 @@ export function useCrypto() {
       });
 
       // Import the derived key material as a CryptoKey
+      const keyBuffer = new Uint8Array(keyMaterial);
       const key = await crypto.subtle.importKey(
         'raw',
-        keyMaterial,
+        keyBuffer,
         { name: 'AES-GCM' },
         false, // not extractable
         ['encrypt', 'decrypt', 'wrapKey', 'unwrapKey']
@@ -130,7 +145,7 @@ export function useCrypto() {
         masterKey,
         {
           name: 'AES-GCM',
-          iv: iv
+          iv: toArrayBuffer(iv)
         }
       );
 
@@ -154,11 +169,11 @@ export function useCrypto() {
 
       return await crypto.subtle.unwrapKey(
         'raw',
-        encryptedKey,
+        toArrayBuffer(encryptedKey),
         masterKey,
         {
           name: 'AES-GCM',
-          iv: iv
+          iv: toArrayBuffer(iv)
         },
         { name: 'AES-GCM' },
         false, // not extractable
@@ -213,10 +228,10 @@ export function useCrypto() {
       const encrypted = await crypto.subtle.encrypt(
         {
           name: 'AES-GCM',
-          iv: iv
+          iv: toArrayBuffer(iv)
         },
         key,
-        plaintextBytes
+        toArrayBuffer(plaintextBytes)
       );
 
       return { encrypted, iv };
@@ -233,7 +248,7 @@ export function useCrypto() {
       const decrypted = await crypto.subtle.decrypt(
         {
           name: 'AES-GCM',
-          iv: iv
+          iv: toArrayBuffer(iv)
         },
         key,
         encryptedData
@@ -308,7 +323,7 @@ export function useCrypto() {
       // Decrypt the data
       const iv = base64ToArrayBuffer(encryptedPayload.iv);
       const encryptedData = base64ToArrayBuffer(encryptedPayload.encrypted_data);
-      const decryptedCompressed = await decryptData(encryptedData, dek, iv, true) as Uint8Array;
+      const decryptedCompressed = await decryptData(toArrayBuffer(encryptedData), dek, iv, true) as Uint8Array;
       
       // Decompress the data
       const plaintextJson = decompressData(decryptedCompressed);
@@ -400,6 +415,7 @@ export function useCrypto() {
     generateRandomBytes,
     arrayBufferToBase64,
     base64ToArrayBuffer,
+    toArrayBuffer,
     testRoundTrip,
     
     // Constants

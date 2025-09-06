@@ -1,7 +1,7 @@
 // composables/useAuth.ts
 import { ref, readonly, computed } from 'vue';
 import type { AuthError } from '@supabase/supabase-js';
-import type { Database } from '~/types/database.types'; // Import generated DB types
+import type { Database } from '../../types/database.types'; // Import generated DB types
 import { useRouter } from '#app'; // Nuxt's router composable
 // useSupabaseClient will be auto-imported by Nuxt
 

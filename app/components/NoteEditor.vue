@@ -468,14 +468,16 @@ watch(() => props.modelValue?.content, (newContent) => {
 }, { immediate: true });
 
 // Watch for note changes and close modals when no note is selected
-watch(() => props.modelValue, (newNote) => {
-  if (!newNote) {
+watch(() => props.modelValue, (newNote, oldNote) => {
+  // Only reset modals when transitioning from a note to no note
+  // This prevents unnecessary resets on component initialization
+  if (oldNote && !newNote) {
     // Close any open encryption modals when no note is selected
     showSetupModal.value = false;
     showUnlockModal.value = false;
     unlockError.value = undefined;
   }
-}, { immediate: true });
+});
 
 // When the editor is destroyed, emit an update to clear the modelValue
 onBeforeUnmount(() => {

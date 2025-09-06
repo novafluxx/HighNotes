@@ -1,7 +1,7 @@
 import { useOnline } from '@vueuse/core'
 import { useToast } from '#imports'
 import type { Note } from '~/types'
-import type { Database } from '~/types/database.types'
+import type { Database } from '../../types/database.types'
 
 export function useNotesPrefetch() {
   const isClient = typeof window !== 'undefined'

@@ -1,7 +1,7 @@
 import { ref, computed, watch, onScopeDispose } from 'vue';
 import { useRouter } from 'vue-router';
 import { type Note } from '~/types';
-import type { Database } from '~/types/database.types';
+import type { Database } from '../../types/database.types';
 import { useToast } from '#imports';
 import { debounce } from 'lodash-es';
 import type { RealtimeChannel } from '@supabase/supabase-js';
