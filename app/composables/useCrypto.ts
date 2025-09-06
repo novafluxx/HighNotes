@@ -196,13 +196,19 @@ export function useCrypto() {
   };
 
   /**
-   * Encrypt plaintext data using AES-GCM
+   * Encrypt data using AES-GCM
    */
-  const encryptData = async (data: string, key: CryptoKey): Promise<{ encrypted: ArrayBuffer; iv: Uint8Array }> => {
+  const encryptData = async (data: string | Uint8Array, key: CryptoKey): Promise<{ encrypted: ArrayBuffer; iv: Uint8Array }> => {
     try {
       const iv = generateRandomBytes(IV_SIZE);
-      const encoder = new TextEncoder();
-      const plaintextBytes = encoder.encode(data);
+      let plaintextBytes: Uint8Array;
+      
+      if (typeof data === 'string') {
+        const encoder = new TextEncoder();
+        plaintextBytes = encoder.encode(data);
+      } else {
+        plaintextBytes = data;
+      }
 
       const encrypted = await crypto.subtle.encrypt(
         {
@@ -222,7 +228,7 @@ export function useCrypto() {
   /**
    * Decrypt data using AES-GCM
    */
-  const decryptData = async (encryptedData: ArrayBuffer, key: CryptoKey, iv: Uint8Array): Promise<string> => {
+  const decryptData = async (encryptedData: ArrayBuffer, key: CryptoKey, iv: Uint8Array, returnRaw = false): Promise<string | Uint8Array> => {
     try {
       const decrypted = await crypto.subtle.decrypt(
         {
@@ -232,6 +238,10 @@ export function useCrypto() {
         key,
         encryptedData
       );
+
+      if (returnRaw) {
+        return new Uint8Array(decrypted);
+      }
 
       const decoder = new TextDecoder();
       return decoder.decode(decrypted);
@@ -298,7 +308,7 @@ export function useCrypto() {
       // Decrypt the data
       const iv = base64ToArrayBuffer(encryptedPayload.iv);
       const encryptedData = base64ToArrayBuffer(encryptedPayload.encrypted_data);
-      const decryptedCompressed = await decryptData(encryptedData, dek, iv);
+      const decryptedCompressed = await decryptData(encryptedData, dek, iv, true) as Uint8Array;
       
       // Decompress the data
       const plaintextJson = decompressData(decryptedCompressed);

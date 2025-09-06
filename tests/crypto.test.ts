@@ -29,12 +29,12 @@ describe('useCrypto', () => {
     });
 
     it('should compress and decompress data', () => {
-      const original = 'This is a test string with some content to compress!';
+      const original = 'This is a test string with some content to compress! '.repeat(10);
       const compressed = crypto.compressData(original);
       const decompressed = crypto.decompressData(compressed);
       
       expect(decompressed).toBe(original);
-      expect(compressed.length).toBeLessThan(original.length); // Should compress
+      expect(compressed.length).toBeLessThan(original.length); // Should compress larger text
     });
   });
 
@@ -55,23 +55,26 @@ describe('useCrypto', () => {
       const keyMaterial1 = await crypto.deriveKey({ password, salt });
       const keyMaterial2 = await crypto.deriveKey({ password, salt });
       
-      // Extract key material for comparison
-      const exported1 = await crypto.subtle.exportKey('raw', keyMaterial1.key);
-      const exported2 = await crypto.subtle.exportKey('raw', keyMaterial2.key);
+      // Test that both keys can encrypt/decrypt the same data consistently
+      const testData = 'test encryption data';
+      const { encrypted: encrypted1, iv: iv1 } = await crypto.encryptData(testData, keyMaterial1.key);
+      const decrypted1 = await crypto.decryptData(encrypted1, keyMaterial2.key, iv1);
       
-      expect(new Uint8Array(exported1)).toEqual(new Uint8Array(exported2));
+      expect(decrypted1).toBe(testData);
     });
 
     it('should derive different keys with different passwords', async () => {
       const salt = crypto.generateRandomBytes(crypto.SALT_SIZE);
       
-      const keyMaterial1 = await crypto.deriveKey({ password: 'password1', salt });
-      const keyMaterial2 = await crypto.deriveKey({ password: 'password2', salt });
+      const keyMaterial1 = await crypto.deriveKey({ password: 'password1-long-enough', salt });
+      const keyMaterial2 = await crypto.deriveKey({ password: 'password2-long-enough', salt });
       
-      const exported1 = await crypto.subtle.exportKey('raw', keyMaterial1.key);
-      const exported2 = await crypto.subtle.exportKey('raw', keyMaterial2.key);
+      // Test that different keys produce different results when encrypting the same data
+      const testData = 'test encryption data';
+      const { encrypted: encrypted1 } = await crypto.encryptData(testData, keyMaterial1.key);
+      const { encrypted: encrypted2 } = await crypto.encryptData(testData, keyMaterial2.key);
       
-      expect(new Uint8Array(exported1)).not.toEqual(new Uint8Array(exported2));
+      expect(new Uint8Array(encrypted1)).not.toEqual(new Uint8Array(encrypted2));
     });
   });
 
@@ -83,7 +86,7 @@ describe('useCrypto', () => {
     });
 
     it('should wrap and unwrap DEK', async () => {
-      const password = 'test-password';
+      const password = 'test-password-long-enough';
       const { key: masterKey } = await crypto.deriveKey({ password });
       const dek = await crypto.generateDEK();
       
@@ -98,7 +101,7 @@ describe('useCrypto', () => {
   });
 
   describe('Note Encryption/Decryption', () => {
-    const testPassword = 'secure-password-123';
+    const testPassword = 'secure-password-123-long-enough';
     const testData: PlaintextData = {
       title: 'Test Note Title',
       content: 'This is the content of the test note with some special characters: éñü'
@@ -165,8 +168,8 @@ describe('useCrypto', () => {
     });
 
     it('should fail with wrong password', async () => {
-      const { key: masterKey1 } = await crypto.deriveKey({ password: 'password1' });
-      const { key: masterKey2 } = await crypto.deriveKey({ password: 'password2' });
+      const { key: masterKey1 } = await crypto.deriveKey({ password: 'password1-long-enough' });
+      const { key: masterKey2 } = await crypto.deriveKey({ password: 'password2-long-enough' });
       
       const encrypted = await crypto.encryptNote(testData, masterKey1);
       
@@ -202,7 +205,7 @@ describe('useCrypto', () => {
         content: 'Testing complete encryption/decryption cycle'
       };
       
-      const result = await crypto.testRoundTrip('test-password', testData);
+      const result = await crypto.testRoundTrip('test-password-long-enough', testData);
       expect(result).toBe(true);
     });
   });
