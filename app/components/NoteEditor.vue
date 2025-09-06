@@ -92,51 +92,6 @@
         <UFormField label="Content" name="content">
           <div v-if="editor" class="tiptap-editor form-input dark:bg-gray-700 dark:border-gray-600 dark:text-white">
             <div class="tiptap-toolbar">
-              <!-- Encryption Controls in Toolbar -->
-              <div v-if="showEncryptionControls" class="flex items-center gap-2 mr-4 pr-4 border-r border-gray-300 dark:border-gray-600">
-                <UButton
-                  v-if="!hasEncryptionSetup"
-                  @click="showSetupModal = true"
-                  size="xs"
-                  color="primary"
-                  variant="outline"
-                  aria-label="Setup Encryption"
-                >
-                  <template #leading>
-                    <Icon name="lucide:shield-plus" class="w-4 h-4" />
-                  </template>
-                  Setup
-                </UButton>
-                
-                <UButton
-                  v-else-if="isEncryptionLocked"
-                  @click="showUnlockModal = true"
-                  size="xs"
-                  color="amber"
-                  variant="outline"
-                  aria-label="Unlock Encryption"
-                >
-                  <template #leading>
-                    <Icon name="lucide:unlock" class="w-4 h-4" />
-                  </template>
-                  Unlock
-                </UButton>
-                
-                <UButton
-                  v-else
-                  @click="lockEncryption"
-                  size="xs"
-                  color="gray"
-                  variant="outline"
-                  aria-label="Lock Encryption"
-                >
-                  <template #leading>
-                    <Icon name="lucide:lock" class="w-4 h-4" />
-                  </template>
-                  Lock
-                </UButton>
-              </div>
-
               <!-- Existing formatting buttons -->
               <UButton @click="editor.chain().focus().toggleBold().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('bold') }" size="xs" aria-label="Bold">
                 <template #leading>
@@ -193,6 +148,29 @@
               <Icon name="lucide:x-circle" class="w-5 h-5" />
             </template>
           </UButton>
+          
+          <!-- Encryption Actions Dropdown -->
+          <UDropdownMenu v-if="note" :items="encryptionDropdownItems" :popper="{ placement: 'top-end' }">
+            <UButton
+              color="neutral"
+              variant="outline"
+              :disabled="loading"
+            >
+              <template #leading>
+                <Icon name="lucide:shield" class="w-5 h-5" />
+              </template>
+              Encryption
+              <template #trailing>
+                <Icon name="lucide:chevron-up" class="w-4 h-4" />
+              </template>
+            </UButton>
+            
+            <template #item="{ item }">
+              <span class="truncate">{{ item.label }}</span>
+              <Icon v-if="item.icon" :name="item.icon" class="flex-shrink-0 h-4 w-4 text-gray-400 dark:text-gray-500 ms-auto" />
+            </template>
+          </UDropdownMenu>
+          
           <UButton
             type="button"
             label="Delete"
@@ -231,6 +209,7 @@
 
     <!-- Encryption Setup Modal -->
     <EncryptionSetupModal
+      v-if="note && showSetupModal"
       v-model="showSetupModal"
       :loading="encryptionLoading"
       @submit="handleSetupSubmit"
@@ -239,6 +218,7 @@
 
     <!-- Encryption Unlock Modal -->
     <EncryptionUnlockModal
+      v-if="note && showUnlockModal"
       v-model="showUnlockModal"
       :loading="encryptionLoading"
       :error="unlockError"
@@ -302,8 +282,90 @@ const note = computed({
   set: (value) => emit('update:modelValue', value)
 });
 
-const showEncryptionControls = computed(() => !!note.value);
+const showEncryptionControls = computed(() => {
+  // Only show encryption controls if:
+  // 1. A note is selected AND
+  // 2. The note is already encrypted (to allow decryption) OR
+  // 3. User has clicked to enable encryption features
+  return !!note.value && (
+    note.value.is_encrypted || 
+    hasEncryptionSetup.value || 
+    showSetupModal.value ||
+    showUnlockModal.value
+  );
+});
 const isNoteEncrypted = computed(() => note.value?.is_encrypted || false);
+
+// Define a type for dropdown items
+type DropdownItem = {
+  label: string;
+  icon?: string;
+  disabled?: boolean;
+  onSelect?: (event: Event) => void;
+};
+
+const encryptionDropdownItems = computed<DropdownItem[][]>(() => {
+  if (!note.value) return [];
+  
+  const items: DropdownItem[] = [];
+  
+  if (isNoteEncrypted.value) {
+    // Note is encrypted - offer decrypt option
+    if (isEncryptionLocked.value) {
+      items.push({
+        label: 'Unlock to decrypt',
+        icon: 'lucide:unlock',
+        onSelect: () => handleDecryptionToggle()
+      });
+    } else {
+      items.push({
+        label: 'Decrypt note',
+        icon: 'lucide:unlock',
+        onSelect: () => handleDecryptionToggle()
+      });
+    }
+  } else {
+    // Note is not encrypted - offer encrypt options
+    if (!hasEncryptionSetup.value) {
+      items.push({
+        label: 'Setup encryption',
+        icon: 'lucide:shield-plus',
+        onSelect: () => handleEncryptionToggle()
+      });
+    } else if (isEncryptionLocked.value) {
+      items.push({
+        label: 'Unlock to encrypt',
+        icon: 'lucide:unlock',
+        onSelect: () => handleEncryptionToggle()
+      });
+    } else {
+      items.push({
+        label: 'Encrypt note',
+        icon: 'lucide:shield-check',
+        onSelect: () => handleEncryptionToggle()
+      });
+    }
+  }
+  
+  // Add lock/unlock options if encryption is setup
+  if (hasEncryptionSetup.value) {
+    if (isEncryptionLocked.value) {
+      items.push({
+        label: 'Unlock encryption',
+        icon: 'lucide:unlock',
+        onSelect: () => showUnlockModal.value = true
+      });
+    } else {
+      items.push({
+        label: 'Lock encryption',
+        icon: 'lucide:lock',
+        onSelect: () => lockEncryption()
+      });
+    }
+  }
+  
+  return [items];
+});
 
 const editor = useEditor({
   extensions: [
@@ -400,6 +462,16 @@ const handleCloseUnlockModal = () => {
 watch(() => props.modelValue?.content, (newContent) => {
   if (editor.value && newContent !== editor.value.getHTML()) {
     editor.value.commands.setContent(newContent || '', { emitUpdate: false });
+  }
+}, { immediate: true });
+
+// Watch for note changes and close modals when no note is selected
+watch(() => props.modelValue, (newNote) => {
+  if (!newNote) {
+    // Close any open encryption modals when no note is selected
+    showSetupModal.value = false;
+    showUnlockModal.value = false;
+    unlockError.value = undefined;
   }
 }, { immediate: true });
 
