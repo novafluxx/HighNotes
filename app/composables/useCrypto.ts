@@ -301,8 +301,7 @@ export function useCrypto() {
       const decryptedCompressed = await decryptData(encryptedData, dek, iv);
       
       // Decompress the data
-      const compressedBytes = base64ToArrayBuffer(decryptedCompressed);
-      const plaintextJson = decompressData(compressedBytes);
+      const plaintextJson = decompressData(decryptedCompressed);
       
       // Parse the JSON
       const plaintext = JSON.parse(plaintextJson) as PlaintextData;
