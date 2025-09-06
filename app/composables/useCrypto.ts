@@ -69,7 +69,7 @@ export function useCrypto() {
 
     // Validate password: must be at least 8 characters and not empty
     if (typeof password !== 'string' || password.length < 8) {
-      throw new Error('Password must be at least 8 characters long.');
+      throw new Error('Password must be a string and at least 8 characters long.');
     }
     try {
       // Use Argon2id to derive key material
