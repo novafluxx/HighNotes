@@ -205,7 +205,7 @@ export function useNotes() {
     try {
       let supabaseQuery = client
         .from('notes')
-        .select('id, user_id, title, updated_at')
+        .select('id, user_id, title, updated_at, is_encrypted')
         .eq('user_id', user.value.id)
         .order('updated_at', { ascending: false });
 
@@ -334,7 +334,13 @@ export function useNotes() {
     const setSelection = (note: Note) => {
       selectedNote.value = note;
       originalSelectedNote.value = JSON.parse(JSON.stringify(note));
-      currentEditorContent.value = note.content || ''; // Initialize live content
+      
+      // For encrypted notes, don't show content in editor - it needs to be decrypted first
+      if (note.is_encrypted) {
+        currentEditorContent.value = ''; // Clear editor for encrypted notes
+      } else {
+        currentEditorContent.value = note.content || ''; // Initialize live content for unencrypted notes
+      }
     };
 
     // If the passed note stub doesn't have full content, fetch it.
@@ -397,6 +403,8 @@ export function useNotes() {
       content: '', // Initialize as empty string
       created_at: new Date().toISOString(),
       updated_at: new Date().toISOString(),
+      is_encrypted: false,
+      encrypted_payload: null,
     };
 
     selectedNote.value = tempNewNote;

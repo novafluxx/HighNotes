@@ -6,6 +6,8 @@ export interface Note {
   content?: string | null; // Made optional
   created_at?: string; // Made optional (ISO string format)
   updated_at: string; // ISO string format from Supabase timestamp
+  is_encrypted?: boolean; // Whether note is encrypted
+  encrypted_payload?: any | null; // Encrypted content payload
 }
 
 // Cryptography-related interfaces

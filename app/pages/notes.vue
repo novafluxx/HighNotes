@@ -124,6 +124,8 @@
         @delete="deleteNote"
         @close="selectedNote = null"
         @create-new="createNewNote"
+        @encrypt-note="handleEncryptNote"
+        @decrypt-note="handleDecryptNote"
       />
 
       <!-- Mobile Overlay for Sidebar -->
@@ -167,6 +169,7 @@
 // --- Imports and Setup --- (Largely unchanged)
 import { useNotes } from '~/composables/useNotes';
 import { useLayout } from '~/composables/useLayout';
+import { useEncryption } from '~/composables/useEncryption';
 import NoteEditor from '~/components/NoteEditor.vue';
 import auth from '~/middleware/auth';
 definePageMeta({ middleware: [auth] })
@@ -198,6 +201,64 @@ const {
   confirmDeleteNote,
   currentEditorContent, // Expose currentEditorContent
 } = useNotes();
+
+// --- Use Encryption Composable ---
+const { encryptNote, decryptNote } = useEncryption();
+
+// --- Encryption Handlers ---
+const handleEncryptNote = async (noteId: string | null) => {
+  if (!selectedNote.value || selectedNote.value.is_encrypted) return;
+
+  try {
+    const title = selectedNote.value.title || '';
+    const content = currentEditorContent.value || '';
+
+    const encryptedPayload = await encryptNote(title, content);
+    if (encryptedPayload) {
+      // Update the note to mark it as encrypted
+      selectedNote.value = {
+        ...selectedNote.value,
+        is_encrypted: true,
+        encrypted_payload: encryptedPayload,
+        content: null // Clear plaintext content
+      };
+      
+      // Clear the editor content since it's now encrypted
+      currentEditorContent.value = '';
+      
+      // Save the updated note
+      await saveNote();
+    }
+  } catch (error) {
+    console.error('Error encrypting note:', error);
+  }
+};
+
+const handleDecryptNote = async (noteId: string | null) => {
+  if (!selectedNote.value || !selectedNote.value.is_encrypted || !selectedNote.value.encrypted_payload) return;
+
+  try {
+    const decryptedData = await decryptNote(selectedNote.value.encrypted_payload);
+    if (decryptedData) {
+      // Update the note to mark it as unencrypted
+      selectedNote.value = {
+        ...selectedNote.value,
+        is_encrypted: false,
+        encrypted_payload: null,
+        title: decryptedData.title,
+        content: decryptedData.content
+      };
+      
+      // Update the editor content
+      currentEditorContent.value = decryptedData.content;
+      
+      // Save the updated note
+      await saveNote();
+    }
+  } catch (error) {
+    console.error('Error decrypting note:', error);
+  }
+};
 
 // Adjust selectNote and createNewNote to close sidebar on mobile
 const selectNoteAndCloseSidebar = async (noteStub: any) => {

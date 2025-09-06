@@ -18,10 +18,126 @@
           </template>
         </UFormField>
 
+        <!-- Encryption Toggle -->
+        <UFormField v-if="showEncryptionControls" label="Encryption" name="encryption">
+          <div class="flex items-center justify-between p-3 border border-gray-200 dark:border-gray-700 rounded-lg bg-gray-50 dark:bg-gray-800">
+            <div class="flex items-center gap-3">
+              <Icon :name="isNoteEncrypted ? 'lucide:shield-check' : 'lucide:shield'" 
+                    :class="isNoteEncrypted ? 'text-green-500' : 'text-gray-400'" 
+                    class="w-5 h-5" />
+              <div>
+                <span class="font-medium text-sm">
+                  {{ isNoteEncrypted ? 'Encrypted Note' : 'Unencrypted Note' }}
+                </span>
+                <p class="text-xs text-gray-500 dark:text-gray-400">
+                  {{ isNoteEncrypted ? 'This note is protected with encryption' : 'Toggle to encrypt this note' }}
+                </p>
+              </div>
+            </div>
+            
+            <UButton
+              v-if="!isNoteEncrypted"
+              @click="handleEncryptionToggle"
+              size="sm"
+              color="primary"
+              variant="outline"
+              :disabled="loading || !canEncryptNotes"
+              :loading="encryptionLoading"
+            >
+              <template #leading>
+                <Icon name="lucide:shield-plus" class="w-4 h-4" />
+              </template>
+              Encrypt Note
+            </UButton>
+            
+            <UButton
+              v-else
+              @click="handleDecryptionToggle"
+              size="sm"
+              color="amber"
+              variant="outline"
+              :disabled="loading || !canEncryptNotes"
+              :loading="encryptionLoading"
+            >
+              <template #leading>
+                <Icon name="lucide:shield-off" class="w-4 h-4" />
+              </template>
+              Remove Encryption
+            </UButton>
+          </div>
+
+          <!-- Encryption Status Messages -->
+          <div v-if="!hasEncryptionSetup && !isNoteEncrypted" class="mt-2">
+            <UAlert
+              color="blue"
+              variant="soft"
+              :icon="{ name: 'lucide:info' }"
+              title="Set up encryption"
+              description="Enable encryption to protect your notes with a passphrase."
+            />
+          </div>
+          
+          <div v-else-if="!isEncryptionUnlocked && !isNoteEncrypted" class="mt-2">
+            <UAlert
+              color="amber"
+              variant="soft"
+              :icon="{ name: 'lucide:lock' }"
+              title="Encryption locked"
+              description="Unlock encryption to encrypt new notes or access encrypted ones."
+            />
+          </div>
+        </UFormField>
+
         <!-- Content Editor -->
         <UFormField label="Content" name="content">
           <div v-if="editor" class="tiptap-editor form-input dark:bg-gray-700 dark:border-gray-600 dark:text-white">
             <div class="tiptap-toolbar">
+              <!-- Encryption Controls in Toolbar -->
+              <div v-if="showEncryptionControls" class="flex items-center gap-2 mr-4 pr-4 border-r border-gray-300 dark:border-gray-600">
+                <UButton
+                  v-if="!hasEncryptionSetup"
+                  @click="showSetupModal = true"
+                  size="xs"
+                  color="primary"
+                  variant="outline"
+                  aria-label="Setup Encryption"
+                >
+                  <template #leading>
+                    <Icon name="lucide:shield-plus" class="w-4 h-4" />
+                  </template>
+                  Setup
+                </UButton>
+                
+                <UButton
+                  v-else-if="isEncryptionLocked"
+                  @click="showUnlockModal = true"
+                  size="xs"
+                  color="amber"
+                  variant="outline"
+                  aria-label="Unlock Encryption"
+                >
+                  <template #leading>
+                    <Icon name="lucide:unlock" class="w-4 h-4" />
+                  </template>
+                  Unlock
+                </UButton>
+                
+                <UButton
+                  v-else
+                  @click="lockEncryption"
+                  size="xs"
+                  color="gray"
+                  variant="outline"
+                  aria-label="Lock Encryption"
+                >
+                  <template #leading>
+                    <Icon name="lucide:lock" class="w-4 h-4" />
+                  </template>
+                  Lock
+                </UButton>
+              </div>
+
+              <!-- Existing formatting buttons -->
               <UButton @click="editor.chain().focus().toggleBold().run()" @mousedown.prevent :class="{ 'is-active': editor.isActive('bold') }" size="xs" aria-label="Bold">
                 <template #leading>
                   <Icon name="lucide:bold" class="w-4 h-4" />
@@ -112,15 +228,33 @@
         </button>
       </p>
     </div>
+
+    <!-- Encryption Setup Modal -->
+    <EncryptionSetupModal
+      v-model="showSetupModal"
+      :loading="encryptionLoading"
+      @submit="handleSetupSubmit"
+      @close="handleCloseSetupModal"
+    />
+
+    <!-- Encryption Unlock Modal -->
+    <EncryptionUnlockModal
+      v-model="showUnlockModal"
+      :loading="encryptionLoading"
+      :error="unlockError"
+      @submit="handleUnlockSubmit"
+      @close="handleCloseUnlockModal"
+    />
   </main>
 </template>
 
 <script setup lang="ts">
 import type { Note } from '~/types';
-import { computed, watch } from 'vue';
+import { computed, watch, ref } from 'vue';
 import { useEditor, EditorContent } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
 import CharacterCount from '@tiptap/extension-character-count';
+import { useEncryption } from '~/composables/useEncryption';
 
 // --- Props ---
 const props = defineProps<{
@@ -140,12 +274,35 @@ const emit = defineEmits<{
   (e: 'close'): void;
   (e: 'create-new'): void;
   (e: 'update:content', value: string): void; // New emit for content updates
+  (e: 'encrypt-note', noteId: string | null): void;
+  (e: 'decrypt-note', noteId: string | null): void;
 }>();
 
+// --- Encryption State ---
+const encryption = useEncryption();
+const {
+  hasEncryptionSetup,
+  isEncryptionUnlocked,
+  canEncryptNotes,
+  lockEncryption,
+  setupEncryption,
+  unlockEncryption
+} = encryption;
+
+// --- Local State ---
+const showSetupModal = ref(false);
+const showUnlockModal = ref(false);
+const encryptionLoading = ref(false);
+const unlockError = ref<string | undefined>();
+
+// --- Computed Properties ---
 const note = computed({
   get: () => props.modelValue,
   set: (value) => emit('update:modelValue', value)
 });
+
+const showEncryptionControls = computed(() => !!note.value);
+const isNoteEncrypted = computed(() => note.value?.is_encrypted || false);
 
 const editor = useEditor({
   extensions: [
@@ -165,6 +322,77 @@ const editor = useEditor({
     },
   },
 });
+
+// --- Encryption Handlers ---
+const handleEncryptionToggle = async () => {
+  if (!note.value || isNoteEncrypted.value) return;
+
+  if (!hasEncryptionSetup.value) {
+    showSetupModal.value = true;
+    return;
+  }
+
+  if (!isEncryptionUnlocked.value) {
+    showUnlockModal.value = true;
+    return;
+  }
+
+  // Emit to parent to handle the actual encryption
+  emit('encrypt-note', note.value.id);
+};
+
+const handleDecryptionToggle = async () => {
+  if (!note.value || !isNoteEncrypted.value) return;
+
+  if (!isEncryptionUnlocked.value) {
+    showUnlockModal.value = true;
+    return;
+  }
+
+  // Emit to parent to handle the actual decryption
+  emit('decrypt-note', note.value.id);
+};
+
+const handleSetupSubmit = async (passphrase: string) => {
+  encryptionLoading.value = true;
+  try {
+    const success = await setupEncryption(passphrase);
+    if (success) {
+      showSetupModal.value = false;
+      // After setup, automatically encrypt the current note if it's not already encrypted
+      if (note.value && !isNoteEncrypted.value) {
+        setTimeout(() => handleEncryptionToggle(), 100);
+      }
+    }
+  } finally {
+    encryptionLoading.value = false;
+  }
+};
+
+const handleUnlockSubmit = async (passphrase: string) => {
+  encryptionLoading.value = true;
+  unlockError.value = undefined;
+  
+  try {
+    const success = await unlockEncryption(passphrase);
+    if (success) {
+      showUnlockModal.value = false;
+    } else {
+      unlockError.value = 'Invalid passphrase. Please try again.';
+    }
+  } finally {
+    encryptionLoading.value = false;
+  }
+};
+
+const handleCloseSetupModal = () => {
+  showSetupModal.value = false;
+};
+
+const handleCloseUnlockModal = () => {
+  showUnlockModal.value = false;
+  unlockError.value = undefined;
+};
 
 // Watch for changes to the modelValue (from parent component) and update the editor
 watch(() => props.modelValue?.content, (newContent) => {
