@@ -67,9 +67,9 @@ export function useCrypto() {
       parallelism = ARGON2_PARALLELISM
     } = params;
 
-    // Validate password: must be at least 8 characters and not empty
-    if (typeof password !== 'string' || password.length < 8) {
-      throw new Error('Password must be a string and at least 8 characters long.');
+    // Validate password: must be at least 12 characters and not empty
+    if (typeof password !== 'string' || password.length < 12) {
+      throw new Error('Password must be a string and at least 12 characters long.');
     }
     try {
       // Use Argon2id to derive key material
