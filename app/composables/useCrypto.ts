@@ -251,7 +251,7 @@ export function useCrypto() {
       const dek = await generateDEK();
       
       // Encrypt the compressed data with DEK
-      const { encrypted, iv } = await encryptData(arrayBufferToBase64(compressed), dek);
+      const { encrypted, iv } = await encryptData(compressed, dek);
       
       // Wrap the DEK with master key
       const wrappedDEK = await wrapDEK(dek, masterKey);
