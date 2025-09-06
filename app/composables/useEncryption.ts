@@ -99,7 +99,7 @@ export function useEncryption() {
       });
 
       // Store salt and KDF params in profile
-      const saltBase64 = Buffer.from(salt).toString('base64');
+      const saltBase64 = btoa(String.fromCharCode(...salt));
       const kdfParams = {
         iterations,
         memory: 65536, // 64MB
