@@ -62,7 +62,7 @@
         <UAlert
           color="amber"
           variant="soft"
-          :icon="{ name: 'lucide:alert-triangle' }"
+          icon="lucide:alert-triangle"
           title="Security Reminder"
           description="If you've forgotten your passphrase, encrypted notes cannot be recovered."
         />

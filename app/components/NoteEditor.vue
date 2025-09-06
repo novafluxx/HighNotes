@@ -71,7 +71,7 @@
             <UAlert
               color="blue"
               variant="soft"
-              :icon="{ name: 'lucide:info' }"
+              icon="lucide:info"
               title="Set up encryption"
               description="Enable encryption to protect your notes with a passphrase."
             />
@@ -81,7 +81,7 @@
             <UAlert
               color="amber"
               variant="soft"
-              :icon="{ name: 'lucide:lock' }"
+              icon="lucide:lock"
               title="Encryption locked"
               description="Unlock encryption to encrypt new notes or access encrypted ones."
             />

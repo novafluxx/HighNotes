@@ -13,7 +13,7 @@
         <UAlert
           color="amber"
           variant="soft"
-          :icon="{ name: 'lucide:alert-triangle' }"
+          icon="lucide:alert-triangle"
           title="Important Security Notice"
           description="Your passphrase cannot be recovered. If you lose it, encrypted notes will be permanently inaccessible."
         />
