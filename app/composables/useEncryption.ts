@@ -45,7 +45,7 @@ export function useEncryption() {
       if (profile) {
         hasEncryptionSetup.value = profile.has_encryption;
         if (profile.encryption_salt) {
-          userSalt.value = new Uint8Array(Buffer.from(profile.encryption_salt, 'base64'));
+          userSalt.value = Uint8Array.from(atob(profile.encryption_salt), c => c.charCodeAt(0));
         }
       } else {
         // Create profile if it doesn't exist
