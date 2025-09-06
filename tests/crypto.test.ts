@@ -1,13 +1,7 @@
 // tests/crypto.test.ts
-import { describe, it, expect, beforeAll } from '@nuxt/test-utils';
-import { useCrypto } from '~/app/composables/useCrypto';
-import type { PlaintextData } from '~/app/types';
-
-// Mock Web Crypto API for testing environment
-if (typeof global.crypto === 'undefined') {
-  const { webcrypto } = await import('crypto');
-  global.crypto = webcrypto as any;
-}
+import { describe, it, expect, beforeAll } from 'vitest';
+import { useCrypto } from '../app/composables/useCrypto';
+import type { PlaintextData } from '../app/types';
 
 describe('useCrypto', () => {
   let crypto: ReturnType<typeof useCrypto>;

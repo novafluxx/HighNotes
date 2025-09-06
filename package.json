@@ -8,6 +8,7 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
+    "test": "vitest",
     "test:crypto": "node scripts/test-crypto.js"
   },
   "dependencies": {
@@ -38,6 +39,7 @@
     "dotenv": "^17.2.2",
     "supabase": "^2.39.2",
     "tailwindcss": "^4.1.13",
+    "vitest": "^3.2.4",
     "vue-tsc": "^3.0.6"
   },
   "packageManager": "pnpm@10.15.1"
