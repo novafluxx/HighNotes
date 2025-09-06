@@ -250,7 +250,7 @@
 
 <script setup lang="ts">
 import type { Note } from '~/types';
-import { computed, watch, ref } from 'vue';
+import { computed, watch, ref, onBeforeUnmount, nextTick } from 'vue';
 import { useEditor, EditorContent } from '@tiptap/vue-3';
 import StarterKit from '@tiptap/starter-kit';
 import CharacterCount from '@tiptap/extension-character-count';
@@ -283,6 +283,7 @@ const encryption = useEncryption();
 const {
   hasEncryptionSetup,
   isEncryptionUnlocked,
+  isEncryptionLocked,
   canEncryptNotes,
   lockEncryption,
   setupEncryption,
@@ -361,7 +362,8 @@ const handleSetupSubmit = async (passphrase: string) => {
       showSetupModal.value = false;
       // After setup, automatically encrypt the current note if it's not already encrypted
       if (note.value && !isNoteEncrypted.value) {
-        setTimeout(() => handleEncryptionToggle(), 100);
+        await nextTick();
+        handleEncryptionToggle();
       }
     }
   } finally {
@@ -407,10 +409,6 @@ onBeforeUnmount(() => {
     editor.value.destroy();
     emit('update:modelValue', null);
   }
-});
-
-const isContentTooLong = computed(() => {
-  return (note.value?.content?.length ?? 0) >= props.CONTENT_MAX_LENGTH;
 });
 </script>
 
