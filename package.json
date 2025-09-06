@@ -9,7 +9,7 @@
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "test": "vitest",
-    "test:crypto": "node scripts/test-crypto.js"
+    "test:crypto": "vitest run tests/crypto.test.ts"
   },
   "dependencies": {
     "@noble/hashes": "^2.0.0",
