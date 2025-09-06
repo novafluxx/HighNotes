@@ -425,7 +425,9 @@ const handleSetupSubmit = async (passphrase: string) => {
       // After setup, automatically encrypt the current note if it's not already encrypted
       if (note.value && !isNoteEncrypted.value) {
         await nextTick();
-        handleEncryptionToggle();
+        if (isEncryptionUnlocked.value) {
+          handleEncryptionToggle();
+        }
       }
     }
   } finally {
