@@ -1,118 +1,101 @@
 
 # High Notes
 
-> **A modern, offline-first note-taking app powered by Nuxt 4, Supabase, and PWA technologies.**
 
-![High Notes Logo](public/android-chrome-192x192.png)
+A modern note-taking Progressive Web App (PWA) built for seamless cross-platform usage with offline capabilities and secure cloud synchronization.
 
----
+![High Notes logo](./public/android-chrome-192x192.png)
 
-## Overview
+## ✨ Features
 
-High Notes is a single-page, offline-capable note-taking application built with Nuxt 4 and Supabase. It features real-time sync, robust offline support, and a beautiful, distraction-free editor powered by TipTap. Designed for speed, privacy, and reliability, High Notes lets you capture and manage your notes anywhere, anytime.
+- 📝 **Rich Text Editor** - Advanced note editing with TipTap editor, supporting formatting, character count, and more
+- 🔐 **Secure Authentication** - Complete auth flow with email/password, signup, email confirmation, and password reset
+- 📱 **Progressive Web App** - Installable on any device with offline capabilities and automatic updates
+- ☁️ **Real-time Sync** - Automatic synchronization across all your devices via Supabase
+- 🎨 **Modern UI** - Clean, responsive design built with Nuxt UI 3 and Tailwind CSS 4
 
----
 
-## Features
+# High Notes
 
-- **Offline-first**: Full offline support with IndexedDB queue and cache. Notes are queued and synced automatically when back online.
-- **Realtime sync**: Instant updates across devices using Supabase Realtime channels.
-- **Secure authentication**: Email/password login via Supabase Auth.
-- **Rich text editing**: Modern editor with character count, powered by TipTap.
-- **Full-text search**: Fast, indexed search with debounce and relevance ranking.
-- **PWA**: Installable on desktop and mobile, with custom icons and manifest.
-- **Serverless backend**: All data and logic handled via Supabase (Postgres, Edge Functions).
+A lightweight, offline-first note-taking Progressive Web App (PWA) built with Nuxt 4 and Supabase. High Notes focuses on fast editing, reliable offline sync (IndexedDB queue), and realtime updates.
 
----
+## Highlights
 
-## Quick Start
+- TipTap rich-text editor with character-count and lightweight formatting
+- Offline-first: local cache + FIFO queue for create/update/delete operations
+- Realtime sync via Supabase Realtime channels
+- Server-side sanitization and upsert via a Supabase Edge Function
+- PWA support with service-worker precaching
 
-> [!TIP]
-> **pnpm is required** (see [pnpm.io](https://pnpm.io/)).
+> [!NOTE]
+> This README is concise — see the `app/` and `supabase/` folders for implementation details.
 
-```sh
-# Install dependencies
+## Quick start
+
+Prerequisites: Node 18+, pnpm (recommended).
+
+Install and run locally:
+
+```bash
 pnpm install
-
-# Start the development server
 pnpm dev
 
-# Build for production
-pnpm build
+Build and preview:
 
-# Preview production build
+```bash
+pnpm build
 pnpm preview
 ```
 
-The app will be available at [http://localhost:3000](http://localhost:3000).
-
----
-
-## Project Structure
-
-```
-app/
-	composables/      # Core logic: notes, offline, auth, etc.
-	components/       # UI components (editor, header, prompts)
-	pages/            # Nuxt pages (index, login, notes, etc.)
-	layouts/          # App layout(s)
-	middleware/       # Route guards (auth)
-public/             # Icons, manifest, static assets
-supabase/           # Edge functions, config
-```
-
-Key files:
-- `app/composables/useNotes.ts`: Main client logic (CRUD, sync, search)
-- `app/composables/useOfflineNotes.ts`: Offline queue/cache helpers
-- `app/components/NoteEditor.vue`: TipTap editor
-- `supabase/functions/save-note/index.ts`: Serverless note upsert/sanitization
-- `types/database.types.ts`: Supabase DB types
-- `nuxt.config.ts`: Nuxt, Supabase, and PWA config
-
----
-
 ## Configuration
 
-1. Copy `.env.example` to `.env` and set your Supabase credentials:
+Provide Supabase credentials via environment variables (for example in `.env`):
 
-```env
-SUPABASE_URL=your-supabase-url
-SUPABASE_KEY=your-supabase-anon-key
+- `SUPABASE_URL`
+- `SUPABASE_ANON_KEY`
+
+These are mapped to `runtimeConfig.public.supabaseUrl` and `runtimeConfig.public.supabaseKey` in `nuxt.config.ts`.
+
+## Where to look first
+
+- `nuxt.config.ts` — app `srcDir`, Supabase module, PWA and Nitro settings
+- `app/composables/useNotes.ts` — core client logic (CRUD, realtime, pagination, save gating)
+- `app/composables/useOfflineNotes.ts` — IndexedDB queue and cache helpers (`enqueue`, `readQueueFIFO`, `cacheNote`, `replaceLocalId`)
+- `app/components/NoteEditor.vue` — TipTap editor wiring and character-count extension
+- `supabase/functions/save-note/index.ts` — Edge function that sanitizes and upserts notes (expects Authorization header)
+- `types/database.types.ts` — generated Supabase types (DB row shapes)
+
+## Architecture (short)
+
+- Frontend: Nuxt 4 (TypeScript + Vite). App source lives in `app/` (note: `srcDir` is `app`).
+- Backend: Supabase for Auth, Realtime, and Postgres. Server sanitization with an Edge Function.
+- Offline: IndexedDB stores for `notes` and `queue`. Queue processors run when connectivity returns and call the Edge Function to upsert notes.
+
+## Developer notes
+
+- Offline-created notes use temporary IDs like `local-<uuid>` until the server returns a real id — client code must tolerate these IDs.
+- Text search uses a `search_vector` in the DB; UI debouncing may ignore very short queries.
+- Realtime channel name pattern: `notes:{userId}` — subscribe/unsubscribe when the user context changes.
+- When changing DB fields, regenerate `types/database.types.ts` with Supabase's type generator and update client typings.
+
+> [!TIP]
+> Start with `app/composables/useNotes.ts` and `app/composables/useOfflineNotes.ts` when adding features — most app behavior is encapsulated there.
+
+## Scripts
+
+```bash
+pnpm dev          # Start development server
+pnpm build        # Build for production
+pnpm generate     # Generate static site
+pnpm preview      # Preview production build
 ```
 
-2. These are mapped to Nuxt runtime config in `nuxt.config.ts`.
+## Troubleshooting
+
+- If realtime or DB calls fail, verify `SUPABASE_URL` and `SUPABASE_ANON_KEY` and that your Supabase project allows requests from the app origin.
+- For local testing of Edge Functions, ensure the function env vars (`SUPABASE_URL`, `SUPABASE_ANON_KEY`) are available to the runner.
 
 ---
 
-## Supabase Functions & Database
-
-- All backend logic is handled via Supabase Edge Functions and Postgres.
-- No local Supabase CLI or DB is required—use the [Supabase MCP](https://supabase.com/) dashboard.
-- To update DB types, run:
-
-```sh
-supabase gen types typescript --project-id <your-project-id> > app/types/database.types.ts
-```
-
----
-
-## Development Notes
-
-- **srcDir is `app/`**: All Nuxt app code lives in `app/`, not `src/`.
-- **Offline IDs**: Notes created offline use `local-<uuid>` IDs until synced.
-- **Realtime**: Subscribes to `notes:{userId}` channel for live updates.
-- **Editor**: Content is sanitized both client- and server-side.
-
----
-
-## Acknowledgements
-
-- [Nuxt 4](https://nuxt.com/)
-- [Supabase](https://supabase.com/)
-- [TipTap Editor](https://tiptap.dev/)
-- [@vite-pwa/nuxt](https://vite-pwa-org.netlify.app/)
-
----
-
-> [!NOTE]
-> For more details, see the code comments and composables in the `app/` directory.
+If you'd like, I can add a short screenshot gallery, a minimal CONTRIBUTING guide, or unit tests for the composables — tell me which and I will add it.
+supabase start
