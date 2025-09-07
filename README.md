@@ -94,8 +94,3 @@ pnpm preview      # Preview production build
 
 - If realtime or DB calls fail, verify `SUPABASE_URL` and `SUPABASE_ANON_KEY` and that your Supabase project allows requests from the app origin.
 - For local testing of Edge Functions, ensure the function env vars (`SUPABASE_URL`, `SUPABASE_ANON_KEY`) are available to the runner.
-
----
-
-If you'd like, I can add a short screenshot gallery, a minimal CONTRIBUTING guide, or unit tests for the composables — tell me which and I will add it.
-supabase start
