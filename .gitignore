@@ -31,6 +31,9 @@ logs
 /.kiro/settings/mcp.json
 /.kiro/specs
 
+# VSCode MCP
+.vscode/mcp.json
+
 # Playwright
 /test-results/
 /playwright-report/
