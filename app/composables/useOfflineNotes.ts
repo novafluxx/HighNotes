@@ -4,9 +4,10 @@ import type { Note } from '~/types'
 interface QueueItem {
   id: string
   user_id: string
-  type: 'create' | 'update' | 'delete'
+  type: 'create' | 'update' | 'delete' | 'delete-account'
   note?: Note
   note_id?: string // for delete
+  data?: any // for delete-account or other special operations
   timestamp: number
 }
 
@@ -138,6 +139,24 @@ export function useOfflineNotes() {
     await tx.done
   }
 
+  const clearAllOfflineData = async () => {
+    if (!isClient) return
+    const db = await getDB()
+    const tx = db.transaction(['notes', 'queue'], 'readwrite')
+    await tx.objectStore('notes').clear()
+    await tx.objectStore('queue').clear()
+    await tx.done
+  }
+
+  const enqueueOperation = async (operation: Omit<QueueItem, 'id'>) => {
+    if (!isClient) return
+    const id = `${operation.type}-${Date.now()}-${Math.random()}`
+    await enqueue({
+      id,
+      ...operation
+    })
+  }
+
   return {
     getCachedNotes,
     getCachedNoteById,
@@ -148,5 +167,7 @@ export function useOfflineNotes() {
     readQueueFIFO,
     clearQueueItems,
     replaceLocalId,
+    clearAllOfflineData,
+    enqueueOperation,
   }
 }

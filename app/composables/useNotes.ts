@@ -646,6 +646,22 @@ export function useNotes() {
               await removeCachedNote(item.note_id);
             }
           }
+          if (item.type === 'delete-account' && item.data?.confirmation) {
+            // Process queued account deletion
+            const { data, error } = await client.functions.invoke('delete-account', {
+              body: { confirmation: item.data.confirmation }
+            });
+            
+            if (data?.success) {
+              // Account deletion successful - the user will be logged out
+              // Local cleanup will happen in the useAccountDeletion composable
+              console.log('Queued account deletion processed successfully');
+            } else {
+              console.error('Failed to process queued account deletion:', error);
+              // Don't mark as processed so it can be retried
+              continue;
+            }
+          }
           processed.push(item.id);
         } catch (e) {
           // Stop on first failure to preserve order
@@ -673,6 +689,13 @@ export function useNotes() {
     }
   });
 
+  const unsubscribeFromNotes = () => {
+    if (channel) {
+      client.removeChannel(channel);
+      channel = null;
+    }
+  };
+
   return {
     notes,
     selectedNote,
@@ -696,5 +719,6 @@ export function useNotes() {
     deleteNote,
     confirmDeleteNote,
     currentEditorContent, // Expose currentEditorContent
+    unsubscribeFromNotes,
   };
 }
