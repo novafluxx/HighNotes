@@ -76,8 +76,8 @@ importers:
         specifier: ^17.2.2
         version: 17.2.2
       supabase:
-        specifier: ^2.39.2
-        version: 2.39.2
+        specifier: ^2.40.7
+        version: 2.40.7
       tailwindcss:
         specifier: ^4.1.13
         version: 4.1.13
@@ -4727,8 +4727,8 @@ packages:
     peerDependencies:
       postcss: ^8.4.32
 
-  supabase@2.39.2:
-    resolution: {integrity: sha512-/LDPMDIDmuDwj3UsKVw+wA+uHF7QhEF8xgJnKpnk1vqVdr+lA6xRSwWQzgaNuwPj5YPt6+78JKp+wzKziTsRVw==}
+  supabase@2.40.7:
+    resolution: {integrity: sha512-59lNW92axdufcEUdctNQpEc4k6uTEpzIUbqVXNSdWEDS/A/2yLGLxPOQQ0OBCsaJRhrVMmYXlRwgJK2PAoVQnA==}
     engines: {npm: '>=8'}
     hasBin: true
 
@@ -4923,8 +4923,8 @@ packages:
     resolution: {integrity: sha512-5kaZCrbp5mmbz5ulBkDkbY0SsPOjKqVS35VpL9ulMPfSl0J0Xsm+9Evphv9CoIZFwre7aJoa94AY6seMKGVN5Q==}
     engines: {node: '>=4'}
 
-  unicode-match-property-value-ecmascript@2.2.0:
-    resolution: {integrity: sha512-4IehN3V/+kkr5YeSSDDQG8QLqO26XpL2XP3GQtqwlT/QYSECAwFztxVHjlbh0+gjJ3XmNLS0zDsbgs9jWKExLg==}
+  unicode-match-property-value-ecmascript@2.2.1:
+    resolution: {integrity: sha512-JQ84qTuMg4nVkx8ga4A16a1epI9H6uTXAknqxkGF/aFfRLw1xC/Bp24HNLaZhHSkWd3+84t8iXnp1J0kYcZHhg==}
     engines: {node: '>=4'}
 
   unicode-properties@1.4.1:
@@ -10579,7 +10579,7 @@ snapshots:
       regjsgen: 0.8.0
       regjsparser: 0.12.0
       unicode-match-property-ecmascript: 2.0.0
-      unicode-match-property-value-ecmascript: 2.2.0
+      unicode-match-property-value-ecmascript: 2.2.1
 
   regjsgen@0.8.0: {}
 
@@ -10948,7 +10948,7 @@ snapshots:
       postcss: 8.5.6
       postcss-selector-parser: 7.1.0
 
-  supabase@2.39.2:
+  supabase@2.40.7:
     dependencies:
       bin-links: 5.0.0
       https-proxy-agent: 7.0.6
@@ -11158,7 +11158,7 @@ snapshots:
       unicode-canonical-property-names-ecmascript: 2.0.1
       unicode-property-aliases-ecmascript: 2.1.0
 
-  unicode-match-property-value-ecmascript@2.2.0: {}
+  unicode-match-property-value-ecmascript@2.2.1: {}
 
   unicode-properties@1.4.1:
     dependencies:
