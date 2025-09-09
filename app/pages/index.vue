@@ -5,14 +5,18 @@
     <main class="flex flex-col justify-center items-center min-h-[80vh] text-center px-4">
       <h1 class="text-4xl font-bold mb-2 text-gray-900 dark:text-white">Welcome to High Notes</h1>
       <p class="text-lg text-gray-600 dark:text-gray-300 mb-6">Your space for brilliant thoughts.</p>
-      <!-- Replace NuxtLink role="button" with UButton -->
-      <UButton to="/login" label="Login" size="lg" class="mb-4" />
+      <!-- Use a click handler to navigate so the Nuxt router handles routing reliably -->
+      <UButton @click="navigateTo('/login')" label="Login" size="lg" class="mb-4" />
       <p class="text-sm text-gray-500 dark:text-gray-400">
-        or <NuxtLink to="/signup" class="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">Sign Up</NuxtLink>
+        or <NuxtLink to="/signup"
+          class="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">
+          Sign Up</NuxtLink>
       </p>
       <p class="text-sm text-gray-500 dark:text-gray-400">
-        Be sure to check out the 
-        <NuxtLink to="/changelog" label="Changelog" class="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">Changelog</NuxtLink>
+        Be sure to check out the
+        <NuxtLink to="/changelog" label="Changelog"
+          class="font-medium text-primary-600 hover:text-primary-500 dark:text-primary-400 dark:hover:text-primary-300">
+          Changelog</NuxtLink>
       </p>
     </main>
   </div>

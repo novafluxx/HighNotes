@@ -57,14 +57,12 @@ export default defineNuxtConfig({
     workbox: {
       cleanupOutdatedCaches: true,
       navigateFallback: '/',
-      // Minimal precaching for development
-      globPatterns: process.env.NODE_ENV === 'production' 
-        ? ['**/*.{js,css,html,png,svg,ico}'] 
-        : []
+      // Consistent precaching for both environments
+      globPatterns: ['**/*.{js,css,html,png,svg,ico}']
     },
     devOptions: {
-      enabled: false,
-      type: 'module'
+      enabled: true,
+      type: 'classic'
     },
     manifest: {
       name: 'High Notes',
