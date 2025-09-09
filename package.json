@@ -8,8 +8,7 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "test": "vitest",
-    "test:crypto": "vitest run tests/crypto.test.ts"
+    "test": "vitest"
   },
   "dependencies": {
     "@noble/hashes": "^2.0.0",
