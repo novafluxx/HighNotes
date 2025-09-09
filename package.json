@@ -15,7 +15,7 @@
     "@noble/hashes": "^2.0.0",
     "@nuxt/icon": "^2.0.0",
     "@nuxt/ui": "^3.3.3",
-    "@nuxtjs/supabase": "^1.6.1",
+    "@nuxtjs/supabase": "^1.6.2",
     "@supabase/supabase-js": "^2.57.4",
     "@tiptap/extension-character-count": "^3.4.1",
     "@tiptap/starter-kit": "^3.4.2",
