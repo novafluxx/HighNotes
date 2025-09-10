@@ -6,7 +6,7 @@
 1. User logs into the application
 2. Navigate to account settings page
 3. Click "Delete Account" button
-4. Confirm deletion in the dialog by typing "DELETE_MY_ACCOUNT"
+4. Confirm deletion in the dialog by typing "DELETE"
 5. Click "Confirm Delete"
 6. Verify user is logged out and redirected to login page
 7. Verify all user data (notes) are deleted

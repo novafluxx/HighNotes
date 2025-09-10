@@ -11,7 +11,7 @@ The account deletion feature allows users to permanently delete their account an
 - **Supabase Edge Function** (`supabase/functions/delete-account/index.ts`): Server-side deletion processing
 
 ### Features
-1. **Secure Confirmation**: Requires typing "DELETE_MY_ACCOUNT" to confirm
+1. **Secure Confirmation**: Requires typing "DELETE" to confirm
 2. **Offline Support**: Queues deletion operations when offline
 3. **Complete Data Removal**: Deletes all user notes and account data
 4. **Realtime Cleanup**: Unsubscribes from realtime channels
@@ -37,7 +37,7 @@ When offline, the deletion request is queued and processed when connectivity is 
 
 1. User navigates to Settings page (via user menu)
 2. Clicks "Delete Account" in the Danger Zone
-3. Types "DELETE_MY_ACCOUNT" in confirmation dialog
+3. Types "DELETE" in confirmation dialog
 4. Confirms deletion
 5. Account and all data are permanently deleted
 6. User is logged out and redirected to login page
