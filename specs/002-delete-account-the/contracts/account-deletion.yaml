@@ -1,0 +1,78 @@
+openapi: 3.0.3
+info:
+  title: Account Deletion API
+  version: 1.0.0
+  description: API contract for user account deletion functionality
+
+paths:
+  /auth/delete-account:
+    post:
+      summary: Delete user account and all associated data
+      description: Permanently deletes the authenticated user's account and all their data
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              properties:
+                confirmation:
+                  type: string
+                  enum: ["DELETE"]
+                  description: Confirmation phrase to prevent accidental deletion
+              required:
+                - confirmation
+      responses:
+        '200':
+          description: Account successfully deleted
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  success:
+                    type: boolean
+                    example: true
+                  message:
+                    type: string
+                    example: "Account and all data deleted successfully"
+        '400':
+          description: Invalid request or confirmation
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Invalid confirmation phrase"
+        '401':
+          description: Unauthorized
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Authentication required"
+        '500':
+          description: Server error
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  error:
+                    type: string
+                    example: "Failed to delete account"
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT</content>
+<parameter name="filePath">/Users/novafluxx/Documents/Projects/HighNotes/specs/002-delete-account-the/contracts/account-deletion.yaml

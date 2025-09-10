@@ -7,8 +7,7 @@
     "dev": "nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
-    "postinstall": "nuxt prepare",
-    "test": "vitest"
+    "postinstall": "nuxt prepare"
   },
   "dependencies": {
     "@noble/hashes": "^2.0.0",
@@ -28,7 +27,6 @@
   },
   "devDependencies": {
     "@iconify-json/lucide": "^1.2.66",
-    "@nuxt/test-utils": "^3.19.2",
     "@tailwindcss/typography": "^0.5.16",
     "@tailwindcss/vite": "^4.1.13",
     "@types/lodash-es": "^4.17.12",
@@ -37,7 +35,6 @@
     "dotenv": "^17.2.2",
     "supabase": "^2.40.7",
     "tailwindcss": "^4.1.13",
-    "vitest": "^3.2.4",
     "vue-tsc": "^3.0.6"
   },
   "packageManager": "pnpm@10.15.1"

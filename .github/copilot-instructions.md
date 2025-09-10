@@ -48,7 +48,5 @@ Search examples to reference while coding
 
 If uncertain, prefer the existing behavior in `useNotes.ts` and `useOfflineNotes.ts` over changing approach.
 
-Questions for you
-- Anything missing or any internal workflows you'd like codified (CI, local function deploy steps, linting rules)?
-
-— End of file
+## Recent Changes
+- 002-delete-account-the: Added account deletion functionality using Supabase auth.admin.deleteUser() with cascade data deletion and offline queue handling

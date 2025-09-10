@@ -133,6 +133,7 @@ const dropdownItems = computed<DropdownItem[][]>(() => {
       [{ label: user.value?.email || 'Account', slot: 'account', disabled: true }],
       [
         { label: 'Notes', icon: 'lucide:pencil', to: '/notes' },
+        { label: 'Settings', icon: 'lucide:settings', to: '/settings' },
         { label: 'Changelog', icon: 'lucide:clipboard-list', to: '/changelog' },
         { label: 'Logout', icon: 'lucide:log-out', onSelect: handleLogout },
       ],
