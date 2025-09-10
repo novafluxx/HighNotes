@@ -647,14 +647,13 @@ export function useNotes() {
             }
           }
           if (item.type === 'delete-account' && item.data?.confirmation) {
-            // Process queued account deletion
+            // Process queued account deletion inline to avoid circular dependency
             const { data, error } = await client.functions.invoke('delete-account', {
               body: { confirmation: item.data.confirmation }
             });
             
             if (data?.success) {
-              // Account deletion successful - the user will be logged out
-              // Local cleanup will happen in the useAccountDeletion composable
+              // Account deletion successful - local cleanup will happen on logout
               console.log('Queued account deletion processed successfully');
             } else {
               console.error('Failed to process queued account deletion:', error);

@@ -1,4 +1,4 @@
-import { ref } from 'vue'
+import { ref, readonly } from 'vue'
 
 interface DeleteAccountResult {
   success: boolean
@@ -9,8 +9,7 @@ export const useAccountDeletion = () => {
   const supabase = useSupabaseClient()
   const user = useSupabaseUser()
   const router = useRouter()
-  const { clearAllOfflineData, enqueueOperation } = useOfflineNotes()
-  const { unsubscribeFromNotes } = useNotes()
+  const { clearAllOfflineData, enqueueOperation, readQueueFIFO, clearQueueItems } = useOfflineNotes()
 
   const isDeleting = ref(false)
 
@@ -76,9 +75,6 @@ export const useAccountDeletion = () => {
 
   const cleanupLocalData = async () => {
     try {
-      // Unsubscribe from realtime updates
-      await unsubscribeFromNotes()
-      
       // Clear all offline data (notes cache and queue)
       await clearAllOfflineData()
       
@@ -88,16 +84,65 @@ export const useAccountDeletion = () => {
     }
   }
 
-  const processQueuedDeletion = async () => {
-    // This will be called when the app comes back online
-    // The useOfflineNotes composable will handle processing queued operations
-    console.log('Processing queued account deletion')
+  const processQueuedDeletion = async (item: any): Promise<boolean> => {
+    if (!item.data?.confirmation) {
+      console.error('Missing confirmation data for queued account deletion')
+      return false
+    }
+
+    try {
+      // Process queued account deletion
+      const { data, error } = await supabase.functions.invoke('delete-account', {
+        body: { confirmation: item.data.confirmation }
+      })
+
+      if (data?.success) {
+        // Account deletion successful - clean up local data
+        await cleanupLocalData()
+        console.log('Queued account deletion processed successfully')
+        return true
+      } else {
+        console.error('Failed to process queued account deletion:', error)
+        return false
+      }
+    } catch (error) {
+      console.error('Error processing queued account deletion:', error)
+      return false
+    }
+  }
+
+  const processQueuedDeletionsForUser = async (userId: string): Promise<string[]> => {
+    const processed: string[] = []
+
+    try {
+      const queueItems = await readQueueFIFO(userId)
+      const accountDeletionItems = queueItems.filter(item => item.type === 'delete-account')
+
+      for (const item of accountDeletionItems) {
+        const success = await processQueuedDeletion(item)
+        if (success) {
+          processed.push(item.id)
+        } else {
+          // Stop on first failure to preserve order
+          break
+        }
+      }
+
+      if (processed.length) {
+        await clearQueueItems(processed)
+      }
+    } catch (error) {
+      console.error('Error processing queued account deletions:', error)
+    }
+
+    return processed
   }
 
   return {
     deleteAccount,
     isDeleting: readonly(isDeleting),
     cleanupLocalData,
-    processQueuedDeletion
+    processQueuedDeletion,
+    processQueuedDeletionsForUser
   }
 }
