@@ -10,6 +10,17 @@
 
       <UCard>
         <template #header>
+          <strong class="font-semibold">September 10, 2025</strong>
+        </template>
+        <ul class="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-600 dark:text-gray-300">
+          <li><strong>Account deletion</strong>: Added the ability to permanently delete your account and all associated notes, with full offline queue support and secure Supabase integration.</li>
+          <li><strong>Offline queue improvements</strong>: Ensured account deletion and related operations are handled robustly when offline, with proper queue processing and error handling.</li>
+          <li><strong>UX & feedback</strong>: Improved confirmation dialogs and error toasts for destructive actions. Updated documentation and help text for account management.</li>
+        </ul>
+      </UCard>
+
+      <UCard>
+        <template #header>
           <strong class="font-semibold">August 9, 2025</strong>
         </template>
         <ul class="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-600 dark:text-gray-300">
