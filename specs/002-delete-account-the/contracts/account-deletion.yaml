@@ -20,7 +20,7 @@ paths:
               properties:
                 confirmation:
                   type: string
-                  enum: ["DELETE_MY_ACCOUNT"]
+                  enum: ["DELETE"]
                   description: Confirmation phrase to prevent accidental deletion
               required:
                 - confirmation
