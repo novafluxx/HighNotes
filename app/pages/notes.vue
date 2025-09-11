@@ -48,7 +48,7 @@
               </template>
             </UInput>
             <ClientOnly>
-              <UButton label="New Note" @click.prevent="createNewNote" :loading="loading" block>
+              <UButton label="New Note" @click.prevent="createNewNoteAndCloseSidebar" :loading="loading" block>
                 <template #leading>
                   <Icon name="lucide:plus-circle" class="size-5" />
                 </template>
@@ -67,7 +67,7 @@
               <button 
                 v-for="note in notes" 
                 :key="note.id!" 
-                @click.prevent="selectNote(note)" 
+                @click.prevent="selectNoteAndCloseSidebar(note)" 
                 :disabled="loading && selectedNote?.id === note.id"
                 class="w-full text-left p-2 rounded-md transition-colors duration-150 ease-in-out focus:outline-none focus-visible:ring-2 focus-visible:ring-primary-500"
                 :class="[
