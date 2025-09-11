@@ -52,8 +52,8 @@ importers:
         version: 4.5.1(vue@3.5.21(typescript@5.9.2))
     devDependencies:
       '@iconify-json/lucide':
-        specifier: ^1.2.66
-        version: 1.2.66
+        specifier: ^1.2.67
+        version: 1.2.67
       '@tailwindcss/typography':
         specifier: ^0.5.16
         version: 0.5.16(tailwindcss@4.1.13)
@@ -806,8 +806,8 @@ packages:
   '@floating-ui/vue@1.1.9':
     resolution: {integrity: sha512-BfNqNW6KA83Nexspgb9DZuz578R7HT8MZw1CfK9I6Ah4QReNWEJsXWHN+SdmOVLNGmTPDi+fDT535Df5PzMLbQ==}
 
-  '@iconify-json/lucide@1.2.66':
-    resolution: {integrity: sha512-TrhmfThWY2FHJIckjz7g34gUx3+cmja61DcHNdmu0rVDBQHIjPMYO1O8mMjoDSqIXEllz9wDZxCqT3lFuI+f/A==}
+  '@iconify-json/lucide@1.2.67':
+    resolution: {integrity: sha512-YVLDYbFbX0cPxl6p9l55igm+UljlOCj0CQKwN3BoEbD3KOmDMtQumw2TGuWAE9JWURL5U6v/1oFXyKgEZDGSkQ==}
 
   '@iconify/collections@1.0.592':
     resolution: {integrity: sha512-Lu/ztAD4iqvRZ8b7zNqh2lnwEFQ/uzrKfgHpuPOzNPeTKb5Kj+6EFPfUpzjWd//CusGRaWbHyaBNdPKti0wlMQ==}
@@ -6127,7 +6127,7 @@ snapshots:
       - '@vue/composition-api'
       - vue
 
-  '@iconify-json/lucide@1.2.66':
+  '@iconify-json/lucide@1.2.67':
     dependencies:
       '@iconify/types': 2.0.0
 
