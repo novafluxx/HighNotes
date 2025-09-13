@@ -41,6 +41,8 @@ export default defineNuxtConfig({
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' }
       ]
     },
+    // Enable native View Transition API for smoother route changes (supported browsers only)
+    //viewTransition: true,
     // Global page transition (can be overridden per-page with definePageMeta)
     pageTransition: {
       name: 'page',

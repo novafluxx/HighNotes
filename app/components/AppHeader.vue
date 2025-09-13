@@ -50,6 +50,9 @@
             <span class="font-medium">Preparing offline ({{ prefetch.done }}/{{ prefetch.total }})</span>
           </div>
         </Transition>
+        <template #fallback>
+          <div style="height:32px"></div>
+        </template>
       </ClientOnly>
 
       <!-- Theme Toggle -->
