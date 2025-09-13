@@ -152,7 +152,15 @@ const editor = useEditor({
     StarterKit,
     CharacterCount.configure({
       limit: props.CONTENT_MAX_LENGTH,
-      mode: 'nodeSize',
+      // Only count visible characters, not HTML tags/structure
+      textCounter: (text) => {
+        // Use Intl.Segmenter for accurate grapheme counting (visible chars)
+        if (typeof Intl !== 'undefined' && Intl.Segmenter) {
+          return [...new Intl.Segmenter().segment(text)].length;
+        }
+        // Fallback: count code points
+        return Array.from(text).length;
+      },
     }),
   ],
   content: note.value?.content,

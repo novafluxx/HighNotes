@@ -58,7 +58,8 @@ export function useNotes() {
     return titleChanged || contentChanged;
   });
   const TITLE_MAX_LENGTH = 255;
-  const CONTENT_MAX_LENGTH = 10000; // Reverted to a more reasonable value for text content
+  // Limit visible characters to 5000 for frontend, but DB allows up to 10000 (HTML included)
+  const CONTENT_MAX_LENGTH = 5000;
 
   const isTitleTooLong = computed(() => {
     return (selectedNote.value?.title?.length ?? 0) >= TITLE_MAX_LENGTH;
