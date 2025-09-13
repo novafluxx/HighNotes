@@ -11,6 +11,16 @@
 
       <UCard>
         <template #header>
+          <strong class="font-semibold">September 12, 2025</strong>
+        </template>
+        <ul class="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-600 dark:text-gray-300">
+          <li><strong>Character counting & limits</strong>: Updated character counting logic.</li>
+          <li><strong>UI & style enhancements</strong>: Added gradient backgrounds, improved focus styles, and introduced new animations across multiple pages for a more modern look.</li>
+          <li><strong>Landing page & header</strong>: Enhanced the landing page and app header with updated styles and animations.</li>
+        </ul>
+      </UCard>
+      <UCard>
+        <template #header>
           <strong class="font-semibold">September 10, 2025</strong>
         </template>
         <ul class="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-600 dark:text-gray-300">
