@@ -3,20 +3,68 @@
     <!-- Show form only if a note is selected -->
     <template v-if="note">
       <UForm :state="note" @submit.prevent="emit('save')" class="space-y-4">
-        <!-- Title Input -->
-        <UFormField label="Title" name="title">
-          <UInput
-            v-model="note.title"
-            required
-            :disabled="loading"
-            :maxlength="TITLE_MAX_LENGTH"
-            placeholder="Note Title"
-          />
-          <span class="text-xs text-gray-400 mt-1 block">{{ note.title?.length || 0 }} / {{ TITLE_MAX_LENGTH }}</span>
-          <template #error>
-             <span v-if="isTitleTooLong" class="text-red-500 text-xs">Title cannot exceed {{ TITLE_MAX_LENGTH }} characters.</span>
-          </template>
-        </UFormField>
+        <!-- Title + Actions Header -->
+        <div class="flex flex-col gap-2 sm:flex-row sm:items-center sm:gap-4">
+          <!-- Title Input (max-w-xl on desktop, full width on mobile) -->
+          <div class="w-full sm:max-w-xl">
+            <UFormField label="Title" name="title">
+              <UInput
+                v-model="note.title"
+                required
+                :disabled="loading"
+                :maxlength="TITLE_MAX_LENGTH"
+                placeholder="Note Title"
+                class="w-full"
+              />
+              <span class="text-xs text-gray-400 mt-1 block">{{ note.title?.length || 0 }} / {{ TITLE_MAX_LENGTH }}</span>
+              <template #error>
+                 <span v-if="isTitleTooLong" class="text-red-500 text-xs">Title cannot exceed {{ TITLE_MAX_LENGTH }} characters.</span>
+              </template>
+            </UFormField>
+          </div>
+
+          <!-- Action Buttons: aligned with title input -->
+          <div class="flex flex-row gap-2 w-full sm:w-auto sm:justify-end sm:items-center">
+            <UButton
+              type="button"
+              label="Close"
+              color="neutral"
+              variant="outline"
+              @click="emit('close')"
+              :disabled="loading"
+              class="flex-1 sm:flex-none h-[42px] px-4"
+            >
+              <template #leading>
+                <Icon name="lucide:x-circle" class="w-5 h-5" />
+              </template>
+            </UButton>
+            <UButton
+              type="button"
+              label="Delete"
+              color="error"
+              variant="soft"
+              @click="emit('delete')"
+              :disabled="!note.id || loading"
+              :loading="loading"
+              class="flex-1 sm:flex-none h-[42px] px-4"
+            >
+              <template #leading>
+                <Icon name="lucide:trash" class="w-5 h-5" />
+              </template>
+            </UButton>
+            <UButton
+              type="submit"
+              label="Save"
+              :disabled="isSaveDisabled"
+              :loading="loading"
+              class="flex-1 sm:flex-none h-[42px] px-4"
+            >
+              <template #leading>
+                <Icon name="lucide:check-circle" class="w-5 h-5" />
+              </template>
+            </UButton>
+          </div>
+        </div>
 
         <!-- Content Editor -->
         <UFormField label="Content" name="content">
@@ -63,44 +111,7 @@
           </div>
         </UFormField>
 
-        <!-- Action Buttons -->
-        <div class="flex justify-end space-x-3 pt-4 border-t border-gray-200 dark:border-gray-700">
-          <UButton
-            type="button"
-            label="Close"
-            color="neutral"
-            variant="outline"
-            @click="emit('close')"
-            :disabled="loading"
-          >
-            <template #leading>
-              <Icon name="lucide:x-circle" class="w-5 h-5" />
-            </template>
-          </UButton>
-          <UButton
-            type="button"
-            label="Delete"
-            color="error"
-            variant="soft"
-            @click="emit('delete')"
-            :disabled="!note.id || loading"
-            :loading="loading"
-          >
-            <template #leading>
-              <Icon name="lucide:trash" class="w-5 h-5" />
-            </template>
-          </UButton>
-          <UButton
-            type="submit"
-            label="Save"
-            :disabled="isSaveDisabled"
-            :loading="loading"
-          >
-            <template #leading>
-              <Icon name="lucide:check-circle" class="w-5 h-5" />
-            </template>
-          </UButton>
-        </div>
+        <!-- (Action buttons moved to header) -->
       </UForm>
     </template>
     <!-- Placeholder when no note is selected -->
@@ -222,9 +233,16 @@ const isContentTooLong = computed(() => {
   color: #fff;
 }
 
+
 .ProseMirror {
   padding: 0.5rem;
-  min-height: 200px;
+  min-height: 120px;
+}
+
+@media (min-width: 640px) {
+  .ProseMirror {
+    min-height: 200px;
+  }
 }
 
 .ProseMirror:focus {
