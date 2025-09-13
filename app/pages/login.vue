@@ -1,9 +1,11 @@
 <template>
-  <div>
+  <div class="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900">
     <!-- Use Tailwind for centering and padding -->
     <main class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <!-- UCard provides a container -->
-      <UCard class="max-w-md w-full space-y-8">
+      <UCard
+        class="max-w-md w-full space-y-8 bg-white/80 dark:bg-gray-900/80 shadow-xl border border-gray-200 dark:border-gray-800 rounded-2xl ring-1 ring-blue-100 dark:ring-blue-900/30 backdrop-blur-md"
+      >
         <template #header>
           <h1 class="text-center text-2xl font-bold text-gray-900 dark:text-white">Sign In</h1>
           <h2 class="mt-2 text-center text-sm text-gray-600 dark:text-gray-300">Access your High Notes</h2>
@@ -12,7 +14,7 @@
         <!-- UForm for structure and potential validation -->
         <UForm :state="{ email, password }" class="space-y-6 mx-auto max-w-sm w-full flex flex-col items-center" @submit="login">
           <UFormField label="Email Address" name="email" required>
-            <UInput v-model="email" type="email" placeholder="you@example.com" autocomplete="email">
+            <UInput v-model="email" type="email" placeholder="you@example.com" autocomplete="email" class="focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 ring-offset-white dark:ring-offset-gray-900">
               <template #leading>
                 <Icon name="lucide:mail" class="w-5 h-5" />
               </template>
@@ -20,7 +22,7 @@
           </UFormField>
 
           <UFormField label="Password" name="password" required>
-            <UInput v-model="password" type="password" placeholder="Password" autocomplete="current-password">
+            <UInput v-model="password" type="password" placeholder="Password" autocomplete="current-password" class="focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 ring-offset-white dark:ring-offset-gray-900">
               <template #leading>
                 <Icon name="lucide:lock" class="w-5 h-5" />
               </template>
@@ -43,7 +45,7 @@
             </template>
           </UAlert>
 
-          <UButton type="submit" block label="Login" :loading="loading" />
+          <UButton type="submit" block label="Login" :loading="loading" class="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 ring-offset-white dark:ring-offset-gray-900" />
         </UForm>
 
         <template #footer>

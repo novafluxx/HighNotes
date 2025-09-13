@@ -1,7 +1,7 @@
 <template>
-  <header class="relative bg-white/80 dark:bg-gray-900/80 backdrop-blur-lg border-b border-gray-200/50 dark:border-gray-700/50 px-4 py-3 flex justify-between items-center shadow-sm">
-    <!-- Subtle gradient overlay -->
-    <div class="absolute inset-0 bg-gradient-to-r from-blue-50/30 via-transparent to-purple-50/30 dark:from-blue-900/10 dark:via-transparent dark:to-purple-900/10 pointer-events-none"></div>
+  <header class="relative z-50 bg-transparent px-4 py-3 flex justify-between items-center">
+    <!-- Bottom divider line -->
+    <div aria-hidden="true" class="pointer-events-none absolute inset-x-0 bottom-0 h-px bg-gradient-to-r from-transparent via-gray-300/60 to-transparent dark:via-gray-600/60"></div>
     
     <!-- Left side: Hamburger and Title -->
     <div class="relative z-10 flex items-center gap-4">
@@ -12,13 +12,13 @@
         variant="ghost"
         aria-label="Open sidebar"
         @click="toggleSidebar"
-        class="hover:bg-gray-100/70 dark:hover:bg-gray-800/70"
+        class="hover:bg-gray-100/70 dark:hover:bg-gray-800/70 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 ring-offset-white dark:ring-offset-gray-900"
       >
         <Icon name="lucide:menu" class="w-5 h-5" />
       </UButton>
       
-      <!-- Logo and Title -->
-  <NuxtLink to="/" class="group flex items-center gap-3">
+    <!-- Logo and Title (hidden on home route) -->
+  <NuxtLink v-if="route.path !== '/'" to="/" class="group flex items-center gap-3 rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 ring-offset-white dark:ring-offset-gray-900">
         <!-- Logo Icon -->
         <div class="w-8 h-8 bg-gradient-to-r from-blue-500 to-purple-600 rounded-lg shadow-lg shadow-blue-500/25 dark:shadow-blue-500/40 flex items-center justify-center group-hover:shadow-lg group-hover:shadow-blue-500/40">
           <svg class="w-4 h-4 text-white" fill="currentColor" viewBox="0 0 24 24">
@@ -106,7 +106,7 @@
           <UButton 
             variant="ghost" 
             square 
-            class="rounded-xl w-10 h-10 flex items-center justify-center hover:bg-gray-100/70 dark:hover:bg-gray-800/70 group" 
+            class="rounded-xl w-10 h-10 flex items-center justify-center hover:bg-gray-100/70 dark:hover:bg-gray-800/70 group focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 ring-offset-white dark:ring-offset-gray-900" 
             aria-label="User menu"
           >
             <UAvatar 

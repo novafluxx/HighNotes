@@ -1,5 +1,5 @@
 <template>
-  <div class="min-h-screen bg-gray-50 dark:bg-gray-900">
+  <div class="min-h-screen relative overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900">
     <div class="max-w-4xl mx-auto py-8 px-4 sm:px-6 lg:px-8">
       <div class="bg-white dark:bg-gray-800 shadow rounded-lg">
         <!-- Header -->

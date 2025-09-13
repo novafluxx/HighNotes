@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900">
     
     <main class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
       <UCard class="max-w-md w-full space-y-8">
@@ -13,7 +13,7 @@
         <!-- Password Reset Form -->
         <UForm v-if="showReset" :state="{ newPassword }" class="space-y-6" @submit="submitNewPassword">
           <UFormField label="New Password" name="newPassword" required help="Minimum 8 characters">
-            <UInput v-model="newPassword" type="password" placeholder="Enter new password" :disabled="!!successMsg">
+            <UInput v-model="newPassword" type="password" placeholder="Enter new password" :disabled="!!successMsg" class="focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 ring-offset-white dark:ring-offset-gray-900">
               <template #leading>
                 <Icon name="lucide:lock" class="w-5 h-5" />
               </template>
@@ -46,7 +46,7 @@
             </template>
           </UAlert>
 
-          <UButton type="submit" block label="Set New Password" :loading="loading" :disabled="!!successMsg" />
+          <UButton type="submit" block label="Set New Password" :loading="loading" :disabled="!!successMsg" class="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 ring-offset-white dark:ring-offset-gray-900" />
         </UForm>
 
         <!-- Checking Credentials / Loading State -->

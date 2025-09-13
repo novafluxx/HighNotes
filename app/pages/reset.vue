@@ -1,5 +1,5 @@
 <template>
-  <div>
+  <div class="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900">
     
     <!-- Use Tailwind for centering and padding -->
     <main class="min-h-screen flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
@@ -13,7 +13,7 @@
         <!-- UForm for structure -->
         <UForm :state="{ email }" class="space-y-6 mx-auto max-w-sm w-full flex flex-col items-center" @submit="resetPassword">
           <UFormField label="Email Address" name="email" required>
-            <UInput v-model="email" type="email" placeholder="you@example.com" :disabled="!!successMsg">
+            <UInput v-model="email" type="email" placeholder="you@example.com" :disabled="!!successMsg" class="focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 ring-offset-white dark:ring-offset-gray-900">
               <template #leading>
                 <Icon name="lucide:mail" class="w-5 h-5" />
               </template>
@@ -49,7 +49,7 @@
           </UAlert>
 
           <!-- Disable button if success message is shown -->
-          <UButton type="submit" block label="Send Reset Link" :loading="loading" :disabled="!!successMsg" />
+          <UButton type="submit" block label="Send Reset Link" :loading="loading" :disabled="!!successMsg" class="focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 ring-offset-white dark:ring-offset-gray-900" />
         </UForm>
 
         <template #footer>

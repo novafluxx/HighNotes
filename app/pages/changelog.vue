@@ -1,6 +1,7 @@
 <template>
-  <div class="flex justify-center h-full min-h-0 max-h-full overflow-auto ios-scroll py-8 px-4">
-    <div class="w-full max-w-2xl space-y-4">
+  <div class="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900">
+    <div class="flex justify-center h-full min-h-0 max-h-full overflow-auto ios-scroll py-8 px-4">
+      <div class="w-full max-w-2xl space-y-4">
       <UCard>
         <template #header>
           <h1 class="text-2xl font-bold text-center">Changelog</h1>
@@ -52,6 +53,7 @@
           <li>Introduced a rich text editor with character limits.</li>
         </ul>
       </UCard>
+      </div>
     </div>
   </div>
 </template>

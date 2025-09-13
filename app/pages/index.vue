@@ -2,7 +2,7 @@
   <div
     class="relative min-h-screen overflow-hidden bg-gradient-to-br from-slate-50 via-white to-blue-50 dark:from-gray-900 dark:via-gray-800 dark:to-blue-900">
     <!-- Animated background elements -->
-    <div class="absolute inset-0 overflow-hidden">
+  <div class="absolute inset-0 overflow-hidden pointer-events-none -z-10" aria-hidden="true">
       <div
         class="absolute -top-40 -right-40 w-80 h-80 bg-blue-400/20 dark:bg-blue-400/10 rounded-full blur-3xl animate-pulse">
       </div>
@@ -21,7 +21,7 @@
         <!-- Icon/Logo area -->
         <div class="mb-8">
           <div
-            class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-lg shadow-blue-500/25 dark:shadow-blue-500/40 mb-6 transform hover:scale-105 transition-transform duration-300">
+            class="inline-flex items-center justify-center w-20 h-20 bg-gradient-to-r from-blue-500 to-purple-600 rounded-2xl shadow-lg shadow-blue-500/25 dark:shadow-blue-500/40 mb-6">
             <svg class="w-10 h-10 text-white" fill="currentColor" viewBox="0 0 24 24">
               <path d="M14,2H6A2,2 0 0,0 4,4V20A2,2 0 0,0 6,22H18A2,2 0 0,0 20,20V8L14,2M18,20H6V4H13V9H18V20Z" />
             </svg>
@@ -48,7 +48,7 @@
           </UButton>
 
           <UButton @click="navigateTo('/signup')" variant="ghost" size="xl"
-            class="min-w-[200px] border-2 border-gray-300 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 transition-all duration-200">
+            class="min-w-[200px] border-2 border-gray-300 dark:border-gray-600 hover:border-blue-500 dark:hover:border-blue-400 hover:bg-blue-50 dark:hover:bg-blue-900/20 hover:ring-1 hover:ring-blue-200 dark:hover:ring-blue-900/40 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-blue-500/40 focus-visible:ring-offset-2 ring-offset-white dark:ring-offset-gray-900">
             <span class="font-semibold">Sign Up Free</span>
           </UButton>
         </div>
