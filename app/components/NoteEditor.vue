@@ -236,12 +236,15 @@ const isContentTooLong = computed(() => {
 
 .ProseMirror {
   padding: 0.5rem;
-  min-height: 120px;
+  min-height: 160px;
+  max-height: 160px;
+  overflow-y: auto;
 }
 
 @media (min-width: 640px) {
   .ProseMirror {
     min-height: 200px;
+    max-height: 200px;
   }
 }
 
