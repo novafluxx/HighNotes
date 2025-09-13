@@ -15,3 +15,28 @@
 .ios-scroll {
   -webkit-overflow-scrolling: touch;
 }
+
+/* Nuxt global page transition (name: 'page') */
+.page-enter-active,
+.page-leave-active {
+  transition: opacity 200ms ease, transform 200ms ease, filter 200ms ease;
+}
+.page-enter-from,
+.page-leave-to {
+  opacity: 0;
+  transform: translateY(8px);
+  filter: blur(2px);
+}
+
+/* Respect user reduced motion preferences */
+@media (prefers-reduced-motion: reduce) {
+  .page-enter-active,
+  .page-leave-active {
+    transition: none !important;
+  }
+  .page-enter-from,
+  .page-leave-to {
+    transform: none !important;
+    filter: none !important;
+  }
+}

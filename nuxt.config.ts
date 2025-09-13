@@ -1,4 +1,5 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
+import tailwindcss from '@tailwindcss/vite'
 
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
@@ -39,13 +40,20 @@ export default defineNuxtConfig({
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
         { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' }
       ]
+    },
+    // Global page transition (can be overridden per-page with definePageMeta)
+    pageTransition: {
+      name: 'page',
+      mode: 'out-in'
     }
   },
   css: [
     '~/assets/css/main.css'
   ],
   vite: {
-    // Remove the plugins array for tailwindcss, Vite will pick up tailwind via PostCSS config
+    plugins: [
+      tailwindcss()
+    ]
   },
   nitro: {
     externals: {
