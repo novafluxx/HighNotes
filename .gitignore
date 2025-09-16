@@ -33,10 +33,36 @@ logs
 
 # VSCode MCP
 .vscode/mcp.json
+.vscode/settings.json
 
 # Playwright
 /test-results/
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Additional Security Patterns
+*.key
+*.pem
+*.p12
+*.pfx
 .env
+.env.local
+.env.production
+.env.development
+*.secret
+secrets.json
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+
+# IDE files
+.vscode/settings.json
+.vscode/launch.json
+.vscode/extensions.json
+.idea/
+*.swp
+*.swo
+*~
