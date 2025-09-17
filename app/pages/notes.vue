@@ -137,62 +137,64 @@
           <!-- Empty fallback to prevent flash -->
         </template>
       </ClientOnly>
-      <NoteEditor
-        v-if="selectedNote"
-        v-model:modelValue="selectedNote"
-        v-model:content="currentEditorContent"
-        :loading="loading"
-        :is-save-disabled="isSaveDisabled"
-        :is-title-too-long="isTitleTooLong"
-        :is-content-too-long="isContentTooLong"
-        :TITLE_MAX_LENGTH="TITLE_MAX_LENGTH"
-        :CONTENT_MAX_LENGTH="CONTENT_MAX_LENGTH"
-        @save="saveNote"
-        @delete="deleteNote"
-        @close="selectedNote = null"
-        @create-new="createNewNote"
-      />
-      <!-- Empty editor state overlay -->
-      <div
-        v-if="!selectedNote"
-        class="absolute inset-0 flex items-center justify-center p-6"
-        role="region"
-        aria-label="No note selected"
-      >
-        <div class="max-w-md w-full text-center rounded-2xl border border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/50 backdrop-blur-md shadow-lg p-8">
-          <div class="mx-auto mb-4 size-12 rounded-full bg-gradient-to-br from-primary-600 to-fuchsia-500 text-white grid place-items-center shadow">
-            <Icon name="lucide:pen-line" class="size-6" />
-          </div>
-          <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
-            Write something wonderful
-          </h2>
-          <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
-            Create a new note or pick one from the sidebar.
-          </p>
-          <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
-            <UButton 
-              color="primary" 
-              variant="solid" 
-              class="rounded-full bg-gradient-to-r from-primary-600 to-fuchsia-500 text-white border-0 shadow-md hover:shadow-lg"
-              @click.prevent="createNewNoteAndCloseSidebar"
-            >
-              <template #leading>
-                <Icon name="lucide:plus" class="size-5" />
-              </template>
-              Create a note
-            </UButton>
-            <UButton 
-              v-if="isMobile"
-              color="neutral" 
-              variant="soft" 
-              class="rounded-full"
-              @click="sidebarOpen = true"
-            >
-              <template #leading>
-                <Icon name="lucide:panel-left-open" class="size-5" />
-              </template>
-              Open sidebar
-            </UButton>
+      <div class="relative flex-1 overflow-hidden">
+        <NoteEditor
+          v-if="selectedNote"
+          v-model:modelValue="selectedNote"
+          v-model:content="currentEditorContent"
+          :loading="loading"
+          :is-save-disabled="isSaveDisabled"
+          :is-title-too-long="isTitleTooLong"
+          :is-content-too-long="isContentTooLong"
+          :TITLE_MAX_LENGTH="TITLE_MAX_LENGTH"
+          :CONTENT_MAX_LENGTH="CONTENT_MAX_LENGTH"
+          @save="saveNote"
+          @delete="deleteNote"
+          @close="selectedNote = null"
+          @create-new="createNewNote"
+        />
+        <!-- Empty editor state overlay -->
+        <div
+          v-if="!selectedNote"
+          class="absolute inset-0 flex items-center justify-center p-6"
+          role="region"
+          aria-label="No note selected"
+        >
+          <div class="max-w-md w-full text-center rounded-2xl border border-gray-200/70 dark:border-gray-800/70 bg-white/70 dark:bg-gray-900/50 backdrop-blur-md shadow-lg p-8">
+            <div class="mx-auto mb-4 size-12 rounded-full bg-gradient-to-br from-primary-600 to-fuchsia-500 text-white grid place-items-center shadow">
+              <Icon name="lucide:pen-line" class="size-6" />
+            </div>
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-white">
+              Write something wonderful
+            </h2>
+            <p class="mt-2 text-sm text-gray-500 dark:text-gray-400">
+              Create a new note or pick one from the sidebar.
+            </p>
+            <div class="mt-6 flex flex-wrap items-center justify-center gap-3">
+              <UButton 
+                color="primary" 
+                variant="solid" 
+                class="rounded-full bg-gradient-to-r from-primary-600 to-fuchsia-500 text-white border-0 shadow-md hover:shadow-lg"
+                @click.prevent="createNewNoteAndCloseSidebar"
+              >
+                <template #leading>
+                  <Icon name="lucide:plus" class="size-5" />
+                </template>
+                Create a note
+              </UButton>
+              <UButton 
+                v-if="isMobile"
+                color="neutral" 
+                variant="soft" 
+                class="rounded-full"
+                @click="sidebarOpen = true"
+              >
+                <template #leading>
+                  <Icon name="lucide:panel-left-open" class="size-5" />
+                </template>
+                Open sidebar
+              </UButton>
+            </div>
           </div>
         </div>
       </div>
