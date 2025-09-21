@@ -1,11 +1,20 @@
 // https://nuxt.com/docs/api/configuration/nuxt-config
 import tailwindcss from '@tailwindcss/vite'
 
+const supabaseUrl = process.env.SUPABASE_URL
+let supabaseOrigin: string | undefined
+try {
+  supabaseOrigin = supabaseUrl ? new URL(supabaseUrl).origin : undefined
+} catch {}
+
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: false },
   // Use app directory as source (Nuxt 4 default)
   srcDir: 'app',
+  experimental: {
+    payloadExtraction: true
+  },
   modules: [
     '@nuxt/icon',
     '@nuxtjs/supabase',
@@ -38,7 +47,12 @@ export default defineNuxtConfig({
       title: 'High Notes',
       link: [
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico' },
-        { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' }
+        { rel: 'apple-touch-icon', sizes: '180x180', href: '/apple-touch-icon.png' },
+        // Speed up first Supabase request
+        ...(supabaseOrigin ? [
+          { rel: 'preconnect', href: supabaseOrigin },
+          { rel: 'dns-prefetch', href: supabaseOrigin }
+        ] as any : [])
       ]
     },
     // Enable native View Transition API for smoother route changes (supported browsers only)
@@ -58,8 +72,12 @@ export default defineNuxtConfig({
     ]
   },
   nitro: {
+    compressPublicAssets: true,
     externals: {
       inline: ['@vueuse/core', '@vueuse/shared']
+    },
+    routeRules: {
+      '/**': { cache: { swr: true, maxAge: 60 } }
     }
   },
   pwa: {
@@ -67,11 +85,11 @@ export default defineNuxtConfig({
     workbox: {
       cleanupOutdatedCaches: true,
       navigateFallback: '/',
-      // Consistent precaching for both environments
-      globPatterns: ['**/*.{js,css,html,png,svg,ico}']
+      // Keep precache lean: avoid html to reduce install time on mobile
+      globPatterns: ['**/*.{js,css,png,svg,ico,woff,woff2}']
     },
     devOptions: {
-      enabled: true,
+      enabled: process.env.NODE_ENV !== 'production',
       type: 'classic'
     },
     manifest: {

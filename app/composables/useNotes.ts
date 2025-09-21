@@ -3,7 +3,7 @@ import { useRouter } from 'vue-router';
 import { type Note } from '~/types';
 import type { Database } from '~/types/database.types';
 import { useToast } from '#imports';
-import { debounce } from 'lodash-es';
+import debounce from 'lodash-es/debounce';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useOnline } from '@vueuse/core';
 
@@ -42,7 +42,7 @@ export function useNotes() {
     replaceLocalId,
   } = useOfflineNotes();
   // Background prefetcher for full note content
-  const { prefetchForUser } = useNotesPrefetch();
+  const { schedulePrefetchForUser } = useNotesPrefetch();
   const syncing = ref(false);
   const genLocalId = () => `local-${crypto.randomUUID?.() || Math.random().toString(36).slice(2)}`;
 
@@ -253,10 +253,10 @@ export function useNotes() {
           }
       }
 
-      // Kick off background prefetch of full note content (cap 100)
+      // Defer background prefetch of full note content (cap 100) to idle on fast networks
       if (!loadMore && (!query || query.trim() === '')) {
         try {
-          prefetchForUser(user.value.id, 100);
+          schedulePrefetchForUser(user.value.id, 100);
         } catch {}
       }
 

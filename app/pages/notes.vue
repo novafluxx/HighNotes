@@ -1,8 +1,8 @@
 <template>
   <div class="flex flex-col h-full overflow-hidden">
     <div class="flex flex-1 overflow-hidden relative">
-      <!-- Decorative background blobs -->
-      <div aria-hidden="true" class="pointer-events-none absolute inset-0 -z-10 overflow-hidden">
+      <!-- Decorative background blobs (hidden on small screens to reduce GPU work) -->
+      <div aria-hidden="true" class="pointer-events-none absolute inset-0 -z-10 overflow-hidden hidden sm:block">
         <div class="absolute -top-24 -right-24 h-72 w-72 rounded-full bg-primary-400/20 blur-3xl" />
         <div class="absolute -bottom-24 -left-24 h-72 w-72 rounded-full bg-fuchsia-400/20 blur-3xl" />
       </div>
@@ -138,21 +138,32 @@
         </template>
       </ClientOnly>
       <div class="relative flex-1 overflow-hidden">
-        <NoteEditor
-          v-if="selectedNote"
-          v-model:modelValue="selectedNote"
-          v-model:content="currentEditorContent"
-          :loading="loading"
-          :is-save-disabled="isSaveDisabled"
-          :is-title-too-long="isTitleTooLong"
-          :is-content-too-long="isContentTooLong"
-          :TITLE_MAX_LENGTH="TITLE_MAX_LENGTH"
-          :CONTENT_MAX_LENGTH="CONTENT_MAX_LENGTH"
-          @save="saveNote"
-          @delete="deleteNote"
-          @close="selectedNote = null"
-          @create-new="createNewNote"
-        />
+        <ClientOnly>
+          <Suspense>
+            <template v-if="selectedNote">
+              <NoteEditor
+                v-model:modelValue="selectedNote"
+                v-model:content="currentEditorContent"
+                :loading="loading"
+                :is-save-disabled="isSaveDisabled"
+                :is-title-too-long="isTitleTooLong"
+                :is-content-too-long="isContentTooLong"
+                :TITLE_MAX_LENGTH="TITLE_MAX_LENGTH"
+                :CONTENT_MAX_LENGTH="CONTENT_MAX_LENGTH"
+                @save="saveNote"
+                @delete="deleteNote"
+                @close="selectedNote = null"
+                @create-new="createNewNote"
+              />
+            </template>
+            <template #fallback>
+              <div class="p-4">
+                <USkeleton class="h-10 w-1/2 mb-3" />
+                <USkeleton class="h-40 w-full" />
+              </div>
+            </template>
+          </Suspense>
+        </ClientOnly>
         <!-- Empty editor state overlay -->
         <div
           v-if="!selectedNote"
@@ -238,10 +249,10 @@
 </template>
 
 <script setup lang="ts">
-// --- Imports and Setup --- (Largely unchanged)
+// --- Imports and Setup ---
+import { defineAsyncComponent } from 'vue';
 import { useNotes } from '~/composables/useNotes';
 import { useLayout } from '~/composables/useLayout';
-import NoteEditor from '~/components/NoteEditor.vue';
 import auth from '~/middleware/auth';
 definePageMeta({ middleware: [auth] })
 // --- Use Layout Composable ---
@@ -287,6 +298,9 @@ const createNewNoteAndCloseSidebar = () => {
     sidebarOpen.value = false;
   }
 };
+
+// Lazy-load the heavy TipTap editor only when needed
+const NoteEditor = defineAsyncComponent(() => import('~/components/NoteEditor.vue'));
 
 </script>
 

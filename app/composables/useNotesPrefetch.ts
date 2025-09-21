@@ -96,5 +96,22 @@ export function useNotesPrefetch() {
     }
   }
 
-  return { status, prefetchForUser }
+  // Schedule prefetch at an idle moment and only on fast connections to avoid impacting TTI on mobile
+  const schedulePrefetchForUser = (uid: string, limit = 100) => {
+    if (!isClient) return
+    // Basic network hint
+    const conn = (navigator as any).connection?.effectiveType as string | undefined
+    const isSlow = conn && ['slow-2g', '2g'].includes(conn)
+    if (isSlow) return
+
+    const runner = () => prefetchForUser(uid, limit)
+    if ('requestIdleCallback' in window) {
+      ;(window as any).requestIdleCallback(runner, { timeout: 5000 })
+    } else {
+      // Fallback with a short delay to let hydration/render finish
+      setTimeout(runner, 1500)
+    }
+  }
+
+  return { status, prefetchForUser, schedulePrefetchForUser }
 }
