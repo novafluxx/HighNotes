@@ -11,6 +11,22 @@
 
       <UCard>
         <template #header>
+          <strong class="font-semibold">September 24, 2025</strong>
+        </template>
+        <ul class="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-600 dark:text-gray-300">
+          <li><strong>Nuxt UI 4 Upgrade</strong>: Upgraded to Nuxt UI 4 for enhanced UI components, better performance, and improved user experience.</li>
+          <li><strong>Performance Improvements</strong>: Optimized note prefetching for faster loading, especially on mobile devices.</li>
+          <li><strong>Note Editor Enhancements</strong>: Improved the note editor layout with better button placement and adjusted content height for easier editing.</li>
+          <li><strong>Smooth Navigation</strong>: Added global page transitions for a more fluid and modern browsing experience.</li>
+          <li><strong>Visual Updates</strong>: Enhanced the overall look with gradient backgrounds and refined focus styles across the app.</li>
+          <li><strong>Mobile Experience</strong>: Fixed note creation and selection to properly close the sidebar on mobile devices.</li>
+          <li><strong>Account Management</strong>: Strengthened the account deletion process with improved handling of offline operations.</li>
+          <li><strong>Maintenance</strong>: Updated dependencies and package manager for better stability and security.</li>
+        </ul>
+      </UCard>
+
+      <UCard>
+        <template #header>
           <strong class="font-semibold">September 12, 2025</strong>
         </template>
         <ul class="list-disc list-inside pl-4 mt-1 space-y-1 text-gray-600 dark:text-gray-300">
