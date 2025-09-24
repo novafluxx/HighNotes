@@ -10,14 +10,14 @@
     "postinstall": "nuxt prepare"
   },
   "dependencies": {
-    "@noble/hashes": "^2.0.0",
+    "@noble/hashes": "^2.0.1",
     "@nuxt/icon": "^2.0.0",
-    "@nuxt/ui": "^3.3.4",
+    "@nuxt/ui": "^4.0.0",
     "@nuxtjs/supabase": "^1.6.2",
     "@supabase/supabase-js": "^2.57.4",
-    "@tiptap/extension-character-count": "^3.4.4",
-    "@tiptap/starter-kit": "^3.4.4",
-    "@tiptap/vue-3": "^3.4.4",
+    "@tiptap/extension-character-count": "^3.5.2",
+    "@tiptap/starter-kit": "^3.5.2",
+    "@tiptap/vue-3": "^3.5.2",
     "@vite-pwa/nuxt": "^1.0.4",
     "@vueuse/core": "^13.9.0",
     "idb": "^8.0.3",
@@ -27,15 +27,15 @@
   },
   "devDependencies": {
     "@iconify-json/lucide": "^1.2.68",
-    "@tailwindcss/typography": "^0.5.18",
+    "@tailwindcss/typography": "^0.5.19",
     "@tailwindcss/vite": "^4.1.13",
     "@types/lodash-es": "^4.17.12",
     "@types/node": "^24.5.2",
     "@types/pako": "^2.0.4",
     "dotenv": "^17.2.2",
-    "supabase": "^2.40.7",
+    "supabase": "^2.45.5",
     "tailwindcss": "^4.1.13",
-    "vue-tsc": "^3.0.7"
+    "vue-tsc": "^3.0.8"
   },
   "packageManager": "pnpm@10.17.1"
 }
