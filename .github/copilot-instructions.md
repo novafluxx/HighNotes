@@ -27,7 +27,7 @@ This guide provides concise, actionable instructions for AI coding agents to be 
 - **Account deletion:** Queued if offline, processed via edge function when online (`useAccountDeletion.ts`).
 
 ### Developer Workflows
-- **Install:** `pnpm install` (pnpm@10.14.0+ required)
+- **Install:** `pnpm install` (pnpm@10.17.0+ required)
 - **Dev server:** `pnpm dev` (http://localhost:3000)
 - **Build/preview:** `pnpm build`, `pnpm preview`, static: `pnpm generate`
 - **Supabase MCP:** All DB/function access via Supabase MCP. No local CLI/DB needed. Use `.env` for `SUPABASE_URL`/`SUPABASE_KEY` (see `.env.example`).
