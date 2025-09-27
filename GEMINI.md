@@ -6,7 +6,7 @@ High Notes is a modern note-taking Progressive Web App (PWA) built with Nuxt.js 
 
 **Key Technologies:**
 
-*   **Frontend:** Nuxt.js 4, Vue.js 3, Tailwind CSS 4, Nuxt UI 3
+*   **Frontend:** Nuxt.js 4, Vue.js 3, Tailwind CSS 4, Nuxt UI 4
 *   **Backend:** Supabase (Authentication, Realtime Database, Edge Functions)
 *   **Offline Storage:** IndexedDB
 *   **Testing:** Vitest
@@ -19,7 +19,7 @@ The application follows a client-server architecture. The frontend is a Nuxt.js 
 
 **Prerequisites:**
 
-*   Node.js 18+
+*   Node.js 22+
 *   pnpm
 
 **Installation:**
