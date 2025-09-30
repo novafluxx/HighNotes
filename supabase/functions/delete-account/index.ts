@@ -1,22 +1,79 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2'
+import { createRemoteJWKSet, jwtVerify } from 'npm:jose@5.2.1'
 
 const corsHeaders = {
   'Access-Control-Allow-Origin': '*',
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-Deno.serve(async (req) => {
+const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+const publishableKey = Deno.env.get('EDGE_SUPABASE_PUBLISHABLE_KEY') ?? ''
+
+if (!supabaseUrl || !serviceRoleKey || !publishableKey) {
+  console.error('Missing required environment variables for delete-account function.')
+  throw new Error('Configuration error')
+}
+
+const jwksUrl = new URL('/auth/v1/.well-known/jwks.json', supabaseUrl)
+const jwksClient = createRemoteJWKSet(jwksUrl)
+
+function unauthorizedResponse(message = 'Authentication required') {
+  return new Response(
+    JSON.stringify({ error: message }),
+    {
+      status: 401,
+      headers: { ...corsHeaders, 'Content-Type': 'application/json' }
+    }
+  )
+}
+
+async function verifyRequest(req: Request) {
+  const apiKeyHeader = req.headers.get('apikey')
+  if (!apiKeyHeader || apiKeyHeader !== publishableKey) {
+    throw new Error('Unauthorized')
+  }
+
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) {
+    throw new Error('Unauthorized')
+  }
+
+  const token = authHeader.substring('Bearer '.length).trim()
+  try {
+    const { payload } = await jwtVerify(token, jwksClient, {
+      issuer: `${supabaseUrl}/auth/v1`,
+      audience: 'authenticated',
+    })
+
+    if (!payload.sub || typeof payload.sub !== 'string') {
+      throw new Error('Unauthorized')
+    }
+
+    return {
+      userId: payload.sub,
+      jwt: token,
+    }
+  } catch (error) {
+    console.error('JWT verification failed:', error)
+    throw new Error('Unauthorized')
+  }
+}
+
+Deno.serve(async (req: Request) => {
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
   }
 
   try {
-    // Initialize Supabase client with admin privileges
+    const { userId } = await verifyRequest(req)
+
+    // Use admin client for database operations (RLS bypass needed for deletion)
     const supabaseAdmin = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? '',
+      supabaseUrl,
+      serviceRoleKey,
       {
         auth: {
           autoRefreshToken: false,
@@ -24,48 +81,6 @@ Deno.serve(async (req) => {
         }
       }
     )
-
-    // Get the authorization header
-    const authHeader = req.headers.get('Authorization')
-    if (!authHeader) {
-      return new Response(
-        JSON.stringify({ error: 'Authentication required' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
-
-    // Initialize regular client to verify user session
-    const supabase = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        },
-        global: {
-          headers: {
-            Authorization: authHeader
-          }
-        }
-      }
-    )
-
-    // Verify the user is authenticated
-    const { data: { user }, error: authError } = await supabase.auth.getUser()
-    
-    if (authError || !user) {
-      return new Response(
-        JSON.stringify({ error: 'Authentication required' }),
-        { 
-          status: 401, 
-          headers: { ...corsHeaders, 'Content-Type': 'application/json' } 
-        }
-      )
-    }
 
     // Parse request body
     const { confirmation } = await req.json()
@@ -85,7 +100,7 @@ Deno.serve(async (req) => {
     const { error: notesError } = await supabaseAdmin
       .from('notes')
       .delete()
-      .eq('user_id', user.id)
+      .eq('user_id', userId)
 
     if (notesError) {
       console.error('Error deleting user notes:', notesError)
@@ -99,7 +114,7 @@ Deno.serve(async (req) => {
     }
 
     // Delete the user account using admin client
-    const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(user.id)
+    const { error: deleteUserError } = await supabaseAdmin.auth.admin.deleteUser(userId)
 
     if (deleteUserError) {
       console.error('Error deleting user account:', deleteUserError)
@@ -126,6 +141,10 @@ Deno.serve(async (req) => {
 
   } catch (error) {
     console.error('Unexpected error in delete-account function:', error)
+    if ((error as Error).message === 'Unauthorized') {
+      return unauthorizedResponse()
+    }
+
     return new Response(
       JSON.stringify({ error: 'Failed to delete account' }),
       { 

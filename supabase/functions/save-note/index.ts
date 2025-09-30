@@ -1,6 +1,8 @@
+import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
 import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
 import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import sanitizeHtml from 'npm:sanitize-html'; // Using sanitize-html
+import { createRemoteJWKSet, jwtVerify } from 'npm:jose@5.2.1'
+import sanitizeHtml from 'npm:sanitize-html'
 
 // CORS headers
 const corsHeaders = {
@@ -8,27 +10,71 @@ const corsHeaders = {
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
 }
 
-serve(async (req) => {
+const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
+const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+const publishableKey = Deno.env.get('EDGE_SUPABASE_PUBLISHABLE_KEY') ?? ''
+
+if (!supabaseUrl || !serviceRoleKey || !publishableKey) {
+  console.error('Missing required environment variables for save-note function.')
+  throw new Error('Configuration error')
+}
+
+const jwksUrl = new URL('/auth/v1/.well-known/jwks.json', supabaseUrl)
+const jwksClient = createRemoteJWKSet(jwksUrl)
+
+async function verifyRequest(req: Request) {
+  const apiKeyHeader = req.headers.get('apikey')
+  if (!apiKeyHeader || apiKeyHeader !== publishableKey) {
+    throw new Error('Unauthorized')
+  }
+
+  const authHeader = req.headers.get('Authorization')
+  if (!authHeader?.startsWith('Bearer ')) {
+    throw new Error('Unauthorized')
+  }
+
+  const token = authHeader.substring('Bearer '.length).trim()
+  try {
+    const { payload } = await jwtVerify(token, jwksClient, {
+      issuer: `${supabaseUrl}/auth/v1`,
+      audience: 'authenticated',
+    })
+
+    if (!payload.sub || typeof payload.sub !== 'string') {
+      throw new Error('Unauthorized')
+    }
+
+    return {
+      userId: payload.sub,
+      role: payload.role,
+      jwt: token,
+    }
+  } catch (error) {
+    console.error('JWT verification failed:', error)
+    throw new Error('Unauthorized')
+  }
+}
+
+serve(async (req: Request) => {
   try {
     // Handle CORS preflight requests
     if (req.method === 'OPTIONS') {
       return new Response('ok', { headers: corsHeaders })
     }
 
-    // 1. Create Supabase client with user's auth token
+    const { userId } = await verifyRequest(req)
+
+    // Create Supabase client for database operations (using service role for RLS bypass if needed)
     const supabaseClient = createClient(
-      Deno.env.get('SUPABASE_URL') ?? '',
-      Deno.env.get('SUPABASE_ANON_KEY') ?? '',
+      supabaseUrl,
+      serviceRoleKey,
       {
-        global: { headers: { Authorization: req.headers.get('Authorization')! } },
+        auth: {
+          autoRefreshToken: false,
+          persistSession: false,
+        }
       }
     )
-
-    // 2. Get the user
-    const { data: { user } } = await supabaseClient.auth.getUser()
-    if (!user) {
-      throw new Error('Unauthorized');
-    }
 
     // 3. Get note from request body
     const { note } = await req.json()
@@ -47,7 +93,7 @@ serve(async (req) => {
       id: note.id, // Pass the ID for upsert
       title: note.title,
       content: cleanHtml,
-      user_id: user.id,
+      user_id: userId,
       updated_at: new Date().toISOString(),
     };
     
@@ -69,7 +115,7 @@ serve(async (req) => {
           updated_at: noteToSave.updated_at,
         })
         .eq('id', noteToSave.id)
-        .eq('user_id', user.id)
+        .eq('user_id', userId)
         .select()
         .single();
       savedNote = updateResult.data;
@@ -81,7 +127,7 @@ serve(async (req) => {
         .insert({
           title: noteToSave.title,
           content: noteToSave.content,
-          user_id: user.id,
+          user_id: userId,
           updated_at: noteToSave.updated_at,
         })
         .select()
@@ -101,9 +147,11 @@ serve(async (req) => {
     });
 
   } catch (err) {
-    return new Response(JSON.stringify({ error: err.message }), {
+    const error = err as Error;
+    console.error('Function error:', error);
+    return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
-      status: err.message === 'Unauthorized' ? 401 : 400,
+      status: error.message === 'Unauthorized' ? 401 : 400,
     })
   }
 })

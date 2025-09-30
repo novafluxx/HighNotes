@@ -52,9 +52,14 @@ pnpm preview
 Provide Supabase credentials via environment variables (for example in `.env`):
 
 - `SUPABASE_URL`
-- `SUPABASE_ANON_KEY`
+- `SUPABASE_KEY` — publishable key for the Nuxt client (use anon key locally if preferred)
 
 These are mapped to `runtimeConfig.public.supabaseUrl` and `runtimeConfig.public.supabaseKey` in `nuxt.config.ts`.
+
+Edge Functions require their own secrets (manage with `pnpx supabase secrets set`):
+
+- `SUPABASE_SERVICE_ROLE_KEY`
+- `EDGE_SUPABASE_PUBLISHABLE_KEY` — must match the publishable key used by the frontend
 
 ## Where to look first
 
@@ -77,6 +82,7 @@ These are mapped to `runtimeConfig.public.supabaseUrl` and `runtimeConfig.public
 - Text search uses a `search_vector` in the DB; UI debouncing may ignore very short queries.
 - Realtime channel name pattern: `notes:{userId}` — subscribe/unsubscribe when the user context changes.
 - When changing DB fields, regenerate `types/database.types.ts` with Supabase's type generator and update client typings.
+- Edge Functions validate JWTs against the Supabase JWKS; deploy with `pnpx supabase functions deploy <name> --no-verify-jwt` so the platform doesn't expect legacy verification.
 
 > [!TIP]
 > Start with `app/composables/useNotes.ts` and `app/composables/useOfflineNotes.ts` when adding features — most app behavior is encapsulated there.
