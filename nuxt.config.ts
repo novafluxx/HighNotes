@@ -10,6 +10,7 @@ try {
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: false },
+  ssr: false, // SPA mode for static generation
   // Use app directory as source (Nuxt 4 default)
   srcDir: 'app',
   experimental: {
@@ -72,13 +73,7 @@ export default defineNuxtConfig({
     ]
   },
   nitro: {
-    compressPublicAssets: true,
-    externals: {
-      inline: ['@vueuse/core', '@vueuse/shared']
-    },
-    routeRules: {
-      '/**': { cache: { swr: true, maxAge: 60 } }
-    }
+    compressPublicAssets: true
   },
   pwa: {
     registerType: 'autoUpdate',

@@ -13,7 +13,7 @@
     "@noble/hashes": "^2.0.1",
     "@nuxt/icon": "^2.0.0",
     "@nuxt/ui": "^4.0.0",
-    "@nuxtjs/supabase": "^1.6.2",
+    "@nuxtjs/supabase": "^2.0.0",
     "@supabase/supabase-js": "^2.58.0",
     "@tiptap/extension-character-count": "^3.6.1",
     "@tiptap/starter-kit": "^3.6.1",
@@ -33,7 +33,7 @@
     "@types/node": "^24.5.2",
     "@types/pako": "^2.0.4",
     "dotenv": "^17.2.2",
-    "supabase": "^2.45.5",
+    "supabase": "^2.47.2",
     "tailwindcss": "^4.1.13",
     "vue-tsc": "^3.0.8"
   },
