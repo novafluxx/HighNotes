@@ -1,15 +1,10 @@
 [build]
   command = "pnpm build"
-  publish = ".output/public"
+  publish = "dist"
 
 [build.environment]
   NODE_VERSION = "22"
   NPM_FLAGS = "--version"
-
-[functions]
-  directory = ".output/server"
-  node_bundler = "none"
-  included_files = [".output/server/**"]
 
 [[headers]]
   for = "/manifest.webmanifest"
