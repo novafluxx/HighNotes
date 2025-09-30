@@ -10,7 +10,7 @@ try {
 export default defineNuxtConfig({
   compatibilityDate: '2024-11-01',
   devtools: { enabled: false },
-  ssr: false, // SPA mode for static generation
+  ssr: true, // Universal mode: SSR for public pages, CSR for authenticated pages
   // Use app directory as source (Nuxt 4 default)
   srcDir: 'app',
   experimental: {
@@ -81,7 +81,32 @@ export default defineNuxtConfig({
       cleanupOutdatedCaches: true,
       navigateFallback: '/',
       // Keep precache lean: avoid html to reduce install time on mobile
-      globPatterns: ['**/*.{js,css,png,svg,ico,woff,woff2}']
+      globPatterns: ['**/*.{js,css,png,svg,ico,woff,woff2}'],
+      // Runtime caching for SSR pages and API calls
+      runtimeCaching: [
+        {
+          urlPattern: /^\/$/,
+          handler: 'NetworkFirst',
+          options: {
+            cacheName: 'pages-cache',
+            expiration: {
+              maxEntries: 10,
+              maxAgeSeconds: 24 * 60 * 60 // 24 hours
+            }
+          }
+        },
+        {
+          urlPattern: /^\/(login|signup|reset|confirm|changelog)$/,
+          handler: 'NetworkFirst',
+          options: {
+            cacheName: 'public-pages-cache',
+            expiration: {
+              maxEntries: 10,
+              maxAgeSeconds: 24 * 60 * 60 // 24 hours
+            }
+          }
+        }
+      ]
     },
     devOptions: {
       enabled: process.env.NODE_ENV !== 'production',

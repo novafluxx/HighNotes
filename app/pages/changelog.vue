@@ -85,4 +85,7 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({
+  ssr: true // Enable SSR for public changelog page
+});
 </script>

@@ -106,6 +106,11 @@
 
 <script setup lang="ts">
 import { ref } from 'vue';
+
+definePageMeta({
+  ssr: true // Enable SSR for public landing page
+});
+
 // Redirect authenticated users to the notes page
 const user = useSupabaseUser();
 

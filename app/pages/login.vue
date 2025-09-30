@@ -69,6 +69,10 @@
 import { ref } from 'vue';
 import { useAuth } from '~/composables/useAuth';
 
+definePageMeta({
+  ssr: true // Enable SSR for public login page
+});
+
 const { login: loginUser, loading } = useAuth();
 const router = useRouter();
 

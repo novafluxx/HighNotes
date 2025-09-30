@@ -149,7 +149,8 @@ import { ref, computed } from 'vue'
 
 // Middleware
 definePageMeta({
-  middleware: 'auth'
+  middleware: 'auth',
+  ssr: false // CSR for authenticated settings page
 })
 
 // Composables

@@ -254,7 +254,10 @@ import { defineAsyncComponent } from 'vue';
 import { useNotes } from '~/composables/useNotes';
 import { useLayout } from '~/composables/useLayout';
 import auth from '~/middleware/auth';
-definePageMeta({ middleware: [auth] })
+definePageMeta({ 
+  middleware: [auth],
+  ssr: false // CSR for authenticated note-taking interface (realtime, IndexedDB)
+})
 // --- Use Layout Composable ---
 const { sidebarOpen, isMobile } = useLayout();
 

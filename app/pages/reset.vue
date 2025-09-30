@@ -66,6 +66,10 @@
 </template>
 
 <script setup lang="ts">
+definePageMeta({
+  ssr: true // Enable SSR for public password reset page
+});
+
 const supabase = useSupabaseClient();
 const email = ref('');
 const successMsg = ref<string | null>(null);

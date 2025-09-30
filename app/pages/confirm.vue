@@ -66,6 +66,10 @@
 import { useRoute, useRouter } from 'vue-router';
 import { watchEffect, ref } from 'vue';
 
+definePageMeta({
+  ssr: true // Enable SSR for public confirmation page
+});
+
 const supabase = useSupabaseClient();
 const route = useRoute();
 const router = useRouter();
