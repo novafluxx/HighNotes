@@ -32,7 +32,7 @@ A lightweight, offline-first note-taking Progressive Web App (PWA) built with Nu
 
 ## Quick start
 
-Prerequisites: Node 18+, pnpm (recommended).
+Prerequisites: Node 22+, pnpm (recommended).
 
 Install and run locally:
 
