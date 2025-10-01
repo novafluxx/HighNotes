@@ -32,8 +32,6 @@ export const useAuth = () => {
     if (!error) {
       // User state will update automatically via useSupabaseUser()
       router.push('/'); // Redirect after logout
-    } else {
-      console.error('Logout error:', error);
     }
     loading.value = false;
   };

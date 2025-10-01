@@ -47,7 +47,6 @@ export const useAccountDeletion = () => {
       })
 
       if (error) {
-        console.error('Account deletion error:', error)
         return { success: false, error: error.message || 'Failed to delete account' }
       }
 
@@ -66,7 +65,6 @@ export const useAccountDeletion = () => {
         return { success: false, error: data?.error || 'Account deletion failed' }
       }
     } catch (error) {
-      console.error('Unexpected error during account deletion:', error)
       return { success: false, error: 'An unexpected error occurred' }
     } finally {
       isDeleting.value = false
@@ -77,16 +75,13 @@ export const useAccountDeletion = () => {
     try {
       // Clear all offline data (notes cache and queue)
       await clearAllOfflineData()
-      
-      console.log('Local data cleaned up successfully')
     } catch (error) {
-      console.error('Error cleaning up local data:', error)
+      // Silent fail - data will be cleared on next login
     }
   }
 
   const processQueuedDeletion = async (item: any): Promise<boolean> => {
     if (!item.data?.confirmation) {
-      console.error('Missing confirmation data for queued account deletion')
       return false
     }
 
@@ -99,14 +94,11 @@ export const useAccountDeletion = () => {
       if (data?.success) {
         // Account deletion successful - clean up local data
         await cleanupLocalData()
-        console.log('Queued account deletion processed successfully')
         return true
       } else {
-        console.error('Failed to process queued account deletion:', error)
         return false
       }
     } catch (error) {
-      console.error('Error processing queued account deletion:', error)
       return false
     }
   }
@@ -132,7 +124,7 @@ export const useAccountDeletion = () => {
         await clearQueueItems(processed)
       }
     } catch (error) {
-      console.error('Error processing queued account deletions:', error)
+      // Silent fail - will retry on next sync
     }
 
     return processed

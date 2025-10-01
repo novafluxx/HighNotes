@@ -261,7 +261,6 @@ export function useNotes() {
       }
 
     } catch (error) {
-      console.error('Error fetching notes:', error);
       toast.add({ title: 'Error fetching notes', description: (error as Error).message, color: 'error', duration: 5000 });
       // Fallback to cache when online fetch fails
       try {
@@ -373,7 +372,6 @@ export function useNotes() {
         await cacheNote(fullNote as Note);
 
       } catch (error) {
-        console.error('Error fetching full note:', error);
         toast.add({ title: 'Error loading note', description: (error as Error).message, color: 'error', duration: 5000 });
         selectedNote.value = null;
         originalSelectedNote.value = null;
@@ -457,7 +455,6 @@ export function useNotes() {
       });
 
       if (error) {
-        console.error('Function error:', error);
         throw new Error(error.message);
       }
 
@@ -485,7 +482,6 @@ export function useNotes() {
       }
 
     } catch (error) {
-      console.error('Error saving note:', error);
       // Fallback to offline on network/server error
       try {
         const nowIso = new Date().toISOString();
@@ -569,7 +565,6 @@ export function useNotes() {
       toast.add({ title: 'Note deleted', icon: 'i-lucide-trash', color: 'info', duration: 2000 });
 
     } catch (error) {
-      console.error('Error deleting note:', error);
       toast.add({ title: 'Error deleting note', description: (error as Error).message, color: 'error', duration: 5000 });
     } finally {
       loading.value = false;
@@ -655,9 +650,7 @@ export function useNotes() {
             
             if (data?.success) {
               // Account deletion successful - local cleanup will happen on logout
-              console.log('Queued account deletion processed successfully');
             } else {
-              console.error('Failed to process queued account deletion:', error);
               // Don't mark as processed so it can be retried
               continue;
             }

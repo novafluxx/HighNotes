@@ -62,7 +62,7 @@ export function useNotesPrefetch() {
         const chunk = toFetch.slice(i, i + chunkSize)
         const { data: full, error: fetchErr } = await client
           .from('notes')
-          .select('*')
+          .select('id, user_id, title, content, created_at, updated_at')
           .in('id', chunk)
           .eq('user_id', uid)
         if (fetchErr) throw fetchErr

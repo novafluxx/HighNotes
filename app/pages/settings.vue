@@ -192,7 +192,6 @@ const confirmDeletion = async () => {
       showNotification('error', result.error || 'Failed to delete account')
     }
   } catch (error) {
-    console.error('Account deletion error:', error)
     showNotification('error', 'An unexpected error occurred')
   } finally {
     isDeleting.value = false

@@ -2,14 +2,32 @@ import "jsr:@supabase/functions-js/edge-runtime.d.ts"
 import { createClient } from 'jsr:@supabase/supabase-js@2'
 import { createRemoteJWKSet, jwtVerify } from 'npm:jose@5.2.1'
 
-const corsHeaders = {
-  'Access-Control-Allow-Origin': '*',
-  'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
-}
-
 const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
 const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
 const publishableKey = Deno.env.get('EDGE_SUPABASE_PUBLISHABLE_KEY') ?? ''
+
+// Configure allowed origins from environment variable
+// Format: comma-separated list, e.g., "https://example.com,https://app.example.com,http://localhost:3000"
+const allowedOriginsEnv = Deno.env.get('ALLOWED_ORIGINS') ?? ''
+const allowedOrigins = allowedOriginsEnv.split(',').map(o => o.trim()).filter(Boolean)
+
+// Fallback to localhost for development if no origins configured
+if (allowedOrigins.length === 0) {
+  allowedOrigins.push('http://localhost:3000', 'http://localhost:4173')
+}
+
+// Helper function to get CORS headers based on request origin
+function getCorsHeaders(request: Request): Record<string, string> {
+  const origin = request.headers.get('origin') ?? ''
+  const isAllowed = allowedOrigins.includes(origin)
+  
+  return {
+    'Access-Control-Allow-Origin': isAllowed ? origin : allowedOrigins[0],
+    'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
+    'Access-Control-Allow-Methods': 'POST, OPTIONS',
+    'Access-Control-Allow-Credentials': 'true',
+  }
+}
 
 if (!supabaseUrl || !serviceRoleKey || !publishableKey) {
   console.error('Missing required environment variables for delete-account function.')
@@ -19,7 +37,7 @@ if (!supabaseUrl || !serviceRoleKey || !publishableKey) {
 const jwksUrl = new URL('/auth/v1/.well-known/jwks.json', supabaseUrl)
 const jwksClient = createRemoteJWKSet(jwksUrl)
 
-function unauthorizedResponse(message = 'Authentication required') {
+function unauthorizedResponse(message = 'Authentication required', corsHeaders: Record<string, string>) {
   return new Response(
     JSON.stringify({ error: message }),
     {
@@ -62,6 +80,8 @@ async function verifyRequest(req: Request) {
 }
 
 Deno.serve(async (req: Request) => {
+  const corsHeaders = getCorsHeaders(req)
+  
   // Handle CORS preflight requests
   if (req.method === 'OPTIONS') {
     return new Response(null, { headers: corsHeaders })
@@ -142,7 +162,7 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     console.error('Unexpected error in delete-account function:', error)
     if ((error as Error).message === 'Unauthorized') {
-      return unauthorizedResponse()
+      return unauthorizedResponse('Authentication required', corsHeaders)
     }
 
     return new Response(
