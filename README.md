@@ -12,7 +12,7 @@ A modern note-taking Progressive Web App (PWA) built for seamless cross-platform
 - 🔐 **Secure Authentication** - Complete auth flow with email/password, signup, email confirmation, and password reset
 - 📱 **Progressive Web App** - Installable on any device with offline capabilities and automatic updates
 - ☁️ **Real-time Sync** - Automatic synchronization across all your devices via Supabase
-- 🎨 **Modern UI** - Clean, responsive design built with Nuxt UI 3 and Tailwind CSS 4
+- 🎨 **Modern UI** - Clean, responsive design built with Nuxt UI 4 and Tailwind CSS 4
 
 
 # High Notes
@@ -100,3 +100,4 @@ pnpm preview      # Preview production build
 
 - If realtime or DB calls fail, verify `SUPABASE_URL` and `SUPABASE_ANON_KEY` and that your Supabase project allows requests from the app origin.
 - For local testing of Edge Functions, ensure the function env vars (`SUPABASE_URL`, `SUPABASE_ANON_KEY`) are available to the runner.
+
