@@ -28,14 +28,14 @@
   "devDependencies": {
     "@iconify-json/lucide": "^1.2.68",
     "@tailwindcss/typography": "^0.5.19",
-    "@tailwindcss/vite": "^4.1.13",
+    "@tailwindcss/vite": "^4.1.14",
     "@types/lodash-es": "^4.17.12",
-    "@types/node": "^24.5.2",
+    "@types/node": "^24.6.2",
     "@types/pako": "^2.0.4",
-    "dotenv": "^17.2.2",
-    "supabase": "^2.47.2",
-    "tailwindcss": "^4.1.13",
-    "vue-tsc": "^3.0.8"
+    "dotenv": "^17.2.3",
+    "supabase": "^2.48.3",
+    "tailwindcss": "^4.1.14",
+    "vue-tsc": "^3.1.0"
   },
   "packageManager": "pnpm@10.17.1"
 }
