@@ -75,9 +75,13 @@ export default defineNuxtConfig({
     registerType: 'autoUpdate',
     workbox: {
       cleanupOutdatedCaches: true,
+      // Critical: clientsClaim & skipWaiting ensure autoUpdate works correctly
+      clientsClaim: true,
+      skipWaiting: true,
+      // Critical: navigateFallback enables offline navigation
       navigateFallback: '/',
-      // Keep precache lean: avoid html to reduce install time on mobile
-      globPatterns: ['**/*.{js,css,png,svg,ico,woff,woff2}'],
+      // Precache essential assets including HTML for offline support
+      globPatterns: ['**/*.{js,css,html,ico,png,svg,woff,woff2}'],
       // Runtime caching for SSR pages and API calls
       runtimeCaching: [
         {
@@ -92,12 +96,12 @@ export default defineNuxtConfig({
           }
         },
         {
-          urlPattern: /^\/(login|signup|reset|confirm|changelog)$/,
+          urlPattern: /^\/(login|signup|reset|confirm|changelog|notes|settings)$/,
           handler: 'NetworkFirst',
           options: {
             cacheName: 'public-pages-cache',
             expiration: {
-              maxEntries: 10,
+              maxEntries: 20,
               maxAgeSeconds: 24 * 60 * 60 // 24 hours
             }
           }
@@ -105,7 +109,7 @@ export default defineNuxtConfig({
       ]
     },
     devOptions: {
-      enabled: process.env.NODE_ENV !== 'production',
+      enabled: false, // Use 'pnpm build && pnpm preview' to test PWA features
       type: 'classic'
     },
     manifest: {

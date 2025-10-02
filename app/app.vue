@@ -4,5 +4,6 @@
       <NuxtPage />
     </NuxtLayout>
     <VitePwaManifest />
+    <PwaReloadPrompt />
   </UApp>
 </template>
