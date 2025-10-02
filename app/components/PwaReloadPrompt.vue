@@ -30,7 +30,7 @@
         </div>
       </div>
       <div class="flex gap-2 mt-3">
-        <UButton size="sm" @click="updateServiceWorker()">
+        <UButton size="sm" @click="updateServiceWorker?.()">
           Reload
         </UButton>
         <UButton size="sm" variant="ghost" @click="close">
@@ -44,50 +44,68 @@
 <script setup lang="ts">
 import { useRegisterSW } from 'virtual:pwa-register/vue'
 
-const { offlineReady, needRefresh, updateServiceWorker } = useRegisterSW({
-  onRegisteredSW(swUrl, registration) {
-    console.info('Service Worker registered successfully')
-    
-    if (!registration) return
-    
-    // Set up periodic updates with proper checks and cleanup
-    const updateInterval = setInterval(async () => {
-      // Skip update check if service worker is already installing
-      if (registration.installing) return
-      
-      // Skip update check if device is offline
-      if ('connection' in navigator && !navigator.onLine) return
-      
-      // Verify service worker file hasn't changed before updating
-      try {
-        const resp = await fetch(swUrl, {
-          cache: 'no-store',
-          headers: {
-            'cache': 'no-store',
-            'cache-control': 'no-cache',
-          },
-        })
-        
-        if (resp?.status === 200) {
-          await registration.update()
-        }
-      } catch (error) {
-        console.error('Service worker update check failed:', error)
-      }
-    }, 60 * 60 * 1000) // Check every hour
-    
-    // Clean up interval when component unmounts
-    onUnmounted(() => {
-      clearInterval(updateInterval)
-    })
-  },
-  onRegisterError(error) {
-    console.error('Service Worker registration error:', error)
-  },
-})
+// Client-side only refs
+const offlineReady = ref(false)
+const needRefresh = ref(false)
+let updateServiceWorker: ((reloadPage?: boolean) => Promise<void>) | undefined
 
 const close = () => {
   offlineReady.value = false
   needRefresh.value = false
 }
+
+// Only register service worker on client-side
+onMounted(() => {
+  if (typeof window === 'undefined') return
+  
+  const { offlineReady: _offlineReady, needRefresh: _needRefresh, updateServiceWorker: _updateServiceWorker } = useRegisterSW({
+    onRegisteredSW(swUrl, registration) {
+      console.info('Service Worker registered successfully')
+      
+      if (!registration) return
+      
+      // Set up periodic updates with proper checks and cleanup
+      const updateInterval = setInterval(async () => {
+        // Skip update check if service worker is already installing
+        if (registration.installing) return
+        
+        // Skip update check if device is offline
+        if ('connection' in navigator && !navigator.onLine) return
+        
+        // Verify service worker file hasn't changed before updating
+        try {
+          const resp = await fetch(swUrl, {
+            cache: 'no-store',
+            headers: {
+              'cache': 'no-store',
+              'cache-control': 'no-cache',
+            },
+          })
+          
+          if (resp?.status === 200) {
+            await registration.update()
+          }
+        } catch (error) {
+          console.error('Service worker update check failed:', error)
+        }
+      }, 60 * 60 * 1000) // Check every hour
+      
+      // Clean up interval when component unmounts
+      onUnmounted(() => {
+        clearInterval(updateInterval)
+      })
+    },
+    onRegisterError(error) {
+      console.error('Service Worker registration error:', error)
+    },
+  })
+  
+  // Sync refs with the composable's reactive values
+  watchEffect(() => {
+    offlineReady.value = _offlineReady.value
+    needRefresh.value = _needRefresh.value
+  })
+  
+  updateServiceWorker = _updateServiceWorker
+})
 </script>
