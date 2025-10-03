@@ -1,15 +1,29 @@
-import "jsr:@supabase/functions-js/edge-runtime.d.ts"
-import { createClient } from 'jsr:@supabase/supabase-js@2'
-import { createRemoteJWKSet, jwtVerify } from 'npm:jose@5.2.1'
+import '@supabase/functions-js/edge-runtime.d.ts'
+import { createClient } from '@supabase/supabase-js'
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
-const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-const publishableKey = Deno.env.get('EDGE_SUPABASE_PUBLISHABLE_KEY') ?? ''
+type DenoEnv = { get(key: string): string | undefined }
+type DenoServe = (handler: (req: Request) => Response | Promise<Response>) => void
+type GlobalWithDeno = typeof globalThis & { Deno?: { env?: DenoEnv; serve?: DenoServe } }
+
+const denoRuntime = (globalThis as GlobalWithDeno).Deno
+
+if (!denoRuntime?.env) {
+  throw new Error('Deno environment variables are unavailable')
+}
+
+const supabaseUrl = denoRuntime.env.get('SUPABASE_URL') ?? ''
+const serviceRoleKey = denoRuntime.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+const publishableKey = denoRuntime.env.get('EDGE_SUPABASE_PUBLISHABLE_KEY')
+  ?? denoRuntime.env.get('SUPABASE_ANON_KEY')
+  ?? ''
 
 // Configure allowed origins from environment variable
 // Format: comma-separated list, e.g., "https://example.com,https://app.example.com,http://localhost:3000"
-const allowedOriginsEnv = Deno.env.get('ALLOWED_ORIGINS') ?? ''
-const allowedOrigins = allowedOriginsEnv.split(',').map(o => o.trim()).filter(Boolean)
+const allowedOriginsEnv = denoRuntime.env.get('ALLOWED_ORIGINS') ?? ''
+const allowedOrigins = allowedOriginsEnv
+  .split(',')
+  .map((origin: string) => origin.trim())
+  .filter(Boolean)
 
 // Fallback to localhost for development if no origins configured
 if (allowedOrigins.length === 0) {
@@ -34,10 +48,20 @@ if (!supabaseUrl || !serviceRoleKey || !publishableKey) {
   throw new Error('Configuration error')
 }
 
-const jwksUrl = new URL('/auth/v1/.well-known/jwks.json', supabaseUrl)
-const jwksClient = createRemoteJWKSet(jwksUrl)
+function createSupabaseClient() {
+  return createClient(
+    supabaseUrl,
+    serviceRoleKey,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      }
+    }
+  )
+}
 
-function unauthorizedResponse(message = 'Authentication required', corsHeaders: Record<string, string>) {
+function unauthorizedResponse(message: string, corsHeaders: Record<string, string>) {
   return new Response(
     JSON.stringify({ error: message }),
     {
@@ -47,7 +71,7 @@ function unauthorizedResponse(message = 'Authentication required', corsHeaders: 
   )
 }
 
-async function verifyRequest(req: Request) {
+async function verifyRequest(req: Request, supabaseClient: ReturnType<typeof createSupabaseClient>) {
   const apiKeyHeader = req.headers.get('apikey')
   if (!apiKeyHeader || apiKeyHeader !== publishableKey) {
     throw new Error('Unauthorized')
@@ -59,27 +83,32 @@ async function verifyRequest(req: Request) {
   }
 
   const token = authHeader.substring('Bearer '.length).trim()
-  try {
-    const { payload } = await jwtVerify(token, jwksClient, {
-      issuer: `${supabaseUrl}/auth/v1`,
-      audience: 'authenticated',
-    })
+  const { data, error } = await supabaseClient.auth.getUser(token)
 
-    if (!payload.sub || typeof payload.sub !== 'string') {
-      throw new Error('Unauthorized')
-    }
-
-    return {
-      userId: payload.sub,
-      jwt: token,
-    }
-  } catch (error) {
+  if (error) {
     console.error('JWT verification failed:', error)
     throw new Error('Unauthorized')
   }
+
+  const user = data?.user
+  if (!user) {
+    console.error('JWT verification failed: No user returned from getUser')
+    throw new Error('Unauthorized')
+  }
+
+  return {
+    userId: user.id,
+    jwt: token,
+  }
 }
 
-Deno.serve(async (req: Request) => {
+const denoServe = denoRuntime.serve
+
+if (!denoServe) {
+  throw new Error('Deno serve is not available in this environment')
+}
+
+denoServe(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req)
   
   // Handle CORS preflight requests
@@ -87,20 +116,10 @@ Deno.serve(async (req: Request) => {
     return new Response(null, { headers: corsHeaders })
   }
 
-  try {
-    const { userId } = await verifyRequest(req)
+  const supabaseAdmin = createSupabaseClient()
 
-    // Use admin client for database operations (RLS bypass needed for deletion)
-    const supabaseAdmin = createClient(
-      supabaseUrl,
-      serviceRoleKey,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false
-        }
-      }
-    )
+  try {
+    const { userId } = await verifyRequest(req, supabaseAdmin)
 
     // Parse request body
     const { confirmation } = await req.json()

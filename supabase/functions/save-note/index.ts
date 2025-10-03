@@ -1,20 +1,33 @@
-import 'jsr:@supabase/functions-js/edge-runtime.d.ts'
-import { serve } from 'https://deno.land/std@0.168.0/http/server.ts'
-import { createClient } from 'https://esm.sh/@supabase/supabase-js@2'
-import { createRemoteJWKSet, jwtVerify } from 'npm:jose@5.2.1'
-import sanitizeHtml from 'npm:sanitize-html'
+import '@supabase/functions-js/edge-runtime.d.ts'
+import { createClient, type SupabaseClient } from '@supabase/supabase-js'
+import sanitizeHtml from 'sanitize-html'
 
-const supabaseUrl = Deno.env.get('SUPABASE_URL') ?? ''
-const serviceRoleKey = Deno.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
-const publishableKey = Deno.env.get('EDGE_SUPABASE_PUBLISHABLE_KEY') ?? ''
+type DenoEnv = { get(key: string): string | undefined }
+type DenoServe = (handler: (req: Request) => Response | Promise<Response>) => void
+type GlobalWithDeno = typeof globalThis & { Deno?: { env?: DenoEnv; serve?: DenoServe } }
+
+const denoRuntime = (globalThis as GlobalWithDeno).Deno
+
+if (!denoRuntime?.env) {
+  throw new Error('Deno environment variables are unavailable')
+}
+
+const supabaseUrl = denoRuntime.env.get('SUPABASE_URL') ?? ''
+const serviceRoleKey = denoRuntime.env.get('SUPABASE_SERVICE_ROLE_KEY') ?? ''
+const publishableKey = denoRuntime.env.get('EDGE_SUPABASE_PUBLISHABLE_KEY')
+  ?? denoRuntime.env.get('SUPABASE_ANON_KEY')
+  ?? ''
 
 // Configure allowed origins from environment variable
 // Format: comma-separated list, e.g., "https://example.com,https://app.example.com,http://localhost:3000"
-const allowedOriginsEnv = Deno.env.get('ALLOWED_ORIGINS') ?? ''
-const allowedOrigins = allowedOriginsEnv.split(',').map(o => o.trim()).filter(Boolean)
+const allowedOriginsEnv = denoRuntime.env.get('ALLOWED_ORIGINS') ?? ''
+const allowedOrigins = allowedOriginsEnv
+  .split(',')
+  .map((origin: string) => origin.trim())
+  .filter(Boolean)
 
 // Fallback to localhost for development if no origins configured
-const nodeEnv = Deno.env.get('NODE_ENV') ?? 'development'
+const nodeEnv = denoRuntime.env.get('NODE_ENV') ?? 'development'
 if (allowedOrigins.length === 0 && nodeEnv === 'development') {
   allowedOrigins.push('http://localhost:3000', 'http://localhost:4173')
 }
@@ -38,15 +51,43 @@ if (!supabaseUrl || !serviceRoleKey || !publishableKey) {
   throw new Error('Configuration error')
 }
 
-const jwksUrl = new URL('/auth/v1/.well-known/jwks.json', supabaseUrl)
-const jwksClient = createRemoteJWKSet(jwksUrl)
+function createSupabaseAdminClient() {
+  return createClient(
+    supabaseUrl,
+    serviceRoleKey,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      }
+    }
+  )
+}
+
+function createSupabaseUserClient(token: string) {
+  return createClient(
+    supabaseUrl,
+    publishableKey,
+    {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+      global: {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      },
+    }
+  )
+}
 
 // Validation constants
 const TITLE_MAX_LENGTH = 255
 const CONTENT_MAX_LENGTH = 100000 // Including HTML tags (10x the visible char limit for markup overhead)
 const TITLE_MIN_LENGTH = 1
 
-// Helper function to validate note input
+// deno-lint-ignore no-explicit-any
 function validateNoteInput(note: any): { valid: boolean; error?: string } {
   // Check if note object exists
   if (!note || typeof note !== 'object') {
@@ -95,7 +136,7 @@ function validateNoteInput(note: any): { valid: boolean; error?: string } {
   return { valid: true }
 }
 
-async function verifyRequest(req: Request) {
+async function verifyRequest(req: Request, adminClient: SupabaseClient) {
   const apiKeyHeader = req.headers.get('apikey')
   if (!apiKeyHeader || apiKeyHeader !== publishableKey) {
     throw new Error('Unauthorized')
@@ -107,49 +148,44 @@ async function verifyRequest(req: Request) {
   }
 
   const token = authHeader.substring('Bearer '.length).trim()
-  try {
-    const { payload } = await jwtVerify(token, jwksClient, {
-      issuer: `${supabaseUrl}/auth/v1`,
-      audience: 'authenticated',
-    })
+  const { data, error } = await adminClient.auth.getUser(token)
 
-    if (!payload.sub || typeof payload.sub !== 'string') {
-      throw new Error('Unauthorized')
-    }
-
-    return {
-      userId: payload.sub,
-      role: payload.role,
-      jwt: token,
-    }
-  } catch (error) {
+  if (error) {
     console.error('JWT verification failed:', error)
     throw new Error('Unauthorized')
   }
+
+  const user = data?.user
+  if (!user) {
+    console.error('JWT verification failed: No user returned from getUser')
+    throw new Error('Unauthorized')
+  }
+
+  return {
+    userId: user.id,
+    jwt: token,
+  }
 }
 
-serve(async (req: Request) => {
+const denoServe = denoRuntime.serve
+
+if (!denoServe) {
+  throw new Error('Deno serve is not available in this environment')
+}
+
+denoServe(async (req: Request) => {
   const corsHeaders = getCorsHeaders(req)
-  
+
+  // Handle CORS preflight requests
+  if (req.method === 'OPTIONS') {
+    return new Response('ok', { headers: corsHeaders })
+  }
+
+  const adminClient = createSupabaseAdminClient()
+
   try {
-    // Handle CORS preflight requests
-    if (req.method === 'OPTIONS') {
-      return new Response('ok', { headers: corsHeaders })
-    }
-
-    const { userId } = await verifyRequest(req)
-
-    // Create Supabase client for database operations (using service role for RLS bypass if needed)
-    const supabaseClient = createClient(
-      supabaseUrl,
-      serviceRoleKey,
-      {
-        auth: {
-          autoRefreshToken: false,
-          persistSession: false,
-        }
-      }
-    )
+    const { userId, jwt } = await verifyRequest(req, adminClient)
+    const userClient = createSupabaseUserClient(jwt)
 
     // 3. Get note from request body
     const { note } = await req.json()
@@ -186,19 +222,19 @@ serve(async (req: Request) => {
       content: cleanHtml,
       user_id: userId,
       updated_at: new Date().toISOString(),
-    };
+    }
     
     // If it's a new note, don't include the null ID
     if (!noteToSave.id) {
-      delete noteToSave.id;
+      delete noteToSave.id
     }
 
     // 7. Save using the user-scoped client (RLS enforced)
-    let savedNote;
-    let error;
+    let savedNote
+    let error
     if (noteToSave.id) {
       // Update existing note owned by the user
-      const updateResult = await supabaseClient
+      const updateResult = await userClient
         .from('notes')
         .update({
           title: noteToSave.title,
@@ -208,12 +244,12 @@ serve(async (req: Request) => {
         .eq('id', noteToSave.id)
         .eq('user_id', userId)
         .select()
-        .single();
-      savedNote = updateResult.data;
-      error = updateResult.error;
+        .single()
+      savedNote = updateResult.data
+      error = updateResult.error
     } else {
       // Insert new note for the user
-      const insertResult = await supabaseClient
+      const insertResult = await userClient
         .from('notes')
         .insert({
           title: noteToSave.title,
@@ -222,24 +258,24 @@ serve(async (req: Request) => {
           updated_at: noteToSave.updated_at,
         })
         .select()
-        .single();
-      savedNote = insertResult.data;
-      error = insertResult.error;
+        .single()
+      savedNote = insertResult.data
+      error = insertResult.error
     }
 
     if (error) {
-      throw new Error(error.message);
+      throw new Error(error.message)
     }
 
     // 8. Return the saved note
     return new Response(JSON.stringify(savedNote), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: 200,
-    });
+    })
 
   } catch (err) {
-    const error = err as Error;
-    console.error('Function error:', error);
+    const error = err as Error
+    console.error('Function error:', error)
     return new Response(JSON.stringify({ error: error.message }), {
       headers: { ...corsHeaders, 'Content-Type': 'application/json' },
       status: error.message === 'Unauthorized' ? 401 : 400,

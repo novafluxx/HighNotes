@@ -52,14 +52,18 @@ pnpm preview
 Provide Supabase credentials via environment variables (for example in `.env`):
 
 - `SUPABASE_URL`
-- `SUPABASE_KEY` — publishable key for the Nuxt client (use anon key locally if preferred)
+- `SUPABASE_KEY` — publishable key for the Nuxt client (copy the `PUBLISHABLE_KEY` shown by `pnpx supabase status -o env` when running locally)
+- `SUPABASE_ANON_KEY` — mirrors the publishable key for backwards compatibility; the edge functions fall back to this value
 
 These are mapped to `runtimeConfig.public.supabaseUrl` and `runtimeConfig.public.supabaseKey` in `nuxt.config.ts`.
 
-Edge Functions require their own secrets (manage with `pnpx supabase secrets set`):
+Edge Functions require their own secrets (manage with `pnpx supabase secrets set` or load from an `.env` file when running `supabase functions serve --env-file`).
 
-- `SUPABASE_SERVICE_ROLE_KEY`
-- `EDGE_SUPABASE_PUBLISHABLE_KEY` — must match the publishable key used by the frontend
+- `SUPABASE_SERVICE_ROLE_KEY` — server-side secret; for the local CLI copy the `SECRET_KEY` value from `pnpx supabase status -o env`
+- `EDGE_SUPABASE_PUBLISHABLE_KEY` — must match the publishable key used by the frontend (falls back to `SUPABASE_ANON_KEY` for local testing if omitted)
+
+> [!NOTE]
+> After migrating a project to the new Supabase JWT signing keys, the local CLI also emits these updated values. Run `pnpx supabase stop && pnpx supabase start` and then `pnpx supabase status -o env` to refresh your `.env` entries so that edge functions operate with the correct publishable/secret keys.
 
 ## Where to look first
 

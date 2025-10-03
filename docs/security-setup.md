@@ -75,8 +75,8 @@ Expected result: The `Access-Control-Allow-Origin` header should match your doma
 
 Ensure all required secrets are configured:
 
-- ✅ `SUPABASE_SERVICE_ROLE_KEY` - Service role key (edge functions only)
-- ✅ `EDGE_SUPABASE_PUBLISHABLE_KEY` - Publishable/anon key (must match frontend)
+- ✅ `SUPABASE_SERVICE_ROLE_KEY` - Server secret key (edge functions only). When using the new Supabase JWT signing keys, copy the `SECRET_KEY` value emitted by `pnpx supabase status -o env` into this variable locally.
+- ✅ `EDGE_SUPABASE_PUBLISHABLE_KEY` - Publishable/anon key (must match frontend; local dev falls back to `SUPABASE_ANON_KEY` if unset)
 - ✅ `ALLOWED_ORIGINS` - Comma-separated allowed CORS origins
 
 ### Row Level Security (RLS)
