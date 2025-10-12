@@ -27,7 +27,7 @@ export const useAccountDeletion = () => {
       // Queue the deletion operation for when we come back online
       await enqueueOperation({
         type: 'delete-account',
-        user_id: user.value.sub,
+        user_id: user.value.id,
         data: { confirmation },
         timestamp: Date.now()
       })

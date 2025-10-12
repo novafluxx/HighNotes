@@ -130,7 +130,7 @@ export function useNotes() {
   };
 
   watch(
-    () => user.value?.sub,
+    () => user.value?.id,
     (uid) => {
       if (uid) {
         subscribeToNotes(uid);
@@ -160,13 +160,12 @@ export function useNotes() {
         hour: '2-digit',
         minute: '2-digit',
       });
-    } catch (e) {
+    } catch {
       return 'Invalid date';
     }
   };
 
   // --- Core Logic Functions (CRUD, Select) ---
-
   // Fetch notes function with pagination
   const fetchNotes = async (loadMore = false, query: string | null = null) => {
     if (!isLoggedIn.value || !user.value || (loadMore && !hasMoreNotes.value)) return;
@@ -187,7 +186,7 @@ export function useNotes() {
     // Offline: serve from cache
     if (!isOnline.value) {
       try {
-        const cached = await getCachedNotes(user.value.sub);
+        const cached = await getCachedNotes(user.value.id);
         notes.value = query ? cached.filter(n => n.title?.toLowerCase().includes((query || '').toLowerCase())) : cached;
         hasMoreNotes.value = false;
       } finally {
@@ -207,12 +206,12 @@ export function useNotes() {
       let supabaseQuery = client
         .from('notes')
         .select('id, user_id, title, updated_at')
-        .eq('user_id', user.value.sub)
+        .eq('user_id', user.value.id)
         .order('updated_at', { ascending: false });
 
       if (query && query.trim() !== '') {
         const escapedQuery = query.trim()
-          .replace(/[!&|:()']/g, '\$&')
+          .replace(/[!&|:()']/g, '\\$&')
           .split(/\s+/)
           .map(term => `${term}:*`)
           .join(' & ');
@@ -237,7 +236,6 @@ export function useNotes() {
       }
 
       // Update cache with the latest list (partial: id/title/updated_at)
-      // We preserve any locally cached content entries; this bulk put keeps index up to date.
       await cacheNotesBulk(fetchedNotes as unknown as Note[]);
 
       if (!query || query.trim() === '') {
@@ -256,7 +254,7 @@ export function useNotes() {
       // Defer background prefetch of full note content (cap 100) to idle on fast networks
       if (!loadMore && (!query || query.trim() === '')) {
         try {
-          schedulePrefetchForUser(user.value.sub, 100);
+          schedulePrefetchForUser(user.value.id, 100);
         } catch {}
       }
 
@@ -356,7 +354,7 @@ export function useNotes() {
           .from('notes')
           .select('*')
           .eq('id', noteStub.id!)
-          .eq('user_id', user.value.sub)
+          .eq('user_id', user.value.id)
           .single();
 
         if (error) throw error;
@@ -521,14 +519,14 @@ export function useNotes() {
     loading.value = true;
     const noteIdToDelete = selectedNote.value.id;
     // Derive a non-null user id for type safety
-    const uid = user.value?.sub;
+    const uid = user.value?.id;
     if (!uid) {
       // Should not happen due to guard above, but keeps TS and runtime safe
       loading.value = false;
       return;
     }
 
-    try {
+  try {
       // Offline delete: update state/cache/queue only
       if (!isOnline.value) {
         notes.value = notes.value.filter(note => note.id !== noteIdToDelete);
@@ -576,7 +574,7 @@ export function useNotes() {
     if (!isOnline.value || !isLoggedIn.value || !user.value || syncing.value) return;
     syncing.value = true;
     try {
-      const uid = user.value.sub;
+      const uid = user.value.id;
       const items = await readQueueFIFO(uid);
       // Track id replacements within this run to avoid duplicate creates
       const idMap = new Map<string, string>(); // localId -> serverId
