@@ -45,6 +45,7 @@ export function useNotes() {
   const { schedulePrefetchForUser } = useNotesPrefetch();
   const syncing = ref(false);
   const genLocalId = () => `local-${crypto.randomUUID?.() || Math.random().toString(36).slice(2)}`;
+  const isUUID = (val: unknown): val is string => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val);
 
   // --- Computed Properties for Validation/State ---
   const isNoteDirty = computed(() => {
@@ -346,6 +347,13 @@ export function useNotes() {
         }
         // Fallback: set minimal selection
         setSelection({ ...noteStub, content: '' } as Note);
+        return;
+      }
+      // Prevent server queries with undefined or local IDs (not valid UUID)
+      if (!noteStub.id || String(noteStub.id).startsWith('local-') || !isUUID(String(noteStub.id))) {
+        const cached = await getCachedNoteById(String(noteStub.id || ''));
+        if (cached) setSelection(cached);
+        else setSelection({ ...(noteStub as Note), content: noteStub.content ?? '' } as Note);
         return;
       }
       loading.value = true;
