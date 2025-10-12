@@ -170,6 +170,11 @@ export function useNotes() {
   // Fetch notes function with pagination
   const fetchNotes = async (loadMore = false, query: string | null = null) => {
     if (!isLoggedIn.value || !user.value || (loadMore && !hasMoreNotes.value)) return;
+    const uid = user.value.id;
+    // Ensure we have a valid UUID before hitting Supabase; otherwise bail and wait for auth to settle
+    if (!uid || !isUUID(uid)) {
+      return;
+    }
 
     if (loadMore) {
       loadingMore.value = true;
@@ -187,7 +192,7 @@ export function useNotes() {
     // Offline: serve from cache
     if (!isOnline.value) {
       try {
-        const cached = await getCachedNotes(user.value.id);
+  const cached = await getCachedNotes(uid);
         notes.value = query ? cached.filter(n => n.title?.toLowerCase().includes((query || '').toLowerCase())) : cached;
         hasMoreNotes.value = false;
       } finally {
@@ -207,7 +212,7 @@ export function useNotes() {
       let supabaseQuery = client
         .from('notes')
         .select('id, user_id, title, updated_at')
-        .eq('user_id', user.value.id)
+        .eq('user_id', uid)
         .order('updated_at', { ascending: false });
 
       if (query && query.trim() !== '') {
@@ -255,7 +260,7 @@ export function useNotes() {
       // Defer background prefetch of full note content (cap 100) to idle on fast networks
       if (!loadMore && (!query || query.trim() === '')) {
         try {
-          schedulePrefetchForUser(user.value.id, 100);
+          schedulePrefetchForUser(uid, 100);
         } catch {}
       }
 
@@ -263,7 +268,7 @@ export function useNotes() {
       toast.add({ title: 'Error fetching notes', description: (error as Error).message, color: 'error', duration: 5000 });
       // Fallback to cache when online fetch fails
       try {
-        const cached = await getCachedNotes(user.value!.id);
+  const cached = await getCachedNotes(uid);
         notes.value = cached;
         hasMoreNotes.value = false;
       } catch {}
