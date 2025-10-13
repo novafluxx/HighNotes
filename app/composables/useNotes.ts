@@ -46,6 +46,11 @@ export function useNotes() {
   const syncing = ref(false);
   const genLocalId = () => `local-${crypto.randomUUID?.() || Math.random().toString(36).slice(2)}`;
   const isUUID = (val: unknown): val is string => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val);
+  // Some environments expose sub before id; resolve a usable uid for queries/subscriptions
+  const resolvedUid = computed<string | null>(() => {
+    const u: any = user.value as any;
+    return u?.id || u?.sub || null;
+  });
 
   // --- Computed Properties for Validation/State ---
   const isNoteDirty = computed(() => {
@@ -131,7 +136,7 @@ export function useNotes() {
   };
 
   watch(
-    () => user.value?.id,
+    () => resolvedUid.value,
     (uid) => {
       if (uid) {
         subscribeToNotes(uid);
@@ -170,7 +175,7 @@ export function useNotes() {
   // Fetch notes function with pagination
   const fetchNotes = async (loadMore = false, query: string | null = null) => {
     if (!isLoggedIn.value || !user.value || (loadMore && !hasMoreNotes.value)) return;
-    const uid = user.value.id;
+    const uid = resolvedUid.value;
     // Ensure we have a valid UUID before hitting Supabase; otherwise bail and wait for auth to settle
     if (!uid || !isUUID(uid)) {
       return;
@@ -192,7 +197,7 @@ export function useNotes() {
     // Offline: serve from cache
     if (!isOnline.value) {
       try {
-  const cached = await getCachedNotes(uid);
+        const cached = await getCachedNotes(uid);
         notes.value = query ? cached.filter(n => n.title?.toLowerCase().includes((query || '').toLowerCase())) : cached;
         hasMoreNotes.value = false;
       } finally {
@@ -212,7 +217,7 @@ export function useNotes() {
       let supabaseQuery = client
         .from('notes')
         .select('id, user_id, title, updated_at')
-        .eq('user_id', uid)
+  .eq('user_id', uid)
         .order('updated_at', { ascending: false });
 
       if (query && query.trim() !== '') {
@@ -268,7 +273,7 @@ export function useNotes() {
       toast.add({ title: 'Error fetching notes', description: (error as Error).message, color: 'error', duration: 5000 });
       // Fallback to cache when online fetch fails
       try {
-  const cached = await getCachedNotes(uid);
+        const cached = await getCachedNotes(uid);
         notes.value = cached;
         hasMoreNotes.value = false;
       } catch {}
@@ -294,6 +299,15 @@ export function useNotes() {
       router.push('/login');
     }
   }, { immediate: true });
+  // If the resolved uid becomes a valid UUID after initial bail-out, fetch notes then
+  watch(
+    () => resolvedUid.value,
+    (uid, prev) => {
+      if (uid && isUUID(uid) && uid !== prev && isLoggedIn.value) {
+        fetchNotes(false, searchQuery.value || null);
+      }
+    }
+  );
 
   // Debounce the fetchNotes call
   const debouncedFetchNotes = debounce((query: string | null) => {
@@ -367,7 +381,7 @@ export function useNotes() {
           .from('notes')
           .select('*')
           .eq('id', noteStub.id!)
-          .eq('user_id', user.value.id)
+          .eq('user_id', resolvedUid.value as string)
           .single();
 
         if (error) throw error;
@@ -532,7 +546,7 @@ export function useNotes() {
     loading.value = true;
     const noteIdToDelete = selectedNote.value.id;
     // Derive a non-null user id for type safety
-    const uid = user.value?.id;
+    const uid = resolvedUid.value;
     if (!uid) {
       // Should not happen due to guard above, but keeps TS and runtime safe
       loading.value = false;
@@ -587,7 +601,7 @@ export function useNotes() {
     if (!isOnline.value || !isLoggedIn.value || !user.value || syncing.value) return;
     syncing.value = true;
     try {
-      const uid = user.value.id;
+  const uid = resolvedUid.value as string;
       const items = await readQueueFIFO(uid);
       // Track id replacements within this run to avoid duplicate creates
       const idMap = new Map<string, string>(); // localId -> serverId
