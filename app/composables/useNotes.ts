@@ -222,7 +222,7 @@ export function useNotes() {
 
       if (query && query.trim() !== '') {
         const escapedQuery = query.trim()
-          .replace(/[!&|:()']/g, '\\$&')
+          .replace(/[\\!&|:()']/g, '\\$&')
           .split(/\s+/)
           .map(term => `${term}:*`)
           .join(' & ');
