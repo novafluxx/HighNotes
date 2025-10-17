@@ -688,21 +688,24 @@ export function useNotes() {
   };
 
   // Watcher for User State - placed after syncPendingQueue definition to avoid TDZ
+  // Note: We use immediate: false here to avoid double-fetching on mount
+  // The isOnline watcher with immediate:true handles the initial fetch
   watch(user, async (currentUser, previousUser) => {
     if (currentUser && !previousUser) {
-      // Trigger sync if user logs in while already online, then fetch
+      // User logged in - sync first if online, then fetch
       if (isOnline.value) {
         await syncPendingQueue();
       }
       fetchNotes(false);
     } else if (!currentUser && previousUser) {
+      // User logged out
       notes.value = [];
       selectedNote.value = null;
       originalSelectedNote.value = null;
       currentEditorContent.value = ''; // Reset editor content
       router.push('/login');
     }
-  }, { immediate: true });
+  });
 
   // Watcher for Online State - placed after syncPendingQueue definition to avoid TDZ
   watch(isOnline, async (online, wasOnline) => {
