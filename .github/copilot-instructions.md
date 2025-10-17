@@ -1,77 +1,185 @@
-## High Notes – AI Agent Guide (Productive Start)
+# High Notes – AI Agent Guide
 
-Goal: Enable fast, safe contributions that respect the app's offline-first + realtime model. Keep changes aligned with existing composables before inventing new patterns.
+**Purpose**: Enable productive contributions to this offline-first, realtime note-taking PWA built with Nuxt 4 + Supabase.
 
-### 1. Architecture Snapshot
-- Nuxt 4 (TypeScript, Vite) — code rooted in `app/` (configured via `srcDir: 'app'`).
-- Supabase: Auth, Realtime (channel per user), Postgres (RLS). Generated types: `types/database.types.ts` (mirror also under `app/types/`).
-- Edge Functions (Deno): primary write path is `supabase/functions/save-note` (sanitizes + upserts). Account deletion: `delete-account` function.
-- Offline/PWA: IndexedDB (`useOfflineNotes.ts`) + queue replay (`syncPendingQueue` in `useNotes.ts`) + PWA via `@vite-pwa/nuxt` (`nuxt.config.ts`).
+## Architecture Overview
 
-### 2. Core Data / Note Lifecycle
-1. User edits in TipTap (`NoteEditor.vue`) → live HTML kept in `currentEditorContent` (NOT instantly persisted to `selectedNote.content` until save).
-2. Save triggers edge function `save-note` (online) OR queues an operation (offline) with a temporary id `local-<uuid>`.
-3. Realtime subscription (`channel('notes:{userId}')`) merges INSERT/UPDATE/DELETE into in-memory `notes` list; selection & editor state updated if active note affected.
-4. Background prefetch (`useNotesPrefetch`) hydrates full content after listing (IDs first, then content) to keep initial payload small.
+**Stack**: Nuxt 4 (TypeScript, Vite) + Supabase (Auth, Realtime, Postgres) + Deno Edge Functions + IndexedDB
 
-### 3. Offline Queue Semantics (`useOfflineNotes.ts` + `useNotes.ts`)
-- Operations stored in `queue` store: types `create|update|delete|delete-account` with FIFO replay.
-- Local note IDs replaced post-create via `replaceLocalId` then subsequent queued ops are patched to the real ID.
-- Sync algorithm processes sequentially; if an `update` still references a local id not yet mapped, it defers and re-runs once earlier creates resolve.
-- Always update both cache (`notes` store) and memory when mutating offline to keep UI responsive.
+**Critical Path**: User edits → TipTap editor → Edge function (server-side sanitization) OR IndexedDB queue (offline) → Postgres + Realtime broadcast
 
-### 4. Search & Pagination
-- Listing: server returns only `id,title,updated_at` (lightweight). Full content fetched lazily on selection or background prefetch.
-- Text search: transforms terms into `term:*` joined with `&` and runs `textSearch('search_vector', ...)`; disables pagination for search result sets.
-- Client ignores queries < 3 chars (watcher logic in `useNotes.ts`).
+### Directory Structure
+- **`app/`** — Nuxt source root (configured via `srcDir: 'app'` in `nuxt.config.ts`); DO NOT move to `src/`
+- **`app/composables/`** — Core business logic (see Key Files below)
+- **`supabase/functions/`** — Deno edge functions (`save-note`, `delete-account`)
+- **`types/database.types.ts`** — Generated Supabase types (regenerate after schema changes)
 
-### 5. Validation & Save Gating
-- Gated conditions: title/content length (`TITLE_MAX_LENGTH=255`, `CONTENT_MAX_LENGTH=5000` for UI), non-empty trimmed title, and dirtiness check comparing `currentEditorContent` + title vs deep-cloned `originalSelectedNote`.
-- Silent autosave on note switch if dirty (see `selectNote`). Avoid introducing parallel save paths—reuse `saveNote(silent?)`.
+## Key Files & Patterns
 
-### 6. Realtime & Consistency Patterns
-- Channel naming: `notes:{userId}`; unsubscribe & resubscribe when auth state changes.
-- On UPDATE: merge partial fields; if selected note matches, also sync `currentEditorContent`.
-- On DELETE: clear selection and editor state if active note removed.
+### 1. `app/composables/useNotes.ts` (743 lines)
+**Central coordinator** for all note CRUD, search, pagination, and realtime sync.
 
-### 7. Edge Function Contract (`save-note`)
-- Expects body `{ note }` with `title`, `content` HTML (unsanitized). Sanitizes with `sanitize-html` adding heading/list/code tags.
-- If `note.id` null → insert; else update scoped by `user_id` (RLS enforced). Returns complete row (used to refresh cache + selection).
-- Always update `updated_at` server-side; client relies on returned value—do not fabricate timestamps locally when online.
+**Critical patterns**:
+- **Lazy content loading**: List queries fetch only `id, title, updated_at`; full `content` loaded on selection or via background prefetch
+- **Dirty tracking**: Compares `currentEditorContent` + `title` against `originalSelectedNote` (deep clone); silent autosave on note switch
+- **Realtime subscription**: `channel('notes:{userId}')` handles INSERT/UPDATE/DELETE; updates in-memory `notes` array and syncs `selectedNote` if affected
+- **Search**: Transforms queries into `term:*` joined with `&`, uses Postgres `textSearch('search_vector', ...)`, disables pagination for search results
+- **Offline queue replay** (`syncPendingQueue`): FIFO processing with local→server ID remapping; re-runs if updates reference unmapped IDs
 
-### 8. PWA & Performance Touches
-- Preconnect to Supabase origin (`nuxt.config.ts`) to reduce first-query latency.
-- Workbox precaches only static assets (not HTML) to keep install fast; rely on runtime caching + IndexedDB for note content.
-- Icon pre-bundling ensures offline toolbar rendering (`icon.clientBundle.icons`).
-
-### 9. When Changing Note Schema
-- Update DB migration + regenerate types (`supabase gen types typescript --project ... > types/database.types.ts`).
-- Reflect changes in: `save-note` function (sanitization / whitelist), `useNotes.ts` (select fields in list query), `useOfflineNotes.ts` (IDB shape if needed) and any prefetch logic.
-- Maintain backward compatibility for queued offline notes if possible (migrate in replay step if fields renamed).
-
-### 10. Common Pitfalls / Do & Avoid
-- Do NOT move `app/` to `src/`—breaks configured `srcDir`.
-- Avoid duplicating save paths; ALWAYS use edge function for persistence (keeps sanitization centralized).
-- Preserve temporary `local-*` IDs until sync; never assume numeric/UUID canonical form client-side.
-- When introducing new offline ops, extend queue `type` union conservatively and update sync branching once.
-
-### 11. Quick Commands
-```bash
-pnpm install      # deps
-pnpm dev          # local dev (http://localhost:3000)
-pnpm build        # production build
-pnpm preview      # preview build
-pnpm generate     # static generation (if deploying static)
+**State management**:
+```typescript
+const notes = ref<Note[]>([])              // In-memory list (partial data)
+const selectedNote = ref<Note | null>      // Currently edited note (full data)
+const currentEditorContent = ref<string>() // Live HTML from TipTap (NOT synced to selectedNote.content until save)
+const originalSelectedNote = ref<Note>     // Deep clone for dirty checking
 ```
 
-### 12. Where to Look Before Adding Code
-1. Listing/sync logic: `app/composables/useNotes.ts`
-2. Offline queue + ID remap: `app/composables/useOfflineNotes.ts`
-3. Editor wiring: `app/components/NoteEditor.vue`
-4. Edge sanitization/upsert: `supabase/functions/save-note/index.ts`
-5. Runtime + PWA + auth redirects: `nuxt.config.ts`
+### 2. `app/composables/useOfflineNotes.ts` (174 lines)
+**IndexedDB layer** for offline-first caching and queue management.
 
-If uncertain, mirror the patterns already present in `useNotes.ts` & `useOfflineNotes.ts` rather than inventing new abstractions.
+**Stores**:
+- `notes`: Cached note data (by `id` + `user_id` index)
+- `queue`: Pending operations (`create|update|delete|delete-account`) with timestamp for FIFO ordering
+
+**Key functions**:
+- `enqueue(item)` — Add operation to queue with `type`, `note`, `note_id`, `timestamp`
+- `readQueueFIFO(userId)` — Retrieve queue sorted by timestamp
+- `replaceLocalId(localId, serverId)` — Update cache + queue after server returns real ID
+- `cacheNote(note)` / `cacheNotesBulk(notes)` — Update IndexedDB cache
+
+**Local ID format**: `local-<uuid>` (generated via `crypto.randomUUID()`)
+
+### 3. `supabase/functions/save-note/index.ts` (285 lines)
+**Server-side write path** — sanitizes HTML, upserts to Postgres, enforces RLS.
+
+**Contract**:
+- **Input**: `{ note: { id?, title, content } }` via POST body
+- **Validation**: Title 1-255 chars, content ≤100KB, UUID format check
+- **Sanitization**: Uses `sanitize-html` with heading/list/code/strong/em/strike tags allowed
+- **Output**: Full note row (client refreshes cache + selection with returned data)
+- **Logic**: If `note.id` is null → INSERT; else UPDATE where `user_id` matches (RLS enforced)
+- **CORS**: Dynamic origin validation from `ALLOWED_ORIGINS` env var
+
+**Never fabricate timestamps client-side when online** — always use server-returned `updated_at`.
+
+### 4. `app/components/NoteEditor.vue` (279 lines)
+**TipTap editor** with character count extension (limit: 5000 visible chars, 100KB HTML).
+
+**Props flow**:
+- `modelValue` (Note) and `currentEditorContent` managed by parent (`notes.vue`)
+- Editor emits HTML on update → parent stores in `currentEditorContent` (not immediately persisted)
+
+**Toolbar**: Bold, italic, strike, code, H1/H2/H3, bullet/ordered lists
+
+### 5. `app/composables/useNotesPrefetch.ts` (118 lines)
+**Background content hydration** to reduce perceived latency.
+
+**Strategy**:
+- Fetch top 100 note IDs (by `updated_at DESC`)
+- Filter out notes already cached with content
+- Batch-fetch remaining notes in chunks of 20
+- Runs on idle + fast network only (`requestIdleCallback` + Network Information API)
+- **Deduplication**: Tracks `startedUsers` to prevent re-runs per session
+
+## Data Flow & State Transitions
+
+### Online Save
+1. User clicks Save → `saveNote()` → Edge function `/save-note`
+2. Server sanitizes HTML, upserts row, returns full note
+3. Update in-memory `notes` array + `selectedNote` + IndexedDB cache
+4. Realtime broadcast → other clients receive UPDATE event
+
+### Offline Save
+1. User clicks Save → `saveNote()` detects `!isOnline`
+2. Assign local ID (`local-<uuid>`) if new note
+3. Update in-memory `notes` + cache → enqueue operation
+4. When online: `syncPendingQueue()` → Edge function → `replaceLocalId(local, server)` → patch subsequent queue items
+
+### Realtime Sync
+- **INSERT**: Prepend to `notes` array, update cache
+- **UPDATE**: Merge fields; if `selectedNote.id` matches, sync `currentEditorContent`
+- **DELETE**: Remove from array + cache; clear selection if active note deleted
+
+## Critical Constants & Validation
+
+```typescript
+TITLE_MAX_LENGTH = 255           // Client + server enforce
+CONTENT_MAX_LENGTH = 5000        // UI limit (visible chars)
+CONTENT_MAX_LENGTH_SERVER = 100000 // DB limit (includes HTML tags)
+```
+
+**Save gating** (`isSaveDisabled`):
+- Title/content within limits
+- Non-empty trimmed title
+- Note is dirty (differs from `originalSelectedNote`)
+- Not already loading
+
+## Development Workflows
+
+### Local Dev
+```powershell
+pnpm install
+pnpm dev           # http://localhost:3000
+```
+
+### Supabase Setup
+Required env vars (`.env`):
+```
+SUPABASE_URL=...
+SUPABASE_KEY=...           # Publishable key (from pnpx supabase status -o env)
+SUPABASE_ANON_KEY=...      # Mirror of SUPABASE_KEY for backwards compat
+```
+
+Edge function secrets (for local testing):
+```
+SUPABASE_SERVICE_ROLE_KEY=...        # From supabase status
+EDGE_SUPABASE_PUBLISHABLE_KEY=...    # Must match frontend key
+```
+
+### Testing PWA Features
+```powershell
+pnpm build
+pnpm preview    # Test service worker + offline behavior
+```
+
+### Schema Changes
+1. Update migration in `supabase/migrations/`
+2. Regenerate types: `pnpx supabase gen types typescript --project-id <id> > types/database.types.ts`
+3. Update:
+   - `save-note/index.ts` (sanitization whitelist)
+   - `useNotes.ts` (select fields in queries)
+   - `useOfflineNotes.ts` (IDB schema if needed)
+   - `useNotesPrefetch.ts` (prefetch queries)
+4. Consider backward compatibility for queued offline operations
+
+## Common Pitfalls
+
+❌ **Don't** move `app/` to `src/` (breaks `srcDir` config)  
+❌ **Don't** create alternate save paths (bypasses sanitization)  
+❌ **Don't** assume `note.id` is always UUID (may be `local-<uuid>` until synced)  
+❌ **Don't** fabricate timestamps client-side when online (use server-returned values)  
+❌ **Don't** duplicate state management (use existing composables)
+
+✅ **Do** reuse `saveNote(silent?)` for all persistence  
+✅ **Do** handle `local-*` IDs in UI/logic until `replaceLocalId` completes  
+✅ **Do** update both IndexedDB cache AND in-memory state for offline ops  
+✅ **Do** follow FIFO queue ordering (timestamp-based)  
+✅ **Do** test offline→online transitions (queue replay, ID remapping)
+
+## Where to Start
+
+**Reading notes**: `useNotes.ts` → `fetchNotes()` → `selectNote()`  
+**Editing notes**: `NoteEditor.vue` → `currentEditorContent` → `saveNote()`  
+**Offline logic**: `useOfflineNotes.ts` → `enqueue()` → `syncPendingQueue()`  
+**Server persistence**: `supabase/functions/save-note/index.ts`  
+**Realtime**: `useNotes.ts` → `subscribeToNotes()` → postgres_changes handler
+
+## PWA & Performance
+
+- Preconnect to Supabase origin reduces first-query latency
+- Workbox precaches static assets only (not HTML)
+- Icon pre-bundling ensures offline toolbar rendering
+- Runtime caching for pages + API calls (NetworkFirst strategy)
 
 ---
-_Last updated: 2025-09-27_
+_Generated: 2025-10-16 | Nuxt 4.1.3 + Supabase 2.75.0_
