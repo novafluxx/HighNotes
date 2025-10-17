@@ -424,6 +424,14 @@ export function useNotes() {
 
   // Save Note (Insert or Update)
   const saveNote = async (silent = false) => {
+    console.log('[saveNote] Called with:', { 
+      silent, 
+      hasSelectedNote: !!selectedNote.value,
+      isLoggedIn: isLoggedIn.value,
+      isSaveDisabled: isSaveDisabled.value,
+      isOnline: isOnline.value
+    });
+    
     if (!selectedNote.value || !isLoggedIn.value || isSaveDisabled.value) return;
 
     loading.value = true;
@@ -436,6 +444,7 @@ export function useNotes() {
 
       // If offline, cache and queue
       if (!isOnline.value) {
+        console.log('[saveNote] OFFLINE path - caching and queueing');
         const nowIso = new Date().toISOString();
         // Assign a local id for new notes
         if (!selectedNote.value.id) {
@@ -453,13 +462,18 @@ export function useNotes() {
         }
 
         await cacheNote(selectedNote.value as Note);
-        await enqueue({
+        
+        const queueType = ((selectedNote.value as Note).id?.startsWith('local-') && originalSelectedNote.value?.id === null ? 'create' : 'update') as 'create' | 'update';
+        const queueItem = {
           id: genLocalId(),
           user_id: user.value!.id,
-          type: (selectedNote.value as Note).id?.startsWith('local-') && originalSelectedNote.value?.id === null ? 'create' : 'update',
+          type: queueType,
           note: selectedNote.value as Note,
           timestamp: Date.now(),
-        });
+        };
+        console.log('[saveNote] Enqueueing item:', { type: queueItem.type, noteId: queueItem.note.id });
+        await enqueue(queueItem);
+        console.log('[saveNote] Item enqueued successfully');
 
         originalSelectedNote.value = JSON.parse(JSON.stringify(selectedNote.value));
         if (!silent) {

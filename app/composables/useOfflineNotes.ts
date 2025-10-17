@@ -86,13 +86,19 @@ export function useOfflineNotes() {
   }
 
   const enqueue = async (item: QueueItem) => {
-    if (!isClient) return
+    console.log('[enqueue] Called with:', { type: item.type, id: item.id, noteId: item.note?.id || item.note_id });
+    if (!isClient) {
+      console.log('[enqueue] Not client-side, returning');
+      return;
+    }
     const db = await getDB()
     const plain = JSON.parse(JSON.stringify(item)) as QueueItem
     await db.put('queue', plain)
+    console.log('[enqueue] Item successfully written to IndexedDB');
   }
 
   const readQueueFIFO = async (userId: string): Promise<QueueItem[]> => {
+    console.log('[readQueueFIFO] Reading queue for user:', userId);
     if (!isClient) return []
     const db = await getDB()
     const byTime = db.transaction('queue').store.index('by_time')
@@ -102,6 +108,7 @@ export function useOfflineNotes() {
       if (cursor.value.user_id === userId) items.push(cursor.value)
       cursor = await cursor.continue()
     }
+    console.log('[readQueueFIFO] Found items:', items.length, items.map(i => ({ type: i.type, id: i.id })));
     return items
   }
 
