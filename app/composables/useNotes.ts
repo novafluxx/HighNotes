@@ -409,7 +409,7 @@ export function useNotes() {
 
     const tempNewNote: Note = {
       id: null,
-      user_id: user.value!.id,
+      user_id: resolvedUid.value as string,
       title: '',
       content: '', // Initialize as empty string
       created_at: new Date().toISOString(),
@@ -429,7 +429,10 @@ export function useNotes() {
       hasSelectedNote: !!selectedNote.value,
       isLoggedIn: isLoggedIn.value,
       isSaveDisabled: isSaveDisabled.value,
-      isOnline: isOnline.value
+      isOnline: isOnline.value,
+      user_id: user.value?.id,
+      user_sub: (user.value as any)?.sub,
+      resolvedUid: resolvedUid.value
     });
     
     if (!selectedNote.value || !isLoggedIn.value || isSaveDisabled.value) return;
@@ -466,12 +469,12 @@ export function useNotes() {
         const queueType = ((selectedNote.value as Note).id?.startsWith('local-') && originalSelectedNote.value?.id === null ? 'create' : 'update') as 'create' | 'update';
         const queueItem = {
           id: genLocalId(),
-          user_id: user.value!.id,
+          user_id: resolvedUid.value as string,
           type: queueType,
           note: selectedNote.value as Note,
           timestamp: Date.now(),
         };
-        console.log('[saveNote] Enqueueing item:', { type: queueItem.type, noteId: queueItem.note.id });
+        console.log('[saveNote] Enqueueing item:', { type: queueItem.type, noteId: queueItem.note.id, user_id: queueItem.user_id });
         await enqueue(queueItem);
         console.log('[saveNote] Item enqueued successfully');
 
@@ -525,7 +528,7 @@ export function useNotes() {
         await cacheNote(selectedNote.value as Note);
         await enqueue({
           id: genLocalId(),
-          user_id: user.value!.id,
+          user_id: resolvedUid.value as string,
           type: (selectedNote.value as Note).id!.startsWith('local-') && originalSelectedNote.value?.id === null ? 'create' : 'update',
           note: selectedNote.value as Note,
           timestamp: Date.now(),
@@ -620,6 +623,7 @@ export function useNotes() {
     syncing.value = true;
     try {
       const uid = resolvedUid.value as string;
+      console.log('[syncPendingQueue] Using uid:', uid, 'from user.value.id:', user.value?.id);
       const items = await readQueueFIFO(uid);
       console.log('[syncPendingQueue] Queue items:', items.length);
       // Track id replacements within this run to avoid duplicate creates

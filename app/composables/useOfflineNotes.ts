@@ -86,7 +86,7 @@ export function useOfflineNotes() {
   }
 
   const enqueue = async (item: QueueItem) => {
-    console.log('[enqueue] Called with:', { type: item.type, id: item.id, noteId: item.note?.id || item.note_id });
+    console.log('[enqueue] Called with:', { type: item.type, id: item.id, noteId: item.note?.id || item.note_id, user_id: item.user_id });
     if (!isClient) {
       console.log('[enqueue] Not client-side, returning');
       return;
@@ -94,7 +94,7 @@ export function useOfflineNotes() {
     const db = await getDB()
     const plain = JSON.parse(JSON.stringify(item)) as QueueItem
     await db.put('queue', plain)
-    console.log('[enqueue] Item successfully written to IndexedDB');
+    console.log('[enqueue] Item successfully written to IndexedDB with user_id:', plain.user_id);
   }
 
   const readQueueFIFO = async (userId: string): Promise<QueueItem[]> => {
@@ -103,12 +103,15 @@ export function useOfflineNotes() {
     const db = await getDB()
     const byTime = db.transaction('queue').store.index('by_time')
     const items: QueueItem[] = []
+    const allItems: any[] = []
     let cursor = await byTime.openCursor()
     while (cursor) {
+      allItems.push({ user_id: cursor.value.user_id, type: cursor.value.type, id: cursor.value.id })
       if (cursor.value.user_id === userId) items.push(cursor.value)
       cursor = await cursor.continue()
     }
-    console.log('[readQueueFIFO] Found items:', items.length, items.map(i => ({ type: i.type, id: i.id })));
+    console.log('[readQueueFIFO] All items in queue:', allItems);
+    console.log('[readQueueFIFO] Filtered items for user:', items.length, items.map(i => ({ type: i.type, id: i.id, user_id: i.user_id })));
     return items
   }
 
