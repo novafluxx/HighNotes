@@ -160,7 +160,8 @@ pnpm preview    # Test service worker + offline behavior
 ❌ **Don't** fabricate timestamps client-side when online (use server-returned values)  
 ❌ **Don't** duplicate state management (use existing composables)  
 ❌ **Don't** omit `immediate: true` on watchers that need to run on mount (e.g., sync triggers)  
-❌ **Don't** define watchers before the functions they call (causes temporal dead zone errors)
+❌ **Don't** define watchers before the functions they call (causes temporal dead zone errors)  
+❌ **Don't** access `user.value.id` directly — use `resolvedUid.value` instead
 
 ✅ **Do** reuse `saveNote(silent?)` for all persistence  
 ✅ **Do** handle `local-*` IDs in UI/logic until `replaceLocalId` completes  
@@ -168,7 +169,8 @@ pnpm preview    # Test service worker + offline behavior
 ✅ **Do** follow FIFO queue ordering (timestamp-based)  
 ✅ **Do** test offline→online transitions (queue replay, ID remapping)  
 ✅ **Do** use watcher previous values to detect transitions (not just current state)  
-✅ **Do** define all functions before watchers that reference them
+✅ **Do** define all functions before watchers that reference them  
+✅ **Do** use `resolvedUid.value` for ALL user ID operations
 
 ## Where to Start
 
@@ -186,4 +188,4 @@ pnpm preview    # Test service worker + offline behavior
 - Runtime caching for pages + API calls (NetworkFirst strategy)
 
 ---
-_Generated: 2025-10-16 | Nuxt 4.1.3 + Supabase 2.75.0_
+_Generated: 2025-10-17 | Nuxt 4.1.3 + Supabase 2.75.0_
