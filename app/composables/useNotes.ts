@@ -291,6 +291,10 @@ export function useNotes() {
   watch(user, (currentUser, previousUser) => {
     if (currentUser && !previousUser) {
       fetchNotes(false);
+      // Trigger sync if user logs in while already online
+      if (isOnline.value) {
+        syncPendingQueue();
+      }
     } else if (!currentUser && previousUser) {
       notes.value = [];
       selectedNote.value = null;
@@ -699,13 +703,13 @@ export function useNotes() {
     }
   };
 
-  watch(isOnline, (online) => {
-    if (online) {
+  watch(isOnline, (online, wasOnline) => {
+    if (online && !wasOnline) {
       syncPendingQueue();
       // Refresh list to ensure server truth wins
       fetchNotes(false, searchQuery.value || null);
     }
-  });
+  }, { immediate: true });
 
   const unsubscribeFromNotes = () => {
     if (channel) {

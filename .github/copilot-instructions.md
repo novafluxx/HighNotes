@@ -158,13 +158,15 @@ pnpm preview    # Test service worker + offline behavior
 ❌ **Don't** create alternate save paths (bypasses sanitization)  
 ❌ **Don't** assume `note.id` is always UUID (may be `local-<uuid>` until synced)  
 ❌ **Don't** fabricate timestamps client-side when online (use server-returned values)  
-❌ **Don't** duplicate state management (use existing composables)
+❌ **Don't** duplicate state management (use existing composables)  
+❌ **Don't** omit `immediate: true` on watchers that need to run on mount (e.g., sync triggers)
 
 ✅ **Do** reuse `saveNote(silent?)` for all persistence  
 ✅ **Do** handle `local-*` IDs in UI/logic until `replaceLocalId` completes  
 ✅ **Do** update both IndexedDB cache AND in-memory state for offline ops  
 ✅ **Do** follow FIFO queue ordering (timestamp-based)  
-✅ **Do** test offline→online transitions (queue replay, ID remapping)
+✅ **Do** test offline→online transitions (queue replay, ID remapping)  
+✅ **Do** use watcher previous values to detect transitions (not just current state)
 
 ## Where to Start
 
