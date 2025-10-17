@@ -187,11 +187,9 @@ export function useNotes() {
     } else {
       loading.value = true;
       currentPage.value = 1;
-      notes.value = [];
+      // Don't clear notes array yet - wait until we have server data
       hasMoreNotes.value = true;
-      selectedNote.value = null;
-      originalSelectedNote.value = null;
-      currentEditorContent.value = ''; // Reset editor content
+      // Don't clear selection yet either
     }
 
     // Offline: serve from cache
@@ -243,6 +241,11 @@ export function useNotes() {
       if (loadMore && (!query || query.trim() === '')) {
         notes.value.push(...fetchedNotes);
       } else {
+        // Replace notes array with server response
+        // Clear selection when doing a full refresh (not load more)
+        selectedNote.value = null;
+        originalSelectedNote.value = null;
+        currentEditorContent.value = '';
         notes.value = fetchedNotes;
       }
 
