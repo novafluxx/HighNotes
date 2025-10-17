@@ -1,8 +1,9 @@
 # Offline Sync Race Condition Fix
 
 **Date**: October 16, 2025  
+**Updated**: October 17, 2025 (Complete fix for both watchers)  
 **Issue**: Notes created offline disappear when going back online  
-**Status**: ✅ Fixed
+**Status**: ✅ Fixed (both watchers sequenced)
 
 ## Problem Description
 
@@ -27,9 +28,11 @@ This request returns an empty list (or old notes) because the local note hasn't 
 
 ## Root Cause
 
-### Race Condition in isOnline Watcher
+### Race Condition in BOTH Watchers
 
-**Before Fix (Line 707-714)**:
+The issue occurred in **two places**, both causing the same race condition:
+
+**Problem 1: isOnline Watcher (Line ~708)**:
 ```typescript
 watch(isOnline, (online, wasOnline) => {
   if (online && !wasOnline) {
@@ -38,6 +41,30 @@ watch(isOnline, (online, wasOnline) => {
   }
 }, { immediate: true });
 ```
+
+**Problem 2: User Watcher (Line ~691)** - THE ACTUAL CULPRIT:
+```typescript
+watch(user, (currentUser, previousUser) => {
+  if (currentUser && !previousUser) {
+    fetchNotes(false);  // ← Runs FIRST!
+    if (isOnline.value) {
+      syncPendingQueue();  // ← Called AFTER fetch, too late!
+    }
+  }
+}, { immediate: true });  // ← Runs on mount when user exists
+```
+
+### Why the User Watcher Was the Real Problem
+
+When you refreshed the page with `immediate: true`:
+1. Page loads, user is already authenticated
+2. User watcher fires immediately (`immediate: true`)
+3. `fetchNotes(false)` runs first → fetches from server
+4. Server returns empty/old list (offline note not synced yet)
+5. Local note erased from `notes.value`
+6. Then `syncPendingQueue()` runs, but note already gone from UI
+
+The isOnline watcher fix alone wasn't enough because the **user watcher** on page mount was the one actually causing the issue!
 
 ### Timeline of Bug
 
@@ -58,9 +85,24 @@ The fetch happens **before** the sync completes, overwriting the in-memory state
 
 ## Solution
 
-### Use `await` to Sequence Operations
+### Use `await` in BOTH Watchers
 
-**After Fix**:
+**Fix 1: User Watcher (Line ~691)** - CRITICAL:
+```typescript
+watch(user, async (currentUser, previousUser) => {  // ← Made async
+  if (currentUser && !previousUser) {
+    // Trigger sync if user logs in while already online, THEN fetch
+    if (isOnline.value) {
+      await syncPendingQueue();  // ← Sync FIRST
+    }
+    fetchNotes(false);  // ← Fetch AFTER sync completes
+  } else if (!currentUser && previousUser) {
+    // ... cleanup
+  }
+}, { immediate: true });
+```
+
+**Fix 2: isOnline Watcher (Line ~708)**:
 ```typescript
 watch(isOnline, async (online, wasOnline) => {  // ← Made async
   if (online && !wasOnline) {
@@ -71,6 +113,13 @@ watch(isOnline, async (online, wasOnline) => {  // ← Made async
   }
 }, { immediate: true });
 ```
+
+### Key Changes
+
+1. **Both watchers made `async`** to allow `await`
+2. **User watcher reordered**: Sync before fetch (was fetch before sync!)
+3. **Both use `await`** to block until sync completes
+4. **FetchNotes only runs** after queue is fully processed
 
 ### Timeline After Fix
 

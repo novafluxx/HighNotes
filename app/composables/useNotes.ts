@@ -688,13 +688,13 @@ export function useNotes() {
   };
 
   // Watcher for User State - placed after syncPendingQueue definition to avoid TDZ
-  watch(user, (currentUser, previousUser) => {
+  watch(user, async (currentUser, previousUser) => {
     if (currentUser && !previousUser) {
-      fetchNotes(false);
-      // Trigger sync if user logs in while already online
+      // Trigger sync if user logs in while already online, then fetch
       if (isOnline.value) {
-        syncPendingQueue();
+        await syncPendingQueue();
       }
+      fetchNotes(false);
     } else if (!currentUser && previousUser) {
       notes.value = [];
       selectedNote.value = null;
