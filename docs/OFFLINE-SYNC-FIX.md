@@ -2,7 +2,7 @@
 
 **Date**: October 16, 2025  
 **Issue**: Offline syncing not working when network access is restored  
-**Status**: ✅ Fixed
+**Status**: ✅ Fixed (with hotfix for temporal dead zone)
 
 ## Problem Analysis
 
@@ -14,6 +14,14 @@ The offline sync mechanism had two critical issues:
    - Queued operations from previous sessions remained unsynced
 
 2. **No sync trigger on user login**: When a user logged in while already online, there was no mechanism to sync their pending queue. The sync only ran when transitioning from offline → online.
+
+### Hotfix: Temporal Dead Zone Issue
+**Date**: October 16, 2025  
+**Error**: "Cannot access 'syncPendingQueue' before initialization"
+
+**Issue**: After adding `immediate: true` to watchers, the watchers were defined BEFORE the `syncPendingQueue` function, causing a temporal dead zone (TDZ) violation when the immediate callbacks tried to call the function.
+
+**Fix**: Moved both watchers to after the `syncPendingQueue` function definition (now at lines 690-714).
 
 ### Code Location
 File: `app/composables/useNotes.ts`

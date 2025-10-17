@@ -287,22 +287,6 @@ export function useNotes() {
     }
   };
 
-  // Watcher for User State
-  watch(user, (currentUser, previousUser) => {
-    if (currentUser && !previousUser) {
-      fetchNotes(false);
-      // Trigger sync if user logs in while already online
-      if (isOnline.value) {
-        syncPendingQueue();
-      }
-    } else if (!currentUser && previousUser) {
-      notes.value = [];
-      selectedNote.value = null;
-      originalSelectedNote.value = null;
-      currentEditorContent.value = ''; // Reset editor content
-      router.push('/login');
-    }
-  }, { immediate: true });
   // If the resolved uid becomes a valid UUID after initial bail-out, fetch notes then
   watch(
     () => resolvedUid.value,
@@ -703,6 +687,24 @@ export function useNotes() {
     }
   };
 
+  // Watcher for User State - placed after syncPendingQueue definition to avoid TDZ
+  watch(user, (currentUser, previousUser) => {
+    if (currentUser && !previousUser) {
+      fetchNotes(false);
+      // Trigger sync if user logs in while already online
+      if (isOnline.value) {
+        syncPendingQueue();
+      }
+    } else if (!currentUser && previousUser) {
+      notes.value = [];
+      selectedNote.value = null;
+      originalSelectedNote.value = null;
+      currentEditorContent.value = ''; // Reset editor content
+      router.push('/login');
+    }
+  }, { immediate: true });
+
+  // Watcher for Online State - placed after syncPendingQueue definition to avoid TDZ
   watch(isOnline, (online, wasOnline) => {
     if (online && !wasOnline) {
       syncPendingQueue();
