@@ -174,6 +174,8 @@ export function useNotes() {
   // --- Core Logic Functions (CRUD, Select) ---
   // Fetch notes function with pagination
   const fetchNotes = async (loadMore = false, query: string | null = null) => {
+    console.log('[fetchNotes] Called with:', { loadMore, query, isOnline: isOnline.value });
+    
     if (!isLoggedIn.value || !user.value || (loadMore && !hasMoreNotes.value)) return;
     const uid = resolvedUid.value;
     // Ensure we have a valid UUID before hitting Supabase; otherwise bail and wait for auth to settle
@@ -589,11 +591,23 @@ export function useNotes() {
 
   // Sync queue when coming online
   const syncPendingQueue = async () => {
-    if (!isOnline.value || !isLoggedIn.value || !user.value || syncing.value) return;
+    console.log('[syncPendingQueue] Called with:', {
+      isOnline: isOnline.value,
+      isLoggedIn: isLoggedIn.value,
+      hasUser: !!user.value,
+      syncing: syncing.value
+    });
+    
+    if (!isOnline.value || !isLoggedIn.value || !user.value || syncing.value) {
+      console.log('[syncPendingQueue] Early return - conditions not met');
+      return;
+    }
+    
     syncing.value = true;
     try {
-  const uid = resolvedUid.value as string;
+      const uid = resolvedUid.value as string;
       const items = await readQueueFIFO(uid);
+      console.log('[syncPendingQueue] Queue items:', items.length);
       // Track id replacements within this run to avoid duplicate creates
       const idMap = new Map<string, string>(); // localId -> serverId
       const processed: string[] = [];
@@ -712,9 +726,23 @@ export function useNotes() {
 
   // Watcher for Online State - placed after syncPendingQueue definition to avoid TDZ
   watch(isOnline, async (online, wasOnline) => {
+    console.log('[isOnline watcher] Fired:', { online, wasOnline, user: !!user.value });
+    
+    // On mount (wasOnline is undefined), sync and fetch if online
+    if (online && wasOnline === undefined) {
+      console.log('[isOnline watcher] Initial mount with online=true - syncing then fetching');
+      await syncPendingQueue();
+      console.log('[isOnline watcher] Sync complete, now fetching');
+      fetchNotes(false, searchQuery.value || null);
+      return;
+    }
+    
+    // Transition from offline to online
     if (online && !wasOnline) {
+      console.log('[isOnline watcher] Going online - syncing then fetching');
       // Sync pending queue first, then refresh from server
       await syncPendingQueue();
+      console.log('[isOnline watcher] Sync complete, now fetching');
       // Refresh list to ensure server truth wins (after sync completes)
       fetchNotes(false, searchQuery.value || null);
     }
