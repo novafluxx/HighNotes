@@ -25,9 +25,13 @@ export const useAccountDeletion = () => {
     // Check if online
     if (!navigator.onLine) {
       // Queue the deletion operation for when we come back online
+      const userId = user.value.id;
+      if (!userId) {
+        return { success: false, error: 'User ID not available' };
+      }
       await enqueueOperation({
         type: 'delete-account',
-        user_id: user.value.id,
+        user_id: userId,
         data: { confirmation },
         timestamp: Date.now()
       })
