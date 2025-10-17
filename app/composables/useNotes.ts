@@ -705,10 +705,11 @@ export function useNotes() {
   }, { immediate: true });
 
   // Watcher for Online State - placed after syncPendingQueue definition to avoid TDZ
-  watch(isOnline, (online, wasOnline) => {
+  watch(isOnline, async (online, wasOnline) => {
     if (online && !wasOnline) {
-      syncPendingQueue();
-      // Refresh list to ensure server truth wins
+      // Sync pending queue first, then refresh from server
+      await syncPendingQueue();
+      // Refresh list to ensure server truth wins (after sync completes)
       fetchNotes(false, searchQuery.value || null);
     }
   }, { immediate: true });

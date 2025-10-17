@@ -2,7 +2,13 @@
 
 **Date**: October 16, 2025  
 **Issue**: Offline syncing not working when network access is restored  
-**Status**: ✅ Fixed (with hotfix for temporal dead zone)
+**Status**: ✅ Fixed (with hotfix for temporal dead zone + race condition)
+
+## Updates
+
+- **Oct 16, 2025 - Initial Fix**: Added `immediate: true` to watchers
+- **Oct 16, 2025 - TDZ Hotfix**: Moved watchers after function definitions
+- **Oct 16, 2025 - Race Condition Fix**: Added `await` to prevent notes disappearing (see `RACE-CONDITION-SYNC-FIX.md`)
 
 ## Problem Analysis
 
