@@ -6,13 +6,15 @@ import { useToast } from '#imports';
 import debounce from 'lodash-es/debounce';
 import type { RealtimeChannel } from '@supabase/supabase-js';
 import { useOnline } from '@vueuse/core';
+import { useOfflineUser } from '~/composables/useOfflineUser';
 
 export function useNotes() {
   // --- Supabase Setup ---
   const router = useRouter();
   const client = useSupabaseClient<Database>();
   const user = useSupabaseUser();
-  const isLoggedIn = computed(() => !!user.value);
+  const { offlineUser } = useOfflineUser();
+  const isLoggedIn = computed(() => !!(user.value || offlineUser.value));
 
   // --- Reactive State ---
   const notes = ref<Note[]>([]);
@@ -48,8 +50,14 @@ export function useNotes() {
   const isUUID = (val: unknown): val is string => typeof val === 'string' && /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(val);
   // Some environments expose sub before id; resolve a usable uid for queries/subscriptions
   const resolvedUid = computed<string | null>(() => {
-    const u: any = user.value as any;
-    return u?.id || u?.sub || null;
+    const supaUser: any = user.value as any;
+    if (supaUser?.id) {
+      return supaUser.id as string;
+    }
+    if (supaUser?.sub) {
+      return supaUser.sub as string;
+    }
+    return offlineUser.value?.id ?? null;
   });
 
   // --- Computed Properties for Validation/State ---
@@ -136,9 +144,9 @@ export function useNotes() {
   };
 
   watch(
-    () => resolvedUid.value,
-    (uid) => {
-      if (uid) {
+    () => ({ uid: resolvedUid.value, hasSession: !!user.value, online: isOnline.value }),
+    ({ uid, hasSession, online }) => {
+      if (uid && hasSession && online) {
         subscribeToNotes(uid);
       } else if (channel) {
         client.removeChannel(channel);
@@ -174,12 +182,16 @@ export function useNotes() {
   // --- Core Logic Functions (CRUD, Select) ---
   // Fetch notes function with pagination
   const fetchNotes = async (loadMore = false, query: string | null = null) => {
-    if (!isLoggedIn.value || !user.value || (loadMore && !hasMoreNotes.value)) return;
     const uid = resolvedUid.value;
-    // Ensure we have a valid UUID before hitting Supabase; otherwise bail and wait for auth to settle
-    if (!uid || !isUUID(uid)) {
+    if (!isLoggedIn.value || !uid || (loadMore && !hasMoreNotes.value)) {
       return;
     }
+    // Ensure we have a valid UUID before hitting Supabase; otherwise bail and wait for auth to settle
+    if (!isUUID(uid)) {
+      return;
+    }
+
+    const hasSupabaseSession = !!user.value;
 
     if (loadMore) {
       loadingMore.value = true;
@@ -192,8 +204,8 @@ export function useNotes() {
       // Don't clear selection yet either
     }
 
-    // Offline: serve from cache
-    if (!isOnline.value) {
+    // Offline path (no network or no Supabase session yet)
+    if (!isOnline.value || !hasSupabaseSession) {
       try {
         const cached = await getCachedNotes(uid);
         notes.value = query ? cached.filter(n => n.title?.toLowerCase().includes((query || '').toLowerCase())) : cached;
@@ -325,7 +337,8 @@ export function useNotes() {
       await saveNote(true);
     }
 
-    if (!isLoggedIn.value || !user.value) return;
+  const uid = resolvedUid.value;
+  if (!isLoggedIn.value || !uid) return;
 
     if (!noteStub) {
       selectedNote.value = null;
@@ -349,7 +362,7 @@ export function useNotes() {
     // If the passed note stub doesn't have full content, fetch it.
     if (typeof noteStub.content !== 'string') {
       // Offline path: hydrate from cache
-      if (!isOnline.value) {
+      if (!isOnline.value || !user.value) {
         const cached = await getCachedNoteById(noteStub.id!);
         if (cached) {
           setSelection(cached);
@@ -372,7 +385,7 @@ export function useNotes() {
           .from('notes')
           .select('*')
           .eq('id', noteStub.id!)
-          .eq('user_id', resolvedUid.value as string)
+          .eq('user_id', uid)
           .single();
 
         if (error) throw error;
@@ -403,11 +416,12 @@ export function useNotes() {
 
   // Create New Note
   const createNewNote = () => {
-    if (!isLoggedIn.value || !user.value) return;
+    const uid = resolvedUid.value;
+    if (!isLoggedIn.value || !uid) return;
 
     const tempNewNote: Note = {
       id: null,
-      user_id: resolvedUid.value as string,
+      user_id: uid,
       title: '',
       content: '', // Initialize as empty string
       created_at: new Date().toISOString(),
@@ -433,7 +447,7 @@ export function useNotes() {
       }
 
       // If offline, cache and queue
-      if (!isOnline.value) {
+      if (!isOnline.value || !user.value) {
         const nowIso = new Date().toISOString();
         // Assign a local id for new notes
         if (!selectedNote.value.id) {
@@ -549,7 +563,7 @@ export function useNotes() {
 
   try {
       // Offline delete: update state/cache/queue only
-      if (!isOnline.value) {
+      if (!isOnline.value || !user.value) {
         notes.value = notes.value.filter(note => note.id !== noteIdToDelete);
         await removeCachedNote(noteIdToDelete);
         // Remove any queued create/update for this note

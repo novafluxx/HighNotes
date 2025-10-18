@@ -3,6 +3,7 @@ import { ref, readonly, computed } from 'vue';
 import type { AuthError } from '@supabase/supabase-js';
 import type { Database } from '~/types/database.types'; // Import generated DB types
 import { useRouter } from '#app'; // Nuxt's router composable
+import { useOfflineUser } from '~/composables/useOfflineUser';
 // useSupabaseClient will be auto-imported by Nuxt
 
 // This composable now primarily provides login/logout *actions*
@@ -13,6 +14,7 @@ export const useAuth = () => {
   const client = useSupabaseClient<Database>(); // Use standard composable with DB types
   const router = useRouter();
   const loading = ref(false); // Loading state specifically for login/logout actions
+  const { clearOfflineUser } = useOfflineUser();
 
   const login = async (email: string, password: string): Promise<{ error: AuthError | null }> => {
     loading.value = true;
@@ -31,6 +33,7 @@ export const useAuth = () => {
     const { error } = await client.auth.signOut();
     if (!error) {
       // User state will update automatically via useSupabaseUser()
+      clearOfflineUser();
       router.push('/'); // Redirect after logout
     }
     loading.value = false;
