@@ -66,10 +66,19 @@ export default defineNuxtConfig({
   vite: {
     plugins: [
       tailwindcss()
-    ]
+    ],
+    // Avoid SSR Rollup/CommonJS transform on @vueuse/core which causes a parse error
+    ssr: {
+      external: ['@vueuse/core']
+    }
   },
   nitro: {
-    compressPublicAssets: true
+    compressPublicAssets: true,
+    // Work around Rollup/CommonJS parsing issue with @vueuse/core v14 in SSR build
+    // by externalizing it from the Nitro server bundle.
+    externals: {
+      external: ['@vueuse/core']
+    }
   },
   pwa: {
     registerType: 'autoUpdate',
