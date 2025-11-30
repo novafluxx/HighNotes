@@ -1,9 +1,9 @@
 [build]
   command = "pnpm build"
-  publish = "dist"
+  publish = ".output/public"
 
 [build.environment]
-  NODE_VERSION = "22"
+  NODE_VERSION = "24"
   NPM_FLAGS = "--version"
 
 [[headers]]

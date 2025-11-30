@@ -73,6 +73,7 @@ export default defineNuxtConfig({
     }
   },
   nitro: {
+    preset: 'netlify',
     compressPublicAssets: true,
     // Work around Rollup/CommonJS parsing issue with @vueuse/core v14 in SSR build
     // by externalizing it from the Nitro server bundle.
